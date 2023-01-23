@@ -925,13 +925,22 @@ void EmulatorWindow::ShowContentDirectory() {
   std::filesystem::path target_path;
 
   auto content_root = emulator_->content_root();
-  if (!emulator_->is_title_open() || !emulator_->kernel_state()) {
+  if (!emulator_->kernel_state()) {
     target_path = content_root;
+  }
+
+  if (!emulator_->is_title_open()) {
+    auto xuid_str = fmt::format(
+        "{:016X}", emulator_->kernel_state()->user_profile((uint32_t)0)->xuid());
+    auto package_root = content_root / xuid_str;
+    target_path = package_root;
   } else {
     // TODO(gibbed): expose this via ContentManager?
+    auto xuid_str = fmt::format(
+        "{:016X}", emulator_->kernel_state()->user_profile((uint32_t)0)->xuid());
     auto title_id =
         fmt::format("{:08X}", emulator_->kernel_state()->title_id());
-    auto package_root = content_root / title_id;
+    auto package_root = content_root / xuid_str / title_id;
     target_path = package_root;
   }
 

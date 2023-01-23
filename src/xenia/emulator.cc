@@ -368,13 +368,20 @@ X_STATUS Emulator::InstallContentPackage(const std::filesystem::path& path) {
     return X_STATUS_INVALID_PARAMETER;
   }
 
+  auto xuid_str = fmt::format("{:016X}", 0);
+  if (device->content_type() == XContentType::kSavedGame) {
+    xuid_str = fmt::format("{:016X}",
+                           kernel_state()->user_profile((uint32_t)0)->xuid());
+  }
+
   std::filesystem::path installation_path =
-      content_root() / fmt::format("{:08X}", device->title_id()) /
+      content_root() / xuid_str / fmt::format("{:08X}", device->title_id()) /
       fmt::format("{:08X}", device->content_type()) / path.filename();
 
   std::filesystem::path header_path =
-      content_root() / fmt::format("{:08X}", device->title_id()) / "Headers" /
-      fmt::format("{:08X}", device->content_type()) / path.filename();
+      content_root() / xuid_str / fmt::format("{:08X}", device->title_id()) /
+      "Headers" / fmt::format("{:08X}", device->content_type()) /
+      path.filename();
 
   if (std::filesystem::exists(installation_path)) {
     // TODO(Gliniak): Popup
@@ -631,34 +638,40 @@ bool Emulator::ExceptionCallback(Exception* ex) {
   std::string crash_msg;
   crash_msg.append("==== CRASH DUMP ====\n");
   crash_msg.append(fmt::format("Thread ID (Host: 0x{:08X} / Guest: 0x{:08X})\n",
-         current_thread->thread()->system_id(), current_thread->thread_id()));
-  crash_msg.append(fmt::format("Thread Handle: 0x{:08X}\n", current_thread->handle()));
-  crash_msg.append(fmt::format("PC: 0x{:08X}\n",
-         guest_function->MapMachineCodeToGuestAddress(ex->pc())));
+                               current_thread->thread()->system_id(),
+                               current_thread->thread_id()));
+  crash_msg.append(
+      fmt::format("Thread Handle: 0x{:08X}\n", current_thread->handle()));
+  crash_msg.append(
+      fmt::format("PC: 0x{:08X}\n",
+                  guest_function->MapMachineCodeToGuestAddress(ex->pc())));
   crash_msg.append("Registers:\n");
   for (int i = 0; i < 32; i++) {
     crash_msg.append(fmt::format(" r{:<3} = {:016X}\n", i, context->r[i]));
   }
   for (int i = 0; i < 32; i++) {
-    crash_msg.append(fmt::format(" f{:<3} = {:016X} = (double){} = (float){}\n", i,
-           *reinterpret_cast<uint64_t*>(&context->f[i]), context->f[i],
-           *(float*)&context->f[i]));
+    crash_msg.append(fmt::format(" f{:<3} = {:016X} = (double){} = (float){}\n",
+                                 i,
+                                 *reinterpret_cast<uint64_t*>(&context->f[i]),
+                                 context->f[i], *(float*)&context->f[i]));
   }
   for (int i = 0; i < 128; i++) {
-    crash_msg.append(fmt::format(" v{:<3} = [0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}]\n", i,
-           context->v[i].u32[0], context->v[i].u32[1], context->v[i].u32[2],
-           context->v[i].u32[3]));
+    crash_msg.append(
+        fmt::format(" v{:<3} = [0x{:08X}, 0x{:08X}, 0x{:08X}, 0x{:08X}]\n", i,
+                    context->v[i].u32[0], context->v[i].u32[1],
+                    context->v[i].u32[2], context->v[i].u32[3]));
   }
   XELOGE("{}", crash_msg);
   std::string crash_dlg = fmt::format(
-              "The guest has crashed.\n\n"
-              "Xenia has now paused itself.\n\n"
-              "{}", crash_msg);
+      "The guest has crashed.\n\n"
+      "Xenia has now paused itself.\n\n"
+      "{}",
+      crash_msg);
   // Display a dialog telling the user the guest has crashed.
   if (display_window_ && imgui_drawer_) {
-    display_window_->app_context().CallInUIThreadSynchronous([this, &crash_dlg]() {
-      xe::ui::ImGuiDialog::ShowMessageBox(
-          imgui_drawer_, "Uh-oh!", crash_dlg);
+    display_window_->app_context().CallInUIThreadSynchronous([this,
+                                                              &crash_dlg]() {
+      xe::ui::ImGuiDialog::ShowMessageBox(imgui_drawer_, "Uh-oh!", crash_dlg);
     });
   }
 

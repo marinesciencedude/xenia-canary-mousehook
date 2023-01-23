@@ -9,6 +9,7 @@
 
 #include <cstring>
 
+#include "xenia/app/emulator_window.h"
 #include "xenia/base/logging.h"
 #include "xenia/base/math.h"
 #include "xenia/base/string_util.h"
@@ -355,17 +356,6 @@ dword_result_t XamUserWriteProfileSettings_entry(
   if (!setting_count || !settings) {
     return X_ERROR_INVALID_PARAMETER;
   }
-
-  // Skip writing data about users with id != 0 they're not supported
-  if (user_index > 0) {
-    if (overlapped) {
-      kernel_state()->CompleteOverlappedImmediate(
-          kernel_state()->memory()->HostToGuestVirtual(overlapped),
-          X_ERROR_NO_SUCH_USER);
-      return X_ERROR_IO_PENDING;
-    }
-    return X_ERROR_SUCCESS;
-  }
   // Update and save settings.
   const auto& user_profile = kernel_state()->user_profile(user_index);
 
@@ -561,7 +551,7 @@ dword_result_t XamShowSigninUI_entry(dword_t unk, dword_t unk_mask) {
   // Mask values vary. Probably matching user types? Local/remote?
   // Games seem to sit and loop until we trigger this notification:
 
-  for (uint32_t i = 0; i < 4; i++) {
+  for (uint32_t i = 0; i < MAX_USERS; i++) {
     if (kernel_state()->IsUserSignedIn(i)) {
       // XN_SYS_SIGNINCHANGED
       kernel_state()->BroadcastNotification(0xA, i);

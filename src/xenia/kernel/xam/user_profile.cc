@@ -10,25 +10,53 @@
 #include "xenia/kernel/xam/user_profile.h"
 
 #include <sstream>
+#include <xhash>
 
 #include "third_party/fmt/include/fmt/format.h"
 #include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/util/shim_utils.h"
+
+DEFINE_string(gamertag_0, "User_0", "The name of your user profile.",
+              "Profile");
+DEFINE_string(gamertag_1, "User_1", "The name of your user profile.",
+              "Profile");
+DEFINE_string(gamertag_2, "User_2", "The name of your user profile.",
+              "Profile");
+DEFINE_string(gamertag_3, "User_3", "The name of your user profile.",
+              "Profile");
 
 namespace xe {
 namespace kernel {
 namespace xam {
 
 UserProfile::UserProfile(uint8_t index) {
+  const std::vector<std::string> username_list = {
+      cvars::gamertag_0,
+      cvars::gamertag_1,
+      cvars::gamertag_2,
+      cvars::gamertag_3,
+  };
+
+  std::string current_username = username_list[index];
+  if (current_username.empty()) {
+    current_username = "User_" + std::to_string(index);
+  }
+
+  // TODO(Gliniak): Username sanitizer
+  //
   // 58410A1F checks the user XUID against a mask of 0x00C0000000000000 (3<<54),
   // if non-zero, it prevents the user from playing the game.
   // "You do not have permissions to perform this operation."
-  xuid_ = 0xB13EBABEBABEBABE + index;
-  name_ = "User";
-  if (index) {
-    name_ = "User_" + std::to_string(index);
-  }
 
+  // Get assigned username to current index from config
+  // Then use lower 4 bytes based on player name for unique xuid
+  size_t hash = std::hash<std::string>{}(current_username);
+
+  xuid_ = 0xB13E000000000000 + (hash & 0xFFFFFFFF);
+  name_ = current_username;
+
+  XELOGE("User (Gamertag: {}) in slot {} have xuid = {:016X}", name_, index,
+         xuid_);
   // https://cs.rin.ru/forum/viewtopic.php?f=38&t=60668&hilit=gfwl+live&start=195
   // https://github.com/arkem/py360/blob/master/py360/constants.py
   // XPROFILE_GAMER_YAXIS_INVERSION
@@ -137,7 +165,7 @@ UserProfile::Setting* UserProfile::GetSetting(uint32_t setting_id) {
 void UserProfile::LoadSetting(UserProfile::Setting* setting) {
   if (setting->is_title_specific()) {
     auto content_dir =
-        kernel_state()->content_manager()->ResolveGameUserContentPath();
+        kernel_state()->content_manager()->ResolveGameUserContentPath(xuid_);
     auto setting_id = fmt::format("{:08X}", setting->setting_id);
     auto file_path = content_dir / setting_id;
     auto file = xe::filesystem::OpenFile(file_path, "rb");
@@ -163,7 +191,7 @@ void UserProfile::SaveSetting(UserProfile::Setting* setting) {
   if (setting->is_title_specific()) {
     auto serialized_setting = setting->Serialize();
     auto content_dir =
-        kernel_state()->content_manager()->ResolveGameUserContentPath();
+        kernel_state()->content_manager()->ResolveGameUserContentPath(xuid_);
     std::filesystem::create_directories(content_dir);
     auto setting_id = fmt::format("{:08X}", setting->setting_id);
     auto file_path = content_dir / setting_id;

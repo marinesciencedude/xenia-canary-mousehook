@@ -112,10 +112,15 @@ dword_result_t XamContentAggregateCreateEnumerator_entry(qword_t xuid,
                 std::back_inserter(title_ids));
     }
 
+    auto user = kernel_state()->user_profile(xuid);
+    if (!user) {
+      return X_E_NO_SUCH_USER;
+    }
+
     for (auto& title_id : title_ids) {
       // Get all content data.
       auto content_datas = kernel_state()->content_manager()->ListContent(
-          static_cast<uint32_t>(DummyDeviceId::HDD), content_type_enum,
+          static_cast<uint32_t>(DummyDeviceId::HDD), xuid, content_type_enum,
           title_id);
       for (const auto& content_data : content_datas) {
         auto item = e->AppendItem();
