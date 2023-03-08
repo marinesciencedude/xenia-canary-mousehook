@@ -97,3 +97,6 @@
 [submodule "third_party/rapidcsv"]
 	path = third_party/rapidcsv
 	url = https://github.com/d99kris/rapidcsv
+[submodule "third_party/libcurl"]
+	path = third_party/libcurl
+	url = https://github.com/curl/curl.git
