@@ -344,6 +344,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(true);
   } else {
     // Changing the style and the menu may change the size too, don't handle
     // the resize multiple times (also potentially with the listeners changing
@@ -427,6 +429,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(false);
   }
 }
 
@@ -1282,6 +1286,10 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_KILLFOCUS: {
+      if (IsFullscreen()) {
+        ToggleCursorLock(false);
+      }
+
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(false, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1290,17 +1298,8 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_SETFOCUS: {
-      if (is_fullscreen()) {
-        // Cursor bounds can be lost when focus is lost, reapply them...
-        // TODO: can this go somewhere better?
-        RECT bounds;
-        GetWindowRect(hwnd(), &bounds);
-        // Reduce cursor bounds by 1px on each side, just in case..
-        bounds.top++;
-        bounds.left++;
-        bounds.bottom--;
-        bounds.right--;
-        ClipCursor(&bounds);
+      if (IsFullscreen()) {
+        ToggleCursorLock(true);
       }
 	  
       WindowDestructionReceiver destruction_receiver(this);
@@ -1438,6 +1437,24 @@ LRESULT CALLBACK Win32Window::WndProcThunk(HWND hWnd, UINT message,
     }
   }
   return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void Win32Window::ToggleCursorLock(bool lock) {
+  if (lock) {
+    // Cursor bounds can be lost when focus is lost, reapply them...
+    RECT bounds;
+    GetWindowRect(hwnd(), &bounds);
+
+    // Reduce cursor bounds by 1px on each side, just in case..
+    bounds.top++;
+    bounds.left++;
+    bounds.bottom--;
+    bounds.right--;
+
+    ClipCursor(&bounds);
+  } else {
+    ClipCursor(NULL);
+  }
 }
 
 std::unique_ptr<ui::MenuItem> MenuItem::Create(Type type,
