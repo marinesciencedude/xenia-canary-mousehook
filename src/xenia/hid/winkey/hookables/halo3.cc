@@ -138,11 +138,14 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     // this (XThread::GetTLSValue only returns tls_dynamic_address_, and doesn't
     // seem to be any functions to get static_addr...)
 
-    uint32_t pcr_addr =
-        static_cast<uint32_t>(xe::kernel::XThread::GetCurrentThread()
-                                  ->thread_state()
-                                  ->context()
-                                  ->r[13]);
+    xe::kernel::XThread* current_thread = xe::kernel::XThread::GetCurrentThread();
+
+    if (!current_thread) {
+      return false;
+    }
+
+    uint32_t pcr_addr = static_cast<uint32_t>(
+        current_thread->thread_state()->context()->r[13]);
 
     auto tls_addr =
         kernel_memory()->TranslateVirtual<X_KPCR*>(pcr_addr)->tls_ptr;
