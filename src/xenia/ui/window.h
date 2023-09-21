@@ -296,8 +296,6 @@ class Window {
   void SetIcon(const void* buffer, size_t size);
   void ResetIcon() { SetIcon(nullptr, 0); }
   
-  bool is_fullscreen() const { return false; }
-
   // Desired state stored by the common Window, externally modifiable, read-only
   // in the implementation.
   void SetMainMenu(std::unique_ptr<MenuItem> new_main_menu);
