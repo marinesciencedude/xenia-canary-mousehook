@@ -102,7 +102,7 @@ bool CSGOGame::DoHooks(uint32_t user_index, RawInputState& input_state,
         player_ptr + 0x4AC8);
   } else {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        player_ptr + 0xB60);
+        player_ptr + 0x4AE8);
   }
 
   QAngle* ang = reinterpret_cast<QAngle*>(angle_offset);

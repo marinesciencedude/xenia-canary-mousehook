@@ -1,6 +1,6 @@
 # Mousehook
 
-This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
+This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
 
 ## Supported Games
 
@@ -8,18 +8,20 @@ This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) a
 |---|---|
 | Orange Box | All Games TU0 |
 | Portal Still Alive |
-| CSGO | Supports Netplay |
-| CSGO Beta | Supports Netplay  |
-| Left 4 Dead 2 | Supports Netplay TU0 |
+| CSGO | |
+| CSGO Beta | |
+| Left 4 Dead 2 | TU0 |
 | Left 4 Dead | TU0 |
-| Portal 2 | Supports Netplay TU0 |
-| Team Fortress 2 | Supports Netplay TU0 |
+| Portal 2 |  TU0 |
+| Team Fortress 2 | TU0 |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
 | Perfect Dark XBLA | b33, b52 (TU0) & b102 |
 | Halo 3 | TU0/TU3 & 08172 'delta' |
-| Halo 3: ODST | Supports Netplay |
+| Halo 3: ODST | |
 | Halo Reach | TU0/TU1 |
 | Halo 4 | TU0/TU8 |
+
+### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
 <p align="center">
     <a href="https://github.com/xenia-project/xenia/tree/master/assets/icon">
