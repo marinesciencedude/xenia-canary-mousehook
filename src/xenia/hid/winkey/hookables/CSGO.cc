@@ -1,4 +1,4 @@
-/**
+﻿/**
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
@@ -24,6 +24,8 @@ using namespace xe::kernel;
 DECLARE_double(sensitivity);
 DECLARE_double(source_sniper_sensitivity);
 DECLARE_bool(invert_y);
+DECLARE_int32(walk_orthogonal);
+DECLARE_int32(walk_diagonal);
 
 const uint32_t kTitleIdCSGO = 0x5841125A;
 const std::string kBetaVersion = "1.0.1.16";
@@ -140,11 +142,55 @@ bool CSGOGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
-bool CSGOGame::ModifierKeyHandler(uint32_t user_index,
-                                  RawInputState& input_state,
-                                  X_INPUT_STATE* out_state) {
-  return false;
+// probably making a mistake using a template, ah well
+template <typename T> int sgn(T val)
+{
+  return (T(0) < val) - (val < T(0));
 }
+
+bool CSGOGame::ModifierKeyHandler(uint32_t user_index,
+                                       RawInputState& input_state,
+                                       X_INPUT_STATE* out_state)
+{
+  float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
+  float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
+
+  // Work out angle from the current stick values
+  float angle = atan2f(thumb_ly, thumb_lx);
+
+  // Equates to 134.99 h.u./s - 22800 for forward/backward, 18421 for diagonal
+  int16_t distance_x, distance_y;
+
+  // as soon as you put it to a separate variable it stops bugging out
+
+  int multiplier_x = sgn(thumb_lx);
+  int multiplier_y = sgn(thumb_ly);
+
+  // If angle DIV π⁄4 is odd
+  if (fmod(angle / 0.785398185f, 2) != 0)
+  { 
+    distance_x = int16_t(cvars::walk_diagonal * multiplier_x);
+    distance_y = int16_t(cvars::walk_diagonal * multiplier_y);
+  }
+  else 
+  {
+      // Default value equates to 134.99 h.u./s, any higher than this value and the movement speed immediately goes to max
+    distance_x = int16_t(cvars::walk_orthogonal * multiplier_x);  // Default value between SHRT_MAX * (177.4/255 and 177.5/255)
+    distance_y = int16_t(cvars::walk_orthogonal * multiplier_y);  // Default value between SHRT_MAX * (177.4/255 and 177.5/255)
+  }
+
+  // Need analogue-compatible version
+  //out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
+  //out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
+  out_state->gamepad.thumb_lx = distance_x;
+  out_state->gamepad.thumb_ly = distance_y;
+
+  // Return true to signal that we've handled the modifier, so default modifier won't be used
+  return true;
+
+
+}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

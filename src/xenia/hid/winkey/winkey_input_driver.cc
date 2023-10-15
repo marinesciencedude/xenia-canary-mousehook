@@ -41,6 +41,8 @@ DEFINE_bool(disable_autoaim, true,
             "MouseHook");
 DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
               "MouseHook");
+DEFINE_int32(walk_orthogonal, 22800, "Joystick movement for forward/backward/left/right shiftwalking, default 22800 equates to 134.99 h.u./s", "MouseHook");
+DEFINE_int32(walk_diagonal, 18421, "Joystick movement for diagonal shiftwalking, default 18421 equates to 134.99 h.u./s", "MouseHook");
 
 const uint32_t kTitleIdDefaultBindings = 0;
 
