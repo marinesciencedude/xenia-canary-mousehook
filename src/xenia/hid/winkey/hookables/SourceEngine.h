@@ -7,8 +7,8 @@
  ******************************************************************************
  */
 
-#ifndef XENIA_HID_WINKEY_L4D2_H_
-#define XENIA_HID_WINKEY_L4D2_H_
+#ifndef XENIA_HID_WINKEY_SOURCE_ENGINE_H_
+#define XENIA_HID_WINKEY_SOURCE_ENGINE_H_
 
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
@@ -16,15 +16,20 @@ namespace xe {
 namespace hid {
 namespace winkey {
 
-class L4D2Game : public HookableGame {
+class SourceEngine : public HookableGame {
  public:
   enum class GameBuild {
     Unknown,
-    L4D2
+    CSGO,
+    L4D1,
+    L4D2,
+    OrangeBox,
+    PortalSA,
+    Portal2
   };
 
-  L4D2Game();
-  ~L4D2Game() override;
+  SourceEngine();
+  ~SourceEngine() override;
 
   bool IsGameSupported();
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
@@ -44,10 +49,12 @@ class L4D2Game : public HookableGame {
   bool engine_360;
 
   double original_sensitivity;
+
+  bool isBeta;
 };
 
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 
-#endif  // XENIA_HID_WINKEY_L4D2_H_
+#endif  // XENIA_HID_WINKEY_CSGO_H_

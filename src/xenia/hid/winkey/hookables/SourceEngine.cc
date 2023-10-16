@@ -7,7 +7,7 @@
  ******************************************************************************
  */
 
-#include "xenia/hid/winkey/hookables/CSGO.h"
+#include "xenia/hid/winkey/hookables/SourceEngine.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -30,6 +30,12 @@ DECLARE_int32(walk_diagonal);
 const uint32_t kTitleIdCSGO = 0x5841125A;
 const std::string kBetaVersion = "1.0.1.16";
 
+const uint32_t kTitleIdL4D1 = 0x45410830;
+const uint32_t kTitleIdL4D2 = 0x454108D4;
+const uint32_t kTitleIdOrangeBox = 0x4541080F;
+const uint32_t kTitleIdPortalSA = 0x58410960;
+const uint32_t kTitleIdPortal2 = 0x45410912;
+
 namespace xe {
 namespace hid {
 namespace winkey {
@@ -38,22 +44,91 @@ bool __inline IsKeyToggled(uint8_t key) {
   return (GetKeyState(key) & 0x1) == 0x1;
 }
 
-CSGOGame::CSGOGame() {
+SourceEngine::SourceEngine() {
   original_sensitivity = cvars::sensitivity;
   engine_360 = NULL;
   isBeta = false;
 };
 
-CSGOGame::~CSGOGame() = default;
+SourceEngine::~SourceEngine() = default;
 
-bool CSGOGame::IsGameSupported() {
-  return kernel_state()->title_id() == kTitleIdCSGO;
+struct GameBuildAddrs {
+  uint32_t execute_addr;
+  uint32_t angle_offset;
+};
+
+// Replace with build names when we introduce more compatibility
+std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
+    {
+        SourceEngine::GameBuild::CSGO, 
+        {0x86955490, 0x4AE8}
+    }, 
+    {
+        SourceEngine::GameBuild::L4D1, 
+        {0x86536888, 0x4B44}
+    },
+    {
+        SourceEngine::GameBuild::L4D2, 
+        {0x8697DB30, 0x4A94}
+    },
+    {
+        SourceEngine::GameBuild::OrangeBox, 
+        {NULL, 0x863F53A8}
+    },
+    {
+        SourceEngine::GameBuild::PortalSA,
+        {NULL, 0x863F56B0}
+    },
+    {
+        SourceEngine::GameBuild::Portal2,
+        {0x82C50180, 0x4A98}
+    }
+};
+
+bool SourceEngine::IsGameSupported() {
+  auto title_id = kernel_state()->title_id();
+
+  switch (title_id) 
+  {
+  case kTitleIdCSGO:
+      {
+           game_build_ = SourceEngine::GameBuild::CSGO; 
+           return true;
+      }
+  case kTitleIdL4D1:
+      {
+           game_build_ = SourceEngine::GameBuild::L4D1;
+           return true;
+      }
+  case kTitleIdL4D2:
+      {
+           game_build_ = SourceEngine::GameBuild::L4D2;
+           return true;
+      }
+  case kTitleIdOrangeBox:
+      {
+           game_build_ = SourceEngine::GameBuild::OrangeBox;
+           return true;
+      }
+  case kTitleIdPortalSA:
+      {
+           game_build_ = SourceEngine::GameBuild::PortalSA;
+           return true;
+      }
+  case kTitleIdPortal2:
+      {
+           game_build_ = SourceEngine::GameBuild::Portal2;
+           return true;
+      }
+  }
+
+  return false;
 }
 
 #define IS_KEY_DOWN(x) (input_state.key_states[x])
 
-bool CSGOGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                       X_INPUT_STATE* out_state) {
+bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
+                           X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -78,33 +153,47 @@ bool CSGOGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     isBeta = true;
   }
 
-  current_thread->thread_state()->context()->r[3] = -1;
+  uint32_t player_ptr;
+  if (supported_builds[game_build_].execute_addr)
+  {
+      current_thread->thread_state()->context()->r[3] = -1;
 
-  if (isBeta) {
-    kernel_state()->processor()->Execute(current_thread->thread_state(),
-                                         0x8697DB30);
-  } else {
-    kernel_state()->processor()->Execute(current_thread->thread_state(),
-                                         0x86955490);
-  }
+      // CS:GO Beta
+      if (isBeta) {
+        kernel_state()->processor()->Execute(current_thread->thread_state(),
+                                             0x8697DB30);
+      } else {
+        kernel_state()->processor()->Execute(
+            current_thread->thread_state(),
+            supported_builds[game_build_].execute_addr);
+      }
 
-  // Get player pointer
-  uint32_t player_ptr =
-      static_cast<uint32_t>(current_thread->thread_state()->context()->r[3]);
+      // Get player pointer
+      player_ptr =
+          static_cast<uint32_t>(current_thread->thread_state()->context()->r[3]);
 
-  if (!player_ptr) {
-    // Not in game
-    return false;
+      if (!player_ptr) {
+        // Not in game
+        return false;
+      }
   }
 
   xe::be<uint32_t>* angle_offset;
 
-  if (isBeta) {
+  // CS:GO Beta
+  if (isBeta) 
+  {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         player_ptr + 0x4AC8);
-  } else {
+  } 
+  else if (!supported_builds[game_build_].execute_addr)
+  {
+    angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].angle_offset); 
+  }
+  else 
+  {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        player_ptr + 0x4AE8);
+        player_ptr + supported_builds[game_build_].angle_offset);
   }
 
   QAngle* ang = reinterpret_cast<QAngle*>(angle_offset);
@@ -148,7 +237,7 @@ template <typename T> int sgn(T val)
   return (T(0) < val) - (val < T(0));
 }
 
-bool CSGOGame::ModifierKeyHandler(uint32_t user_index,
+bool SourceEngine::ModifierKeyHandler(uint32_t user_index,
                                        RawInputState& input_state,
                                        X_INPUT_STATE* out_state)
 {

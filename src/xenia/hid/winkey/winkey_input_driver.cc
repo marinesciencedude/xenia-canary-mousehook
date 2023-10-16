@@ -23,12 +23,7 @@
 
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
-#include "xenia/hid/winkey/hookables/CSGO.h"
-#include "xenia/hid/winkey/hookables/L4D2.h"
-#include "xenia/hid/winkey/hookables/L4D1.h"
-#include "xenia/hid/winkey/hookables/Portal2.h"
-#include "xenia/hid/winkey/hookables/PortalSA.h"
-#include "xenia/hid/winkey/hookables/OrangeBox.h"
+#include "xenia/hid/winkey/hookables/SourceEngine.h"
 
 DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
 DEFINE_bool(swap_wheel, false,
@@ -308,12 +303,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   // Register our supported hookable games
   hookable_games_.push_back(std::move(std::make_unique<GoldeneyeGame>()));
   hookable_games_.push_back(std::move(std::make_unique<Halo3Game>()));
-  hookable_games_.push_back(std::move(std::make_unique<CSGOGame>()));
-  hookable_games_.push_back(std::move(std::make_unique<L4D2Game>()));
-  hookable_games_.push_back(std::move(std::make_unique<L4D1Game>()));
-  hookable_games_.push_back(std::move(std::make_unique<Portal2Game>()));
-  hookable_games_.push_back(std::move(std::make_unique<PortalSAGame>()));
-  hookable_games_.push_back(std::move(std::make_unique<OrangeBoxGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
 
   // Read bindings file if it exists
   std::ifstream binds("bindings.ini");
