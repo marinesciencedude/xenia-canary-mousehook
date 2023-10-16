@@ -24,6 +24,7 @@
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
+#include "xenia/hid/winkey/hookables/Crackdown2.h"
 
 DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
 DEFINE_bool(swap_wheel, false,
@@ -304,6 +305,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<GoldeneyeGame>()));
   hookable_games_.push_back(std::move(std::make_unique<Halo3Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
+  hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
 
   // Read bindings file if it exists
   std::ifstream binds("bindings.ini");
