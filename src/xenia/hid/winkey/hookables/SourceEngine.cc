@@ -69,7 +69,7 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
     },
     {
         SourceEngine::GameBuild::L4D2, 
-        {0x8697DB30, 0x4A94}
+        {0x86CC4E60, 0x4A94}
     },
     {
         SourceEngine::GameBuild::OrangeBox, 
