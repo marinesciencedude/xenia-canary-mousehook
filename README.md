@@ -20,6 +20,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Halo 3: ODST | |
 | Halo Reach | TU0/TU1 |
 | Halo 4 | TU0/TU8 |
+| Crackdown 2 | TU0/TU5 |
 
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
