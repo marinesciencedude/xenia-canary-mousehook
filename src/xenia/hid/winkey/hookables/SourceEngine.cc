@@ -215,13 +215,13 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   camX -=
-      (((float)input_state.mouse.x_delta) / 1000.f) * (float)cvars::sensitivity;
+      (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
 
   if (!cvars::invert_y) {
-    camY -= (((float)input_state.mouse.y_delta) / 1000.f) *
+    camY += (((float)input_state.mouse.y_delta) / 7.5f) *
             (float)cvars::sensitivity;
   } else {
-    camY += (((float)input_state.mouse.y_delta) / 1000.f) *
+    camY -= (((float)input_state.mouse.y_delta) / 7.5f) *
             (float)cvars::sensitivity;
   }
 
