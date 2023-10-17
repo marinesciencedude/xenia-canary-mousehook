@@ -123,11 +123,6 @@ class Processor {
   bool ExecuteRaw(ThreadState* thread_state, uint32_t address);
   uint64_t Execute(ThreadState* thread_state, uint32_t address, uint64_t args[],
                    size_t arg_count);
-  uint64_t ExecuteInterrupt(ThreadState* thread_state, uint32_t address,
-                            uint64_t args[], size_t arg_count);
-
-  Irql RaiseIrql(Irql new_value);
-  void LowerIrql(Irql old_value);
 
   bool Save(ByteStream* stream);
   bool Restore(ByteStream* stream);
@@ -188,6 +183,19 @@ class Processor {
   // in host code you want to ignore.
   // Returns the new PC guest address.
   uint32_t StepToGuestSafePoint(uint32_t thread_id, bool ignore_host = false);
+
+  uint32_t GuestAtomicIncrement32(ppc::PPCContext* context,
+                                  uint32_t guest_address);
+  uint32_t GuestAtomicDecrement32(ppc::PPCContext* context,
+                                  uint32_t guest_address);
+  uint32_t GuestAtomicOr32(ppc::PPCContext* context, uint32_t guest_address,
+                         uint32_t mask);
+  uint32_t GuestAtomicXor32(ppc::PPCContext* context, uint32_t guest_address,
+                         uint32_t mask);
+  uint32_t GuestAtomicAnd32(ppc::PPCContext* context, uint32_t guest_address,
+                         uint32_t mask);
+  bool GuestAtomicCAS32(ppc::PPCContext* context, uint32_t old_value,
+                        uint32_t new_value, uint32_t guest_address);
 
  public:
   // TODO(benvanik): hide.

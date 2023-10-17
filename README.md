@@ -1,18 +1,18 @@
 ># [Netplay Fork](https://github.com/AdrianCassar/xenia-canary/tree/netplay_canary_experimental)
->
->This is a fork of [Xenia-Canary Netplay](https://github.com/craftycodie/sunrise-xenia-canary-netplay) which implements Online Multiplayer features.
->It has been built from the ground up and tested primarily with Halo 3, though other games are supported.
->In it's current state, the fork is very rough and not PR ready. Check out the [Issues](https://github.com/craftycodie/xenia-canary-netplay/issues) list for more on that.
->Please excuse the mess, I don't use C++ often and rushed this together in a couple of restless weeks. The code will improve in future.
->
->The web API powering this fork can be found [here](https://github.com/craftycodie/Xenia-WebServices)
->
->Massive thanks to @SarahGreyWolf for testing this fork with me for about a month, couldn't have done it without her.
->Also, thank you to @Bo98 for creating the burnout5 xenia fork, I used that as a basis for this, and some of the code is still here I think.
->
->Peace and hair grease
->
->Codie
+
+> This is a fork of [Xenia-Canary Netplay](https://github.com/craftycodie/sunrise-xenia-canary-netplay) which implements Online Multiplayer features.
+> It has been built from the ground up and tested primarily with Halo 3, though other games are supported.
+> In it's current state, the fork is very rough and not PR ready. Check out the [Issues](https://github.com/craftycodie/xenia-canary-netplay/issues) list for more on that.
+> Please excuse the mess, I don't use C++ often and rushed this together in a couple of restless weeks. The code will improve in future.
+
+> The web API powering this fork can be found [here](https://github.com/craftycodie/Xenia-WebServices)
+
+> Massive thanks to @SarahGreyWolf for testing this fork with me for about a month, couldn't have done it without her.
+> Also, thank you to @Bo98 for creating the burnout5 xenia fork, I used that as a basis for this, and some of the code is still here I think.
+
+> Peace and hair grease
+
+> Codie
 
 N.B. games supported by mousehook may not be supported for netplay.
 

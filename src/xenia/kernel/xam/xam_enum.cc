@@ -113,12 +113,12 @@ dword_result_t XamCreateEnumeratorHandle_entry(
   if (open_message == 0x58039) {
     auto e = make_object<XStaticEnumerator<XTitleServer>>(kernel_state(),
                                                                 item_count);
-    auto result =
-        e->Initialize(user_index, app_id, open_message, close_message, flags);
 
-    if (XFAILED(result)) {
-      return result;
-    }
+  auto result = e->Initialize(user_index, app_id, open_message, close_message,
+                              flags, extra_size, nullptr);
+  if (XFAILED(result)) {
+    return result;
+  }
 
 #pragma region Curl
     /*

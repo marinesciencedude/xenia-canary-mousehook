@@ -16,6 +16,7 @@
 
 #include "xenia/base/mutex.h"
 #include "xenia/base/vec128.h"
+#include "xenia/guest_pointers.h"
 namespace xe {
 namespace cpu {
 class Processor;
@@ -431,9 +432,11 @@ typedef struct alignas(64) PPCContext_s {
 
   template <typename T = uint8_t*>
   inline T TranslateVirtual(uint32_t guest_address) XE_RESTRICT const {
+    static_assert(std::is_pointer_v<T>);
 #if XE_PLATFORM_WIN32 == 1
     uint8_t* host_address = virtual_membase + guest_address;
-    if (guest_address >= static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this))) {
+    if (guest_address >=
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this))) {
       host_address += 0x1000;
     }
     return reinterpret_cast<T>(host_address);
@@ -442,13 +445,37 @@ typedef struct alignas(64) PPCContext_s {
 
 #endif
   }
-  //for convenience in kernel functions, version that auto narrows to uint32
+  template <typename T>
+  inline xe::be<T>* TranslateVirtualBE(uint32_t guest_address)
+      XE_RESTRICT const {
+    static_assert(!std::is_pointer_v<T> &&
+                  sizeof(T) > 1);  // maybe assert is_integral?
+    return TranslateVirtual<xe::be<T>*>(guest_address);
+  }
+  // for convenience in kernel functions, version that auto narrows to uint32
   template <typename T = uint8_t*>
   inline T TranslateVirtualGPR(uint64_t guest_address) XE_RESTRICT const {
     return TranslateVirtual<T>(static_cast<uint32_t>(guest_address));
-  
   }
 
+  template <typename T>
+  inline T* TranslateVirtual(TypedGuestPointer<T> guest_address) {
+    return TranslateVirtual<T*>(guest_address.m_ptr);
+  }
+  template <typename T>
+  inline uint32_t HostToGuestVirtual(T* host_ptr) XE_RESTRICT const {
+#if XE_PLATFORM_WIN32 == 1
+    uint32_t guest_tmp = static_cast<uint32_t>(
+        reinterpret_cast<const uint8_t*>(host_ptr) - virtual_membase);
+    if (guest_tmp >= static_cast<uint32_t>(reinterpret_cast<uintptr_t>(this))) {
+      guest_tmp -= 0x1000;
+    }
+    return guest_tmp;
+#else
+    return processor->memory()->HostToGuestVirtual(
+        reinterpret_cast<void*>(host_ptr));
+#endif
+  }
   static std::string GetRegisterName(PPCRegister reg);
   std::string GetStringFromValue(PPCRegister reg) const;
   void SetValueFromString(PPCRegister reg, std::string value);

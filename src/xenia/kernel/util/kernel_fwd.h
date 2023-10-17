@@ -9,7 +9,7 @@ class XModule;
 class XNotifyListener;
 class XThread;
 class UserModule;
-struct ProcessInfoBlock;
+struct X_KPROCESS;
 struct TerminateNotification;
 struct X_TIME_STAMP_BUNDLE;
 class KernelState;
@@ -17,9 +17,7 @@ struct XAPC;
 
 struct X_KPCR;
 struct X_KTHREAD;
-struct X_OBJECT_HEADER;
 struct X_OBJECT_CREATE_INFORMATION;
-struct X_OBJECT_TYPE;
 
 }  // namespace xe::kernel
 

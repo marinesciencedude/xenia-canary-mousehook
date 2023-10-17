@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "xenia/base/cvar.h"
+#include "xenia/base/bit_map.h"
 #include "xenia/cpu/backend/backend.h"
 
 #if XE_PLATFORM_WIN32 == 1
@@ -42,6 +43,19 @@ typedef void* (*HostToGuestThunk)(void* target, void* arg0, void* arg1);
 typedef void* (*GuestToHostThunk)(void* target, void* arg0, void* arg1);
 typedef void (*ResolveFunctionThunk)();
 
+/*
+    place guest trampolines in the memory range that the HV normally occupies. 
+    This way guests can call in via the indirection table and we don't have to clobber/reuse an existing memory range
+    The xboxkrnl range is already used by export trampolines (see kernel/kernel_module.cc)
+*/
+static constexpr uint32_t GUEST_TRAMPOLINE_BASE = 0x80000000;
+static constexpr uint32_t GUEST_TRAMPOLINE_END = 0x80040000;
+
+static constexpr uint32_t GUEST_TRAMPOLINE_MIN_LEN = 8;
+
+static constexpr uint32_t MAX_GUEST_TRAMPOLINES =
+    (GUEST_TRAMPOLINE_END - GUEST_TRAMPOLINE_BASE) / GUEST_TRAMPOLINE_MIN_LEN;
+
 #define RESERVE_BLOCK_SHIFT 16
 
 #define RESERVE_NUM_ENTRIES \
@@ -61,11 +75,22 @@ struct X64BackendStackpoint {
   // use
   unsigned guest_return_address_;
 };
+enum : uint32_t { 
+    kX64BackendMXCSRModeBit = 0, 
+    kX64BackendHasReserveBit = 1,
+    kX64BackendNJMOn = 2, //non-java mode bit is currently set. for use in software fp routines
+    kX64BackendNonIEEEMode = 3, //non-ieee mode is currently enabled for scalar fpu.
+};
 // located prior to the ctx register
 // some things it would be nice to have be per-emulator instance instead of per
 // context (somehow placing a global X64BackendCtx prior to membase, so we can
 // negatively index the membase reg)
 struct X64BackendContext {
+  union {
+    __m128 helper_scratch_xmms[4];
+    uint64_t helper_scratch_u64s[8];
+    uint32_t helper_scratch_u32s[16];
+  };
   ReserveHelper* reserve_helper_;
   uint64_t cached_reserve_value_;
   // guest_tick_count is used if inline_loadclock is used
@@ -144,9 +169,21 @@ class X64Backend : public Backend {
     return reinterpret_cast<X64BackendContext*>(
         reinterpret_cast<intptr_t>(ctx) - sizeof(X64BackendContext));
   }
+  virtual uint32_t CreateGuestTrampoline(GuestTrampolineProc proc,
+                                         void* userdata1,
+                                         void* userdata2, bool long_term) override;
+
+  virtual void FreeGuestTrampoline(uint32_t trampoline_addr) override;
   virtual void SetGuestRoundingMode(void* ctx, unsigned int mode) override;
   virtual bool PopulatePseudoStacktrace(GuestPseudoStackTrace* st) override;
   void RecordMMIOExceptionForGuestInstruction(void* host_address);
+
+  uint32_t LookupXMMConstantAddress32(unsigned index) {
+    return static_cast<uint32_t>(emitter_data() + sizeof(vec128_t) * index);
+  }
+  void* LookupXMMConstantAddress(unsigned index) {
+    return reinterpret_cast<void*>(emitter_data() + sizeof(vec128_t) * index);
+  }
 #if XE_X64_PROFILER_AVAILABLE == 1
   uint64_t* GetProfilerRecordForFunction(uint32_t guest_address);
 #endif
@@ -173,13 +210,20 @@ class X64Backend : public Backend {
   void* try_acquire_reservation_helper_ = nullptr;
   void* reserved_store_32_helper = nullptr;
   void* reserved_store_64_helper = nullptr;
-
+  void* vrsqrtefp_vector_helper = nullptr;
+  void* vrsqrtefp_scalar_helper = nullptr;
+  void* frsqrtefp_helper = nullptr;
  private:
 #if XE_X64_PROFILER_AVAILABLE == 1
   GuestProfilerData profiler_data_;
 #endif
 
   alignas(64) ReserveHelper reserve_helper_;
+  // allocates 8-byte aligned addresses in a normally not executable guest
+  // address
+  // range that will be used to dispatch to host code
+  BitMap guest_trampoline_address_bitmap_;
+  uint8_t* guest_trampoline_memory_;
 };
 
 }  // namespace x64
