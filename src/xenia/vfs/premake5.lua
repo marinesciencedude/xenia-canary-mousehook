@@ -7,7 +7,7 @@ project("xenia-vfs")
   kind("StaticLib")
   language("C++")
   links({
-    "xenia-base",
+    "xenia-base", "zstd", "zarchive"
   })
   defines({
   })
@@ -39,4 +39,5 @@ project("xenia-vfs-dump")
   resincludedirs({
     project_root,
   })
+include("testing")
 

@@ -85,6 +85,12 @@
 [submodule "third_party/VulkanMemoryAllocator"]
 	path = third_party/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "third_party/zstd"]
+	path = third_party/zstd
+	url = https://github.com/facebook/zstd.git
+[submodule "third_party/zarchive"]
+	path = third_party/zarchive
+	url = https://github.com/exzap/ZArchive.git
 [submodule "third_party/libcurl"]
 	path = third_party/libcurl
 	url = https://github.com/curl/curl.git

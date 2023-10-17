@@ -432,50 +432,6 @@ uint64_t Processor::Execute(ThreadState* thread_state, uint32_t address,
   return context->r[3];
 }
 
-uint64_t Processor::ExecuteInterrupt(ThreadState* thread_state,
-                                     uint32_t address, uint64_t args[],
-                                     size_t arg_count) {
-  SCOPE_profile_cpu_f("cpu");
-
-  // Hold the global lock during interrupt dispatch.
-  // This will block if any code is in a critical region (has interrupts
-  // disabled) or if any other interrupt is executing.
-  auto global_lock = global_critical_region_.Acquire();
-
-  auto context = thread_state->context();
-  assert_true(arg_count <= 5);
-  for (size_t i = 0; i < arg_count; ++i) {
-    context->r[3 + i] = args[i];
-  }
-
-  // TLS ptr must be zero during interrupts. Some games check this and
-  // early-exit routines when under interrupts.
-  auto pcr_address =
-      memory_->TranslateVirtual(static_cast<uint32_t>(context->r[13]));
-  uint32_t old_tls_ptr = xe::load_and_swap<uint32_t>(pcr_address);
-  xe::store_and_swap<uint32_t>(pcr_address, 0);
-
-  if (!Execute(thread_state, address)) {
-    return 0xDEADBABE;
-  }
-
-  // Restores TLS ptr.
-  xe::store_and_swap<uint32_t>(pcr_address, old_tls_ptr);
-
-  return context->r[3];
-}
-
-Irql Processor::RaiseIrql(Irql new_value) {
-  return static_cast<Irql>(
-      xe::atomic_exchange(static_cast<uint32_t>(new_value),
-                          reinterpret_cast<volatile uint32_t*>(&irql_)));
-}
-
-void Processor::LowerIrql(Irql old_value) {
-  xe::atomic_exchange(static_cast<uint32_t>(old_value),
-                      reinterpret_cast<volatile uint32_t*>(&irql_));
-}
-
 bool Processor::Save(ByteStream* stream) {
   stream->Write(kProcessorSaveSignature);
   return true;
@@ -1335,6 +1291,62 @@ uint32_t Processor::CalculateNextGuestInstruction(ThreadDebugInfo* thread_info,
     return current_pc + 4;
   }
 }
+uint32_t Processor::GuestAtomicIncrement32(ppc::PPCContext* context,
+                                           uint32_t guest_address) {
+  uint32_t* host_address = context->TranslateVirtual<uint32_t*>(guest_address);
 
+  uint32_t result;
+  while (true) {
+    result = *host_address;
+    // todo: should call a processor->backend function that acquires a
+    // reservation instead of using host atomics
+    if (xe::atomic_cas(xe::byte_swap(result), xe::byte_swap(result + 1),
+                       host_address)) {
+      break;
+    }
+  }
+  return result;
+}
+uint32_t Processor::GuestAtomicDecrement32(ppc::PPCContext* context,
+                                           uint32_t guest_address) {
+  uint32_t* host_address = context->TranslateVirtual<uint32_t*>(guest_address);
+
+  uint32_t result;
+  while (true) {
+    result = *host_address;
+    // todo: should call a processor->backend function that acquires a
+    // reservation instead of using host atomics
+    if (xe::atomic_cas(xe::byte_swap(result), xe::byte_swap(result - 1),
+                       host_address)) {
+      break;
+    }
+  }
+  return result;
+}
+
+uint32_t Processor::GuestAtomicOr32(ppc::PPCContext* context,
+                                    uint32_t guest_address, uint32_t mask) {
+  return xe::atomic_or(
+      context->TranslateVirtual<volatile int32_t*>(guest_address),
+      xe::byte_swap(mask));
+}
+uint32_t Processor::GuestAtomicXor32(ppc::PPCContext* context,
+                                     uint32_t guest_address, uint32_t mask) {
+  return xe::atomic_xor(
+      context->TranslateVirtual<volatile int32_t*>(guest_address),
+      xe::byte_swap(mask));
+}
+uint32_t Processor::GuestAtomicAnd32(ppc::PPCContext* context,
+                                     uint32_t guest_address, uint32_t mask) {
+  return xe::atomic_and(
+      context->TranslateVirtual<volatile int32_t*>(guest_address),
+      xe::byte_swap(mask));
+}
+
+bool Processor::GuestAtomicCAS32(ppc::PPCContext* context, uint32_t old_value,
+                                 uint32_t new_value, uint32_t guest_address) {
+  return xe::atomic_cas(xe::byte_swap(old_value), xe::byte_swap(new_value),
+                        context->TranslateVirtual<uint32_t*>(guest_address));
+}
 }  // namespace cpu
 }  // namespace xe

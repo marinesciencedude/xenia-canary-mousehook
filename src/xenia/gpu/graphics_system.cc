@@ -28,7 +28,7 @@
 #include "xenia/ui/graphics_provider.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
-
+#include "xenia/kernel/kernel_state.h"
 DEFINE_bool(
     store_shaders, true,
     "Store shaders persistently and load them when loading games to avoid "
@@ -104,26 +104,47 @@ X_STATUS GraphicsSystem::Setup(cpu::Processor* processor,
   vsync_worker_running_ = true;
   vsync_worker_thread_ = kernel::object_ref<kernel::XHostThread>(
       new kernel::XHostThread(kernel_state_, 128 * 1024, 0, [this]() {
-        uint64_t vsync_duration =
-            cvars::vsync ? std::max<uint64_t>(5, cvars::vsync_interval) : 1;
+        const double vsync_duration_d =
+            cvars::vsync
+                ? std::max<double>(
+                      5.0, 1000.0 / static_cast<double>(cvars::vsync_fps))
+                : 1.0;
         uint64_t last_frame_time = Clock::QueryGuestTickCount();
+        // Sleep for 90% of the vblank duration, spin for 10%
+        const double duration_scalar = 0.90;
+
         while (vsync_worker_running_) {
-          uint64_t current_time = Clock::QueryGuestTickCount();
-          uint64_t elapsed = (current_time - last_frame_time) /
-                             (Clock::guest_tick_frequency() / 1000);
-          if (elapsed >= vsync_duration) {
-            MarkVblank();
+          const uint64_t current_time = Clock::QueryGuestTickCount();
+          const uint64_t tick_freq = Clock::guest_tick_frequency();
+          const uint64_t time_delta = current_time - last_frame_time;
+          const double elapsed_d = static_cast<double>(time_delta) /
+                                   (static_cast<double>(tick_freq) / 1000.0);
+          if (elapsed_d >= vsync_duration_d) {
             last_frame_time = current_time;
+
+            // TODO(disjtqz): should recalculate the remaining time to a vblank
+            // after MarkVblank, no idea how long the guest code normally takes
+            MarkVblank();
+            if (cvars::vsync) {
+              const uint64_t estimated_nanoseconds = static_cast<uint64_t>(
+                  (vsync_duration_d * 1000000.0) *
+                  duration_scalar);  // 1000 microseconds = 1 ms
+
+              threading::NanoSleep(estimated_nanoseconds);
+            }
           }
-          xe::threading::Sleep(std::chrono::milliseconds(1));
+          if (!cvars::vsync) {
+            xe::threading::Sleep(std::chrono::milliseconds(1));
+          }
         }
         return 0;
-      }));
+      }, kernel_state->GetIdleProcess()));
   // As we run vblank interrupts the debugger must be able to suspend us.
   vsync_worker_thread_->set_can_debugger_suspend(true);
   vsync_worker_thread_->set_name("GPU VSync");
   vsync_worker_thread_->Create();
-
+  vsync_worker_thread_->thread()->set_priority(
+      threading::ThreadPriority::kLowest);
   if (cvars::trace_gpu_stream) {
     BeginTracing();
   }
@@ -246,25 +267,7 @@ void GraphicsSystem::SetInterruptCallback(uint32_t callback,
 }
 
 void GraphicsSystem::DispatchInterruptCallback(uint32_t source, uint32_t cpu) {
-  if (!interrupt_callback_) {
-    return;
-  }
-
-  auto thread = kernel::XThread::GetCurrentThread();
-  assert_not_null(thread);
-
-  // Pick a CPU, if needed. We're going to guess 2. Because.
-  if (cpu == 0xFFFFFFFF) {
-    cpu = 2;
-  }
-  thread->SetActiveCpu(cpu);
-
-  // XELOGGPU("Dispatching GPU interrupt at {:08X} w/ mode {} on cpu {}",
-  //          interrupt_callback_, source, cpu);
-
-  uint64_t args[] = {source, interrupt_callback_data_};
-  processor_->ExecuteInterrupt(thread->thread_state(), interrupt_callback_,
-                               args, xe::countof(args));
+  kernel_state()->EmulateCPInterruptDPC(interrupt_callback_,interrupt_callback_data_, source, cpu);
 }
 
 void GraphicsSystem::MarkVblank() {

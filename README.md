@@ -1,18 +1,18 @@
 ># [Netplay Fork](https://github.com/AdrianCassar/xenia-canary/tree/netplay_canary_experimental)
->
->This is a fork of [Xenia-Canary Netplay](https://github.com/craftycodie/sunrise-xenia-canary-netplay) which implements Online Multiplayer features.
->It has been built from the ground up and tested primarily with Halo 3, though other games are supported.
->In it's current state, the fork is very rough and not PR ready. Check out the [Issues](https://github.com/craftycodie/xenia-canary-netplay/issues) list for more on that.
->Please excuse the mess, I don't use C++ often and rushed this together in a couple of restless weeks. The code will improve in future.
->
->The web API powering this fork can be found [here](https://github.com/craftycodie/Xenia-WebServices)
->
->Massive thanks to @SarahGreyWolf for testing this fork with me for about a month, couldn't have done it without her.
->Also, thank you to @Bo98 for creating the burnout5 xenia fork, I used that as a basis for this, and some of the code is still here I think.
->
->Peace and hair grease
->
->Codie
+
+> This is a fork of [Xenia-Canary Netplay](https://github.com/craftycodie/sunrise-xenia-canary-netplay) which implements Online Multiplayer features.
+> It has been built from the ground up and tested primarily with Halo 3, though other games are supported.
+> In it's current state, the fork is very rough and not PR ready. Check out the [Issues](https://github.com/craftycodie/xenia-canary-netplay/issues) list for more on that.
+> Please excuse the mess, I don't use C++ often and rushed this together in a couple of restless weeks. The code will improve in future.
+
+> The web API powering this fork can be found [here](https://github.com/craftycodie/Xenia-WebServices)
+
+> Massive thanks to @SarahGreyWolf for testing this fork with me for about a month, couldn't have done it without her.
+> Also, thank you to @Bo98 for creating the burnout5 xenia fork, I used that as a basis for this, and some of the code is still here I think.
+
+> Peace and hair grease
+
+> Codie
 
 N.B. games supported by mousehook may not be supported for netplay.
 
@@ -20,14 +20,27 @@ N.B. games supported by mousehook may not be supported for netplay.
 
 This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
 
-Supported games:
+## Supported Games
 
-* GoldenEye XBLA (Nov 16th 2007, also renamed as 'Aug 25th 2007')
-* Perfect Dark XBLA (b33, b52 (TU0) & b102)
-* Halo 3 TU0/TU3 & 08172 'delta'
-* Halo 3: ODST
-* Halo Reach TU0/TU1
-* Halo 4 TU0/TU8
+| Game  | Notes  |
+|---|---|
+| Orange Box | All Games TU0 |
+| Portal Still Alive |
+| CSGO | |
+| CSGO Beta | |
+| Left 4 Dead 2 | TU0 |
+| Left 4 Dead | TU0 |
+| Portal 2 |  TU0 |
+| Team Fortress 2 | TU0 |
+| GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
+| Perfect Dark XBLA | b33, b52 (TU0) & b102 |
+| Halo 3 | TU0/TU3 & 08172 'delta' |
+| Halo 3: ODST | |
+| Halo Reach | TU0/TU1 |
+| Halo 4 | TU0/TU8 |
+| Crackdown 2 | TU0/TU5 |
+
+### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
 <p align="center">
     <a href="https://github.com/xenia-project/xenia/tree/master/assets/icon">
