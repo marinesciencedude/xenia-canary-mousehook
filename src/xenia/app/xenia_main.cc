@@ -63,6 +63,8 @@
 #include "third_party/fmt/include/fmt/format.h"
 #include "third_party/libcurl/include/curl/curl.h"
 
+#include "xenia/kernel/XLiveAPI.h"
+
 DEFINE_string(apu, "any", "Audio system. Use: [any, nop, sdl, xaudio2]", "APU");
 DEFINE_string(gpu, "any", "Graphics system. Use: [any, d3d12, vulkan, null]",
               "GPU");
@@ -102,6 +104,8 @@ DEFINE_transient_bool(portable, true,
 DECLARE_bool(debug);
 
 DEFINE_bool(discord, true, "Enable Discord rich presence", "General");
+
+DECLARE_bool(upnp);
 
 namespace xe {
 namespace app {
@@ -423,7 +427,7 @@ bool EmulatorApp::OnInitialize() {
 
   std::filesystem::path cache_root = cvars::cache_root;
   if (cache_root.empty()) {
-    cache_root = storage_root / "cache";
+    cache_root = storage_root / "cache_host";
     // TODO(Triang3l): Point to the app's external storage "cache" directory on
     // Android.
   } else {
@@ -434,7 +438,7 @@ bool EmulatorApp::OnInitialize() {
     }
   }
   cache_root = std::filesystem::absolute(cache_root);
-  XELOGI("Cache root: {}", xe::path_to_utf8(cache_root));
+  XELOGI("Host cache root: {}", xe::path_to_utf8(cache_root));
 
   if (cvars::discord) {
     discord::DiscordPresence::Initialize();
@@ -478,9 +482,17 @@ void EmulatorApp::OnDestroy() {
   // The profiler needs to shut down before the graphics context.
   Profiler::Shutdown();
 
-  emulator_window_->DeleteAllSessions();
+#pragma region NetplayCleanup
+  // UPnP Shutdown
+
+  if (cvars::upnp) {
+    xe::kernel::XLiveAPI::upnp_handler.~upnp();
+  }
+
+  xe::kernel::XLiveAPI::DeleteAllSessions();
 
   curl_global_cleanup();
+#pragma endregion
 
   // Write all cvar overrides to the config.
   config::SaveConfig();

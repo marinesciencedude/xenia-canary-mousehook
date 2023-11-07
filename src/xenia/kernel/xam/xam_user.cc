@@ -738,6 +738,13 @@ dword_result_t XamUserCreateAchievementEnumerator_entry(
         db.GetAchievements();
 
     for (const util::XdbfAchievementTableEntry& entry : achievement_list) {
+      auto is_unlocked =
+          kernel_state()->achievement_manager()->IsAchievementUnlocked(
+              entry.id);
+      auto unlock_time =
+          kernel_state()->achievement_manager()->GetAchievementUnlockTime(
+              entry.id);
+
       auto item = XStaticAchievementEnumerator::AchievementDetails{
           entry.id,
           xe::to_utf16(db.GetStringTableEntry(language, entry.label_id)),
@@ -745,8 +752,9 @@ dword_result_t XamUserCreateAchievementEnumerator_entry(
           xe::to_utf16(db.GetStringTableEntry(language, entry.unachieved_id)),
           entry.image_id,
           entry.gamerscore,
-          {0, 0},
-          entry.flags};
+          (uint32_t)(unlock_time << 31),
+          (uint32_t)unlock_time,
+          is_unlocked ? entry.flags | 0x20000 : entry.flags};
 
       e->AppendItem(item);
     }
@@ -803,6 +811,8 @@ dword_result_t XamWriteGamerTile_entry(dword_t arg1, dword_t arg2, dword_t arg3,
 DECLARE_XAM_EXPORT1(XamWriteGamerTile, kUserProfiles, kStub);
 
 dword_result_t XamSessionCreateHandle_entry(lpdword_t handle_ptr) {
+  // Generate random session id?
+
   std::random_device rd;
   std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
   *handle_ptr = dist(rd);
@@ -832,9 +842,9 @@ dword_result_t XamSessionRefObjByHandle_entry(dword_t handle,
 }
 DECLARE_XAM_EXPORT1(XamSessionRefObjByHandle, kUserProfiles, kStub);
 
-dword_result_t XamUserIsUnsafeProgrammingAllowed_entry(dword_t unk1, dword_t unk2,
-                                                       lpdword_t unk3, dword_t unk4,
-                                                       dword_t unk5, dword_t unk6) {
+dword_result_t XamUserIsUnsafeProgrammingAllowed_entry(
+    dword_t unk1, dword_t unk2, lpdword_t unk3, dword_t unk4, dword_t unk5,
+    dword_t unk6) {
   if (!unk3 || unk1 != 255 && unk1 >= 4) {
     return 87;
   }
@@ -843,9 +853,10 @@ dword_result_t XamUserIsUnsafeProgrammingAllowed_entry(dword_t unk1, dword_t unk
 }
 DECLARE_XAM_EXPORT1(XamUserIsUnsafeProgrammingAllowed, kUserProfiles, kStub);
 
-dword_result_t XamUserGetSubscriptionType_entry(dword_t user_index, dword_t unk2,
-                                                dword_t unk3, dword_t unk4,
-                                                dword_t unk5, dword_t unk6) {
+dword_result_t XamUserGetSubscriptionType_entry(dword_t user_index,
+                                                dword_t unk2, dword_t unk3,
+                                                dword_t unk4, dword_t unk5,
+                                                dword_t unk6) {
   if (!unk2 || !unk3 || user_index > 4) {
     return 0x80070057;
   }
@@ -865,7 +876,7 @@ static_assert_size(X_STATS_DETAILS, 8 + kStatsMaxAmount * 2);
 
 dword_result_t XamUserCreateStatsEnumerator_entry(
     dword_t title_id, dword_t user_index, dword_t count, dword_t flags,
-    dword_t unk, pointer_t<X_STATS_DETAILS> stats_ptr,
+    dword_t size, pointer_t<X_STATS_DETAILS> stats_ptr,
     lpdword_t buffer_size_ptr, lpdword_t handle_ptr) {
   if (!count || !buffer_size_ptr || !handle_ptr || !stats_ptr) {
     return X_ERROR_INVALID_PARAMETER;
@@ -879,17 +890,17 @@ dword_result_t XamUserCreateStatsEnumerator_entry(
     return X_ERROR_INVALID_PARAMETER;
   }
 
-  size_t entry_size = sizeof(X_STATS_DETAILS);
+  if (!size) {
+    return X_ERROR_INVALID_PARAMETER;
+  }
 
   if (buffer_size_ptr) {
-    *buffer_size_ptr =
-        static_cast<uint32_t>(entry_size) * stats_ptr->stats_amount;
+    *buffer_size_ptr = sizeof(X_STATS_DETAILS) * stats_ptr->stats_amount;
   }
 
   auto e = object_ref<XStaticUntypedEnumerator>(
       new XStaticUntypedEnumerator(kernel_state(), count, flags));
-
-  auto result = e->Initialize(user_index, 0xFB, 0xB0023, 0xB0024, 0);
+  const X_STATUS result = e->Initialize(user_index, 0xFB, 0xB0023, 0xB0024, 0);
   if (XFAILED(result)) {
     return result;
   }
