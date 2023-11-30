@@ -25,6 +25,7 @@ using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
+DECLARE_bool(invert_x);
 
 const uint32_t kTitleIdCrackdown2 = 0x4D5308BC;
 
@@ -122,8 +123,16 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_y = RadianstoDegree(*radian_y);
 
   // X-axis = 0 to 360
-  degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
-  *radian_x = DegreetoRadians(degree_x);
+  if (!cvars::invert_x)
+  {
+    degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
+    *radian_x = DegreetoRadians(degree_x);
+  }
+  else
+  {
+    degree_x -= (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
+    *radian_x = DegreetoRadians(degree_x);
+  }
 
   // Y-axis = -90 to 90
   if (cvars::invert_y) {

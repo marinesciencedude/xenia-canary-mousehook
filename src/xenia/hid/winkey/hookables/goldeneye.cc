@@ -19,6 +19,7 @@ using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
+DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 
 DEFINE_double(ge_aim_turn_distance, 0.4f,
@@ -341,12 +342,19 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   if (player_aim_mode == 1) {
-
     float chX = *player_crosshair_x;
     float chY = *player_crosshair_y;
 
-    chX += (((float)input_state.mouse.x_delta) / dividor) *
+    if (!cvars::invert_x) 
+    {
+        chX += (((float)input_state.mouse.x_delta) / dividor) *
+           (float)cvars::sensitivity;
+    } 
+    else 
+    {
+        chX -= (((float)input_state.mouse.x_delta) / dividor) *
             (float)cvars::sensitivity;
+    }
 
     if (!cvars::invert_y) {
       chY += (((float)input_state.mouse.y_delta) / dividor) *
@@ -430,8 +438,16 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       float camX = *player_cam_x;
       float camY = *player_cam_y;
 
-      camX += (((float)input_state.mouse.x_delta) / 10.f) *
-              (float)cvars::sensitivity;
+      if (!cvars::invert_x)
+      {
+        camX += (((float)input_state.mouse.x_delta) / 10.f) *
+                (float)cvars::sensitivity;
+      }  
+      else
+      {
+        camX -= (((float)input_state.mouse.x_delta) / 10.f) *
+                (float)cvars::sensitivity;
+      }
 
       // Add 'sway' to gun
       float gun_sway_x = ((((float)input_state.mouse.x_delta) / 16000.f) *

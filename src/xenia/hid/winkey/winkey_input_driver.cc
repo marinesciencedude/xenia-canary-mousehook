@@ -27,6 +27,7 @@
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
 
 DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
+DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");
 DEFINE_bool(swap_wheel, false,
             "Swaps binds for wheel, so wheel up will go to next weapon & down "
             "will go to prev",

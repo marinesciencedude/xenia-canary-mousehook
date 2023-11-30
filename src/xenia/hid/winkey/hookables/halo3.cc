@@ -21,6 +21,7 @@ using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
+DECLARE_bool(invert_x);
 
 const uint32_t kTitleIdHalo3 = 0x4D5307E6;
 const uint32_t kTitleIdHalo3ODST = 0x4D530877;
@@ -166,8 +167,16 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       float camX = (float)*player_cam_x;
       float camY = (float)*player_cam_y;
 
-      camX -= (((float)input_state.mouse.x_delta) / 1000.f) *
+      if (!cvars::invert_x)
+      {
+        camX -= (((float)input_state.mouse.x_delta) / 1000.f) *
               (float)cvars::sensitivity;
+      }
+      else
+      {
+        camX += (((float)input_state.mouse.x_delta) / 1000.f) *
+                (float)cvars::sensitivity;
+      }
 
       if (!cvars::invert_y) {
         camY -= (((float)input_state.mouse.y_delta) / 1000.f) *
