@@ -65,6 +65,8 @@
 
 #include "xenia/kernel/XLiveAPI.h"
 
+#include "xenia/kernel/XLiveAPI.h"
+
 DEFINE_string(apu, "any", "Audio system. Use: [any, nop, sdl, xaudio2]", "APU");
 DEFINE_string(gpu, "any", "Graphics system. Use: [any, d3d12, vulkan, null]",
               "GPU");

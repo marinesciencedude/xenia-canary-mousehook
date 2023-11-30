@@ -116,7 +116,7 @@ UserProfile::UserProfile(uint8_t index) {
       break;
     }
   }
-  
+
   // https://cs.rin.ru/forum/viewtopic.php?f=38&t=60668&hilit=gfwl+live&start=195
   // https://github.com/arkem/py360/blob/master/py360/constants.py
   // XPROFILE_GAMER_YAXIS_INVERSION

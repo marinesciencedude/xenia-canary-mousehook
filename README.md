@@ -27,10 +27,6 @@ Can I host Xenia Web Services?
 
 - Yes, [Xenia Web Services](https://github.com/AdrianCassar/Xenia-WebServices).
 
-Is there a Netplay mousehook build?
-
-- Yes, download it from [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/releases?q=Netplay).
-
 Are games dependant on servers?
 
 - Yes a lot of games are dependant on servers therefore will not work, unless a server is developed for that game. For example many games requires EA servers, without them netplay will not work. 
@@ -45,7 +41,7 @@ Can I use multiple PCs on the same network?
 
 Where can I **download** the Canary Netplay build?
 
-- You can download it from [releases](https://github.com/AdrianCassar/xenia-canary/releases).
+- You can download it from [releases](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental).
 
 ## Config Setup
 
