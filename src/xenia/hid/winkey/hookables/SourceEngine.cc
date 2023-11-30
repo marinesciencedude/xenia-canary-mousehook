@@ -24,6 +24,7 @@ using namespace xe::kernel;
 DECLARE_double(sensitivity);
 DECLARE_double(source_sniper_sensitivity);
 DECLARE_bool(invert_y);
+DECLARE_bool(invert_x);
 DECLARE_int32(walk_orthogonal);
 DECLARE_int32(walk_diagonal);
 
@@ -214,8 +215,16 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  camX -=
-      (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
+  if (!cvars::invert_x)
+  {
+    camX -=
+        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
+  }
+  else
+  {
+    camX +=
+        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
+  }
 
   if (!cvars::invert_y) {
     camY += (((float)input_state.mouse.y_delta) / 7.5f) *
