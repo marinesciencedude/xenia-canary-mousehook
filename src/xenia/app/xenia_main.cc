@@ -61,7 +61,6 @@
 #endif  // XE_PLATFORM_WIN32
 
 #include "third_party/fmt/include/fmt/format.h"
-#include "third_party/libcurl/include/curl/curl.h"
 
 #include "xenia/kernel/XLiveAPI.h"
 

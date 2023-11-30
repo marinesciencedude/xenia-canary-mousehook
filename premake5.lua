@@ -23,8 +23,7 @@ includedirs({
 
 defines({
   "_UNICODE",
-  "UNICODE",
-  "CURL_STATICLIB",
+  "UNICODE"
 })
 
 cppdialect("C++17")
