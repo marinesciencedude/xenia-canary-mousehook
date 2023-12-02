@@ -15,7 +15,6 @@
 #include "xenia/kernel/xam/xam_private.h"
 #include "xenia/kernel/xenumerator.h"
 #include "xenia/xbox.h"
-#define _WINSOCK_DEPRECATED_NO_WARNINGS  // inet_addr
 
 #if XE_PLATFORM_WIN32
 #include "xenia/base/platform_win.h"
@@ -86,18 +85,6 @@ dword_result_t XamEnumerate_entry(dword_t handle, dword_t flags,
   return result;
 }
 DECLARE_XAM_EXPORT1(XamEnumerate, kNone, kImplemented);
-
-struct XTitleServer {
-  in_addr server_address;
-  DWORD flags;
-  CHAR server_description[200];
-};
-
-std::size_t callback(const char* in, std::size_t size, std::size_t num, char* out) {
-  std::string data(in, (std::size_t)size * num);
-  *((std::stringstream*)out) << data;
-  return size * num;
-} 
 
 dword_result_t XamCreateEnumeratorHandle_entry(
     dword_t user_index, dword_t app_id, dword_t open_message,
