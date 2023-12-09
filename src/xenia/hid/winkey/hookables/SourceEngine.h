@@ -21,11 +21,13 @@ class SourceEngine : public HookableGame {
   enum class GameBuild {
     Unknown,
     CSGO,
+    CSGO_Beta,
     L4D1,
     L4D2,
     OrangeBox,
     PortalSA,
-    Portal2
+    Portal2,
+    Portal2_TU1
   };
 
   SourceEngine();
@@ -49,8 +51,6 @@ class SourceEngine : public HookableGame {
   bool engine_360;
 
   double original_sensitivity;
-
-  bool isBeta;
 };
 
 }  // namespace winkey
