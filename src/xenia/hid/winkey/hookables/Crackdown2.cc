@@ -33,14 +33,15 @@ namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  std::string title_version;
   uint32_t base_address;
   uint32_t x_offset;
   uint32_t y_offset;
 };
 
 std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
-    {Crackdown2Game::GameBuild::Crackdown2_TU0, {0x836C6520, 0x7EC, 0x7E8}},
-    {Crackdown2Game::GameBuild::Crackdown2_TU5, {0x83800F88, 0x7EC, 0x7E8}}};
+    {Crackdown2Game::GameBuild::Crackdown2_TU0, {"1.0", 0x836C6520, 0x7EC, 0x7E8}},
+    {Crackdown2Game::GameBuild::Crackdown2_TU5, {"1.0.5", 0x83800F88, 0x7EC, 0x7E8}}};
 
 Crackdown2Game::~Crackdown2Game() = default;
 
@@ -53,15 +54,7 @@ bool Crackdown2Game::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    // TU 0
-    if (build.first == GameBuild::Crackdown2_TU0 && current_version == "1.0") {
-      game_build_ = build.first;
-      return true;
-    }
-
-    // TU 5
-    if (build.first == GameBuild::Crackdown2_TU5 &&
-        current_version == "1.0.5") {
+    if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
     }
