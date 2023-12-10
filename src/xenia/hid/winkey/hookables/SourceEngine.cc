@@ -69,23 +69,23 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
     }, 
     {
         SourceEngine::GameBuild::L4D1, 
-        {kTitleIdL4D1, "", 0x86536888, 0x4B44}
+        {kTitleIdL4D1, "1.0", 0x86536888, 0x4B44}
     },
     {
         SourceEngine::GameBuild::L4D2, 
-        {kTitleIdL4D2, "", 0x86CC4E60, 0x4A94}
+        {kTitleIdL4D2, "3.0", 0x86CC4E60, 0x4A94}
     },
     {
         SourceEngine::GameBuild::OrangeBox, 
-        {kTitleIdOrangeBox, "", NULL, 0x863F53A8}
+        {kTitleIdOrangeBox, "4.0", NULL, 0x863F53A8}
     },
     {
         SourceEngine::GameBuild::PortalSA,
-        {kTitleIdPortalSA, "", NULL, 0x863F56B0}
+        {kTitleIdPortalSA, "3.0.1", NULL, 0x863F56B0}
     },
     {
         SourceEngine::GameBuild::Portal2,
-        {kTitleIdPortal2, "4.0.0", 0x82C50180, 0x4A98}
+        {kTitleIdPortal2, "4.0", 0x82C50180, 0x4A98}
     },
     {
         SourceEngine::GameBuild::Portal2_TU1,
