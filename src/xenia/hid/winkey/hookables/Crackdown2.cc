@@ -123,14 +123,14 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_y = RadianstoDegree(*radian_y);
 
   // X-axis = 0 to 360
-  if (!cvars::invert_x)
+  if (cvars::invert_x)
   {
-    degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
+    degree_x -= (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
     *radian_x = DegreetoRadians(degree_x);
   }
   else
   {
-    degree_x -= (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
+    degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
     *radian_x = DegreetoRadians(degree_x);
   }
 

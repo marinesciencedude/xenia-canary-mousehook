@@ -158,14 +158,14 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   xe::be<uint32_t>* angle_offset;
 
-  if (!supported_builds[game_build_].execute_addr)
-  {
-    angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].angle_offset); 
-  }
-  else 
+  if (supported_builds[game_build_].execute_addr)
   {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         player_ptr + supported_builds[game_build_].angle_offset);
+  }
+  else 
+  {
+    angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].angle_offset); 
   }
 
   QAngle* ang = reinterpret_cast<QAngle*>(angle_offset);
@@ -186,23 +186,23 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  if (!cvars::invert_x)
-  {
-    camX -=
-        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
-  }
-  else
+  if (cvars::invert_x)
   {
     camX +=
         (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
   }
+  else
+  {
+    camX -=
+        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
+  }
 
-  if (!cvars::invert_y) {
-    camY += (((float)input_state.mouse.y_delta) / 7.5f) *
-            (float)cvars::sensitivity;
+  if (cvars::invert_y) {
+    camY -=
+        (((float)input_state.mouse.y_delta) / 7.5f) * (float)cvars::sensitivity;
   } else {
-    camY -= (((float)input_state.mouse.y_delta) / 7.5f) *
-            (float)cvars::sensitivity;
+    camY +=
+        (((float)input_state.mouse.y_delta) / 7.5f) * (float)cvars::sensitivity;
   }
 
   ang->pitchX = camX;

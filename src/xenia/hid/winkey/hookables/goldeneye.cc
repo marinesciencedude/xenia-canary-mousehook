@@ -345,23 +345,24 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     float chX = *player_crosshair_x;
     float chY = *player_crosshair_y;
 
-    if (!cvars::invert_x) 
+    if (cvars::invert_x) 
     {
-        chX += (((float)input_state.mouse.x_delta) / dividor) *
-           (float)cvars::sensitivity;
+      chX -= (((float)input_state.mouse.x_delta) / dividor) *
+             (float)cvars::sensitivity;
     } 
     else 
     {
-        chX -= (((float)input_state.mouse.x_delta) / dividor) *
-            (float)cvars::sensitivity;
+        
+      chX += (((float)input_state.mouse.x_delta) / dividor) *
+             (float)cvars::sensitivity;
     }
 
-    if (!cvars::invert_y) {
-      chY += (((float)input_state.mouse.y_delta) / dividor) *
-              (float)cvars::sensitivity;
-    } else {
+    if (cvars::invert_y) {
       chY -= (((float)input_state.mouse.y_delta) / dividor) *
-              (float)cvars::sensitivity;
+             (float)cvars::sensitivity;
+    } else {
+      chY += (((float)input_state.mouse.y_delta) / dividor) *
+             (float)cvars::sensitivity;
     }
 
     // Keep the gun/crosshair in-bounds [1:-1]
