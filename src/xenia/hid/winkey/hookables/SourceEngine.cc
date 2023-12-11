@@ -137,6 +137,12 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
+  uint32_t game_control_disabled = 0;
+  game_control_disabled = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(0x88711CE4);
+  if (game_control_disabled) {
+    return true;
+  }
+
   uint32_t player_ptr;
   if (supported_builds[game_build_].execute_addr)
   {
@@ -186,22 +192,22 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  if (cvars::invert_x)
-  {
-    camX +=
-        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
-  }
-  else
+  if (!cvars::invert_x)
   {
     camX -=
         (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
   }
+  else
+  {
+    camX +=
+        (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
+  }
 
-  if (cvars::invert_y) {
-    camY -=
+  if (!cvars::invert_y) {
+    camY +=
         (((float)input_state.mouse.y_delta) / 7.5f) * (float)cvars::sensitivity;
   } else {
-    camY +=
+    camY -=
         (((float)input_state.mouse.y_delta) / 7.5f) * (float)cvars::sensitivity;
   }
 
