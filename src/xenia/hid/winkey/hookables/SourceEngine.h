@@ -23,6 +23,7 @@ class SourceEngine : public HookableGame {
     CSGO,
     CSGO_Beta,
     L4D1,
+    L4D1_GOTY,
     L4D2,
     OrangeBox,
     PortalSA,

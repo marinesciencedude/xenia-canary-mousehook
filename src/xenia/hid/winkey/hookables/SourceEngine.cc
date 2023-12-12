@@ -72,6 +72,10 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
         {kTitleIdL4D1, "1.0", 0x86536888, 0x4B44}
     },
     {
+        SourceEngine::GameBuild::L4D1_GOTY, 
+        {kTitleIdL4D1, "6.0", 0x86537FA0, 0x4B44}
+    },
+    {
         SourceEngine::GameBuild::L4D2, 
         {kTitleIdL4D2, "3.0", 0x86CC4E60, 0x4A94}
     },
@@ -89,7 +93,7 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
     },
     {
         SourceEngine::GameBuild::Portal2_TU1,
-        {kTitleIdPortal2, "4.0.1", 0x82C50180, 0x4A98}
+        {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}
     }
 };
 
@@ -135,12 +139,6 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   if (!current_thread) {
     return false;
-  }
-
-  uint32_t game_control_disabled = 0;
-  game_control_disabled = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(0x88711CE4);
-  if (game_control_disabled) {
-    return true;
   }
 
   uint32_t player_ptr;
