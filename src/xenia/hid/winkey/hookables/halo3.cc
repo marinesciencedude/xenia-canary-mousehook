@@ -170,7 +170,7 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       if (!cvars::invert_x)
       {
         camX -= (((float)input_state.mouse.x_delta) / 1000.f) *
-              (float)cvars::sensitivity;
+                (float)cvars::sensitivity;
       }
       else
       {
