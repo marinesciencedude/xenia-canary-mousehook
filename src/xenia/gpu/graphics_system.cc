@@ -29,6 +29,7 @@
 #include "xenia/ui/graphics_provider.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
+#include "xenia/kernel/XLiveAPI.h"
 DEFINE_bool(
     store_shaders, true,
     "Store shaders persistently and load them when loading games to avoid "
@@ -222,6 +223,7 @@ void GraphicsSystem::OnHostGpuLossFromAnyThread(
   if (host_gpu_loss_reported_.test_and_set(std::memory_order_relaxed)) {
     return;
   }
+  xe::kernel::XLiveAPI::DeleteAllSessionsByMac();
   xe::FatalError("Graphics device lost (probably due to an internal error)");
 }
 
