@@ -278,11 +278,11 @@ void EmulatorWindow::EmulatorWindowListener::OnKeyDown(ui::KeyEvent& e) {
 }
 
 void EmulatorWindow::EmulatorWindowListener::OnMouseDown(ui::MouseEvent& e) {
-  emulator_window_.OnMouseDown(e);
+  //emulator_window_.OnMouseDown(e);
 }
 
 void EmulatorWindow::EmulatorWindowListener::OnMouseUp(ui::MouseEvent& e) {
-  emulator_window_.OnMouseUp(e);
+  //emulator_window_.OnMouseUp(e);
 }
 
 void EmulatorWindow::DisplayConfigGameConfigLoadCallback::PostGameConfigLoad() {
@@ -799,41 +799,41 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     return;
   }
 
-  switch (e.virtual_key()) {
-    case ui::VirtualKey::kO: {
+  switch (e.key_code()) {
+      case 0x4F: {  // o
       if (!e.is_ctrl_pressed()) {
         return;
       }
       FileOpen();
     } break;
-    case ui::VirtualKey::kMultiply: {
+    case 0x6A: { // numpad *
       CpuTimeScalarReset();
     } break;
-    case ui::VirtualKey::kSubtract: {
+    case 0x6D: { // numpad minus
       CpuTimeScalarSetHalf();
     } break;
-    case ui::VirtualKey::kAdd: {
+    case 0x6B: { // numpad plus
       CpuTimeScalarSetDouble();
     } break;
 
-    case ui::VirtualKey::kF3: {
+    case 0x72: { // F3
       Profiler::ToggleDisplay();
     } break;
 
-    case ui::VirtualKey::kF4: {
+    case 0x73: { // VK_F4
       GpuTraceFrame();
     } break;
-    case ui::VirtualKey::kF5: {
+    case 0x74: { // VK_F5
       GpuClearCaches();
     } break;
 
-    case ui::VirtualKey::kF6: {
+    case 0x75: { // VK_F6
       ToggleDisplayConfigDialog();
     } break;
-    case ui::VirtualKey::kF11: {
+    case 0x7A: { // VK_F11
       ToggleFullscreen();
     } break;
-    case ui::VirtualKey::kEscape: {
+    case 0x1B: { // VK_ESCAPE
       // Allow users to escape fullscreen (but not enter it).
       if (!window_->IsFullscreen()) {
         return;
@@ -842,13 +842,13 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     } break;
 
 #ifdef DEBUG
-    case ui::VirtualKey::kF7: {
+    case 0x76: { // VK_F7
       // Save to file
       // TODO: Choose path based on user input, or from options
       // TODO: Spawn a new thread to do this.
       emulator()->SaveToFile("test.sav");
     } break;
-    case ui::VirtualKey::kF8: {
+    case 0x77: { // VK_F8
       // Restore from file
       // TODO: Choose path from user
       // TODO: Spawn a new thread to do this.
@@ -856,22 +856,22 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     } break;
 #endif  // #ifdef DEBUG
 
-    case ui::VirtualKey::kPause: {
+    case 0x13: { // VK_PAUSE
       CpuBreakIntoDebugger();
     } break;
-    case ui::VirtualKey::kCancel: {
+    case 0x03: { // VK_CANCEL
       CpuBreakIntoHostDebugger();
     } break;
 
-    case ui::VirtualKey::kF1: {
+    case 0x70: { // VK_F1
       ShowFAQ();
     } break;
 
-    case ui::VirtualKey::kF2: {
-      ShowBuildCommit();
+    case 0x71: { // VK_F2
+        ShowBuildCommit();
     } break;
 
-    case ui::VirtualKey::kF9: {
+    case 0x78: { // VK_F9
       RunPreviouslyPlayedTitle();
     } break;
 
@@ -1193,7 +1193,7 @@ void EmulatorWindow::SetFullscreen(bool fullscreen) {
   }
   window_->SetFullscreen(fullscreen);
   window_->SetCursorVisibility(fullscreen
-                                   ? ui::Window::CursorVisibility::kAutoHidden
+                                   ? ui::Window::CursorVisibility::kHidden
                                    : ui::Window::CursorVisibility::kVisible);
 }
 
