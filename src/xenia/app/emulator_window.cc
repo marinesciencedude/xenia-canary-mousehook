@@ -350,11 +350,11 @@ void EmulatorWindow::EmulatorWindowListener::OnKeyDown(ui::KeyEvent& e) {
 }
 
 void EmulatorWindow::EmulatorWindowListener::OnMouseDown(ui::MouseEvent& e) {
-  emulator_window_.OnMouseDown(e);
+  // emulator_window_.OnMouseDown(e);
 }
 
 void EmulatorWindow::EmulatorWindowListener::OnMouseUp(ui::MouseEvent& e) {
-  emulator_window_.OnMouseUp(e);
+  // emulator_window_.OnMouseUp(e);
 }
 
 void EmulatorWindow::EmulatorWindowListener::OnUsbDeviceChanged(
@@ -1630,7 +1630,7 @@ void EmulatorWindow::SetFullscreen(bool fullscreen) {
   }
   window_->SetFullscreen(fullscreen);
   window_->SetCursorVisibility(fullscreen
-                                   ? ui::Window::CursorVisibility::kAutoHidden
+                                   ? ui::Window::CursorVisibility::kHidden
                                    : ui::Window::CursorVisibility::kVisible);
 }
 
