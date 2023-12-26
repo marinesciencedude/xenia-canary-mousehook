@@ -206,6 +206,19 @@ bool Win32Window::OpenImpl() {
 
   // Enable file dragging from external sources
   DragAcceptFiles(hwnd_, true);
+  
+  // Enable raw input for mouse & keyboard
+  RAWINPUTDEVICE device;
+  device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
+  device.usUsage = 0x02;      // HID_USAGE_GENERIC_MOUSE
+  device.dwFlags = 0;
+  device.hwndTarget = 0;
+  RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE));
+  device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
+  device.usUsage = 0x06;      // HID_USAGE_GENERIC_KEYBOARD
+  device.dwFlags = 0;
+  device.hwndTarget = 0;
+  RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE));
 
   // Apply the initial state from the Window that the window shouldn't be
   // visibly transitioned to.
@@ -331,6 +344,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(true);
   } else {
     // Changing the style and the menu may change the size too, don't handle
     // the resize multiple times (also potentially with the listeners changing
@@ -414,6 +429,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(false);
   }
 }
 
@@ -903,7 +920,7 @@ bool Win32Window::HandleMouse(UINT message, WPARAM wParam, LPARAM lParam,
 bool Win32Window::HandleKeyboard(
     UINT message, WPARAM wParam, LPARAM lParam,
     WindowDestructionReceiver& destruction_receiver) {
-  KeyEvent e(this, VirtualKey(wParam), lParam & 0xFFFF,
+  KeyEvent e(this, static_cast<int>(wParam), lParam & 0xFFFF0000,
              !!(lParam & (LPARAM(1) << 30)), !!(GetKeyState(VK_SHIFT) & 0x80),
              !!(GetKeyState(VK_CONTROL) & 0x80),
              !!(GetKeyState(VK_MENU) & 0x80), !!(GetKeyState(VK_LWIN) & 0x80));
@@ -1015,7 +1032,150 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       }
       OnAfterClose();
     } break;
+	case WM_INPUT: {
+      HRAWINPUT hRawInput = (HRAWINPUT)lParam;
+      UINT dataSize = 0;
 
+      // Get size of the rawinput data
+      if (GetRawInputData(hRawInput, RID_INPUT, NULL, &dataSize,
+                          sizeof(RAWINPUTHEADER)) != 0 ||
+          dataSize == 0 || dataSize > sizeof(RAWINPUT)) {
+        // Unknown failure, exit out
+        assert_always();
+        break;
+      }
+
+      // Now get the actual data itself
+      if (GetRawInputData(hRawInput, RID_INPUT, &rawinput_data_, &dataSize,
+                          sizeof(RAWINPUTHEADER)) == (UINT)-1) {
+        // Another unknown failure
+        assert_always();
+        break;
+      }
+
+      if (rawinput_data_.header.dwType == RIM_TYPEMOUSE) {
+        const auto& mouseData = rawinput_data_.data.mouse;
+
+        auto e = MouseEvent(this, MouseEvent::Button::kNone, mouseData.lLastX,
+                            mouseData.lLastY, mouseData.usButtonFlags,
+                            (int16_t)mouseData.usButtonData);
+		WindowDestructionReceiver destruction_receiver(this);
+        OnRawMouse(e, destruction_receiver);
+        return 0;
+      } else if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
+        const auto& keyData = rawinput_data_.data.keyboard;
+
+        // Adjust VK code passed to handlers
+        // Based on
+        // https://blog.molecular-matters.com/2011/09/05/properly-handling-keyboard-input/
+        auto vkey = keyData.VKey;
+        bool isE0 = (keyData.Flags & RI_KEY_E0) != 0;
+
+        // discard "fake keys" which are part of an escaped sequence
+        if (vkey == 255) {
+          return 0;
+        } else if (vkey == VK_SHIFT) {
+          // correct left-hand / right-hand SHIFT
+          vkey = MapVirtualKey(keyData.MakeCode, MAPVK_VSC_TO_VK_EX);
+        } else {
+          switch (vkey) {
+            // right-hand CONTROL and ALT have their e0 bit set
+            case VK_CONTROL:
+              vkey = isE0 ? VK_RCONTROL : VK_LCONTROL;
+              break;
+
+            case VK_MENU:
+              vkey = isE0 ? VK_RMENU : VK_LMENU;
+              break;
+
+            case VK_RETURN:
+              if (isE0) {
+                vkey = VK_SEPARATOR;
+              }
+              break;
+
+            // the standard INSERT, DELETE, HOME, END, PRIOR and NEXT keys will
+            // always have their e0 bit set, but the corresponding keys on the
+            // NUMPAD will not.
+            case VK_INSERT:
+              if (!isE0) {
+                vkey = VK_NUMPAD0;
+              }
+              break;
+
+            case VK_DELETE:
+              if (!isE0) {
+                vkey = VK_DECIMAL;
+              }
+              break;
+
+            case VK_HOME:
+              if (!isE0) {
+                vkey = VK_NUMPAD7;
+              }
+              break;
+
+            case VK_END:
+              if (!isE0) {
+                vkey = VK_NUMPAD1;
+              }
+              break;
+
+            case VK_PRIOR:
+              if (!isE0) {
+                vkey = VK_NUMPAD9;
+              }
+              break;
+
+            case VK_NEXT:
+              if (!isE0) {
+                vkey = VK_NUMPAD3;
+              }
+              break;
+
+            // the standard arrow keys will always have their e0 bit set, but
+            // the corresponding keys on the NUMPAD will not.
+            case VK_LEFT:
+              if (!isE0) {
+                vkey = VK_NUMPAD4;
+              }
+              break;
+
+            case VK_RIGHT:
+              if (!isE0) {
+                vkey = VK_NUMPAD6;
+              }
+              break;
+
+            case VK_UP:
+              if (!isE0) {
+                vkey = VK_NUMPAD8;
+              }
+              break;
+
+            case VK_DOWN:
+              if (!isE0) {
+                vkey = VK_NUMPAD2;
+              }
+              break;
+
+            // NUMPAD 5 doesn't have its e0 bit set
+            case VK_CLEAR:
+              if (!isE0) {
+                vkey = VK_NUMPAD5;
+              }
+              break;
+          }
+        }
+
+        auto e = KeyEvent(this, vkey, 0, !(keyData.Flags & RI_KEY_BREAK), false,
+                          false, false, false);
+		WindowDestructionReceiver destruction_receiver(this);
+        OnRawKeyboard(e, destruction_receiver);
+        return 0;
+      }
+
+    } break;
     case WM_DROPFILES: {
       HDROP drop_handle = reinterpret_cast<HDROP>(wParam);
       auto drop_count = DragQueryFileW(drop_handle, 0xFFFFFFFFu, nullptr, 0);
@@ -1126,6 +1286,10 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_KILLFOCUS: {
+      if (IsFullscreen()) {
+        ToggleCursorLock(false);
+      }
+
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(false, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1134,6 +1298,10 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_SETFOCUS: {
+      if (IsFullscreen()) {
+        ToggleCursorLock(true);
+      }
+	  
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(true, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1187,7 +1355,6 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       }
       return 0;
     } break;
-
     case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
       return
           // disables press and hold (right-click) gesture
@@ -1270,6 +1437,24 @@ LRESULT CALLBACK Win32Window::WndProcThunk(HWND hWnd, UINT message,
     }
   }
   return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void Win32Window::ToggleCursorLock(bool lock) {
+  if (lock) {
+    // Cursor bounds can be lost when focus is lost, reapply them...
+    RECT bounds;
+    GetWindowRect(hwnd(), &bounds);
+
+    // Reduce cursor bounds by 1px on each side, just in case..
+    bounds.top++;
+    bounds.left++;
+    bounds.bottom--;
+    bounds.right--;
+
+    ClipCursor(&bounds);
+  } else {
+    ClipCursor(NULL);
+  }
 }
 
 std::unique_ptr<ui::MenuItem> MenuItem::Create(Type type,
