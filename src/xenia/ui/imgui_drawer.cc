@@ -16,7 +16,6 @@
 #include "xenia/base/assert.h"
 #include "xenia/base/clock.h"
 #include "xenia/base/logging.h"
-#include "xenia/base/math.h"
 #include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/imgui_notification.h"
 #include "xenia/ui/resources.h"
@@ -137,6 +136,15 @@ void ImGuiDrawer::Initialize() {
   // This will give us state we can swap to the ImGui globals when in use.
   internal_state_ = ImGui::CreateContext();
   ImGui::SetCurrentContext(internal_state_);
+  
+  auto& io = ImGui::GetIO();
+  
+  // TODO(gibbed): disable imgui.ini saving for now,
+  // imgui assumes paths are char* so we can't throw a good path at it on
+  // Windows.
+  io.IniFilename = nullptr;
+
+  io.DeltaTime = 1.0f / 60.0f;
 
   InitializeFonts();
 
@@ -192,6 +200,24 @@ void ImGuiDrawer::Initialize() {
       ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 1.00f, 0.00f, 0.21f);
   style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
+  
+  io.KeyMap[ImGuiKey_Tab] = 0x09;  // VK_TAB;
+  io.KeyMap[ImGuiKey_LeftArrow] = 0x25;
+  io.KeyMap[ImGuiKey_RightArrow] = 0x27;
+  io.KeyMap[ImGuiKey_UpArrow] = 0x26;
+  io.KeyMap[ImGuiKey_DownArrow] = 0x28;
+  io.KeyMap[ImGuiKey_Home] = 0x24;
+  io.KeyMap[ImGuiKey_End] = 0x23;
+  io.KeyMap[ImGuiKey_Delete] = 0x2E;
+  io.KeyMap[ImGuiKey_Backspace] = 0x08;
+  io.KeyMap[ImGuiKey_Enter] = 0x0D;
+  io.KeyMap[ImGuiKey_Escape] = 0x1B;
+  io.KeyMap[ImGuiKey_A] = 'A';
+  io.KeyMap[ImGuiKey_C] = 'C';
+  io.KeyMap[ImGuiKey_V] = 'V';
+  io.KeyMap[ImGuiKey_X] = 'X';
+  io.KeyMap[ImGuiKey_Y] = 'Y';
+  io.KeyMap[ImGuiKey_Z] = 'Z';
 
   frame_time_tick_frequency_ = double(Clock::QueryHostTickFrequency());
   last_frame_time_ticks_ = Clock::QueryHostTickCount();
@@ -544,16 +570,36 @@ ImGuiIO& ImGuiDrawer::GetIO() {
   return ImGui::GetIO();
 }
 
-void ImGuiDrawer::OnKeyDown(KeyEvent& e) { OnKey(e, true); }
+void ImGuiDrawer::OnKeyDown(KeyEvent& e) {
+  auto& io = GetIO();
+  io.KeysDown[e.key_code()] = true;
+  switch (e.key_code()) {
+    case 16: {
+      io.KeyShift = true;
+    } break;
+    case 17: {
+      io.KeyCtrl = true;
+    } break;
+  }
+}
 
-void ImGuiDrawer::OnKeyUp(KeyEvent& e) { OnKey(e, false); }
+void ImGuiDrawer::OnKeyUp(KeyEvent& e) {
+  auto& io = GetIO();
+  io.KeysDown[e.key_code()] = false;
+  switch (e.key_code()) {
+    case 16: {
+      io.KeyShift = false;
+    } break;
+    case 17: {
+      io.KeyCtrl = false;
+    } break;
+  }
+}
 
 void ImGuiDrawer::OnKeyChar(KeyEvent& e) {
   auto& io = GetIO();
-  // TODO(Triang3l): Accept the Unicode character.
-  unsigned int character = static_cast<unsigned int>(e.virtual_key());
-  if (character > 0 && character < 0x10000) {
-    io.AddInputCharacter(character);
+  if (e.key_code() > 0 && e.key_code() < 0x10000) {
+    io.AddInputCharacter(e.key_code());
     e.set_handled(true);
   }
 }
@@ -669,31 +715,6 @@ void ImGuiDrawer::ClearInput() {
   io.ClearInputCharacters();
   touch_pointer_id_ = TouchEvent::kPointerIDNone;
   reset_mouse_position_after_next_frame_ = false;
-}
-
-void ImGuiDrawer::OnKey(KeyEvent& e, bool is_down) {
-  auto& io = GetIO();
-  const VirtualKey virtual_key = e.virtual_key();
-  if (auto imGuiKey = VirtualKeyToImGuiKey(virtual_key); imGuiKey) {
-    io.AddKeyEvent(*imGuiKey, is_down);
-  }
-  switch (virtual_key) {
-    case VirtualKey::kShift:
-      io.KeyShift = is_down;
-      break;
-    case VirtualKey::kControl:
-      io.KeyCtrl = is_down;
-      break;
-    case VirtualKey::kMenu:
-      // FIXME(Triang3l): Doesn't work in xenia-ui-window-demo.
-      io.KeyAlt = is_down;
-      break;
-    case VirtualKey::kLWin:
-      io.KeySuper = is_down;
-      break;
-    default:
-      break;
-  }
 }
 
 void ImGuiDrawer::UpdateMousePosition(float x, float y) {

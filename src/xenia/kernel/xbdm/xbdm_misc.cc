@@ -12,7 +12,12 @@
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xbdm/xbdm_private.h"
 #include "xenia/kernel/xthread.h"
+#include "xenia/vfs/devices/host_path_device.h"
+#include "xenia/emulator.h"
 #include "xenia/xbox.h"
+
+DEFINE_string(devkit_root, "", "Root path for devkit: partition", "Storage");
+
 //chrispy: no idea what a real valid value is for this
 static constexpr const char DmXboxName[] = "Xbox360Name";
 namespace xe {
@@ -101,6 +106,35 @@ dword_result_t DmWalkLoadedModules_entry(lpdword_t unk0_ptr,
   return 0x82DA0104;
 }
 DECLARE_XBDM_EXPORT1(DmWalkLoadedModules, kDebug, kStub);
+
+dword_result_t DmMapDevkitDrive() {
+  auto* emulator = kernel_state()->emulator();
+  auto* file_system = emulator->file_system();
+  std::string existing;
+
+  if (file_system->FindSymbolicLink("devkit:", existing)) {
+    return X_STATUS_SUCCESS;  // TODO: check what actual code returned is
+  }
+
+  auto path = emulator->executable_path().parent_path();
+  if (!cvars::devkit_root.empty()) {
+    path = cvars::devkit_root;
+  }
+
+  auto device =
+      std::make_unique<xe::vfs::HostPathDevice>("\\devkit", path, false);
+  if (!device->Initialize()) {
+    XELOGE("DmMapDevkitDrive: Unable to scan devkit path");
+  } else {
+    if (!file_system->RegisterDevice(std::move(device))) {
+      XELOGE("DmMapDevkitDrive: Unable to register devkit path");
+    } else {
+      file_system->RegisterSymbolicLink("devkit:", "\\devkit");
+    }
+  }
+
+  return X_STATUS_SUCCESS;
+}
 
 void DmMapDevkitDrive_entry(const ppc_context_t& ctx) {
   // games check for nonzero result, failure if nz
