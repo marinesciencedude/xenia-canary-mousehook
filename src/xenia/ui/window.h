@@ -17,6 +17,7 @@
 #include <string>
 #include <utility>
 
+#include "xenia/base/delegate.h"
 #include "xenia/base/platform.h"
 #include "xenia/ui/menu_item.h"
 #include "xenia/ui/presenter.h"
@@ -294,7 +295,7 @@ class Window {
   // Provide null buffer and / or zero size to reset the icon.
   void SetIcon(const void* buffer, size_t size);
   void ResetIcon() { SetIcon(nullptr, 0); }
-
+  
   // Desired state stored by the common Window, externally modifiable, read-only
   // in the implementation.
   void SetMainMenu(std::unique_ptr<MenuItem> new_main_menu);
@@ -348,6 +349,18 @@ class Window {
       presenter_->RequestUIPaintFromUIThread();
     }
   }
+  
+  Delegate<KeyEvent&> on_key_down;
+  Delegate<KeyEvent&> on_key_up;
+  Delegate<KeyEvent&> on_key_char;
+
+  Delegate<MouseEvent&> on_mouse_down;
+  Delegate<MouseEvent&> on_mouse_move;
+  Delegate<MouseEvent&> on_mouse_up;
+  Delegate<MouseEvent&> on_mouse_wheel;
+  
+  Delegate<MouseEvent&> on_raw_mouse;
+  Delegate<KeyEvent&> on_raw_keyboard;
 
  protected:
   // The receiver, which must never be instantiated in the Window object itself
@@ -599,7 +612,11 @@ class Window {
 
   void OnTouchEvent(TouchEvent& e,
                     WindowDestructionReceiver& destruction_receiver);
-
+  
+  void OnRawMouse(MouseEvent& e,
+                    WindowDestructionReceiver& destruction_receiver);
+  void OnRawKeyboard(KeyEvent& e,
+                    WindowDestructionReceiver& destruction_receiver);
  private:
   struct ListenerIterationContext {
     explicit ListenerIterationContext(ListenerIterationContext* outer_context,
