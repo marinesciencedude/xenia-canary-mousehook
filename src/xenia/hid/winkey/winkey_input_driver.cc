@@ -11,10 +11,37 @@
 
 #include "xenia/base/logging.h"
 #include "xenia/base/platform_win.h"
+#include "xenia/base/system.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
+
+#include "xenia/hid/winkey/hookables/Crackdown2.h"
+#include "xenia/hid/winkey/hookables/SourceEngine.h"
+#include "xenia/hid/winkey/hookables/goldeneye.h"
+#include "xenia/hid/winkey/hookables/halo3.h"
+
+DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
+DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");
+DEFINE_bool(swap_wheel, false,
+            "Swaps binds for wheel, so wheel up will go to next weapon & down "
+            "will go to prev",
+            "MouseHook");
+DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
+DEFINE_bool(disable_autoaim, true,
+            "Disable autoaim in games that support it (currently GE & PD)",
+            "MouseHook");
+DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
+              "MouseHook");
+DEFINE_int32(walk_orthogonal, 22800,
+             "Joystick movement for forward/backward/left/right shiftwalking, "
+             "default 22800 equates to 134.99 h.u./s",
+             "MouseHook");
+DEFINE_int32(walk_diagonal, 18421,
+             "Joystick movement for diagonal shiftwalking, default 18421 "
+             "equates to 134.99 h.u./s",
+             "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \
@@ -40,6 +67,7 @@ DEFINE_int32(
 namespace xe {
 namespace hid {
 namespace winkey {
+using namespace xe::string_util;
 
 static uint8_t VirtualKeyToHIDUsage(UINT vk) {
   // Letters: contiguous in both VK and HID space
@@ -186,6 +214,151 @@ bool __inline IsKeyDown(ui::VirtualKey virtual_key) {
   return IsKeyDown(static_cast<uint8_t>(virtual_key));
 }
 
+// Lookup the value of xinput string
+static const std::map<std::string, ui::VirtualKey> kXInputButtons = {
+    {"up", ui::VirtualKey::kXInputPadDpadUp},
+    {"down", ui::VirtualKey::kXInputPadDpadDown},
+    {"left", ui::VirtualKey::kXInputPadDpadLeft},
+    {"right", ui::VirtualKey::kXInputPadDpadRight},
+
+    {"start", ui::VirtualKey::kXInputPadStart},
+    {"back", ui::VirtualKey::kXInputPadBack},
+    {"guide", ui::VirtualKey::kXInputPadGuide},
+
+    {"ls", ui::VirtualKey::kXInputPadLThumbPress},
+    {"rs", ui::VirtualKey::kXInputPadRThumbPress},
+
+    {"lb", ui::VirtualKey::kXInputPadLShoulder},
+    {"rb", ui::VirtualKey::kXInputPadRShoulder},
+
+    {"a", ui::VirtualKey::kXInputPadA},
+    {"b", ui::VirtualKey::kXInputPadB},
+    {"x", ui::VirtualKey::kXInputPadX},
+    {"y", ui::VirtualKey::kXInputPadY},
+
+    {"lt", ui::VirtualKey::kXInputPadLTrigger},
+    {"rt", ui::VirtualKey::kXInputPadRTrigger},
+
+    {"ls-up", ui::VirtualKey::kXInputPadLThumbUp},
+    {"ls-down", ui::VirtualKey::kXInputPadLThumbDown},
+    {"ls-left", ui::VirtualKey::kXInputPadLThumbLeft},
+    {"ls-right", ui::VirtualKey::kXInputPadLThumbRight},
+
+    {"rs-up", ui::VirtualKey::kXInputPadRThumbUp},
+    {"rs-down", ui::VirtualKey::kXInputPadRThumbDown},
+    {"rs-left", ui::VirtualKey::kXInputPadRThumbLeft},
+    {"rs-right", ui::VirtualKey::kXInputPadRThumbRight},
+
+    {"modifier", ui::VirtualKey::kModifier}};
+
+// Lookup the value of key string
+static const std::map<std::string, ui::VirtualKey> kKeyMap = {
+    {"lclick", ui::VirtualKey::kLButton},
+    {"lmouse", ui::VirtualKey::kLButton},
+    {"mouse1", ui::VirtualKey::kLButton},
+    {"rclick", ui::VirtualKey::kRButton},
+    {"rmouse", ui::VirtualKey::kRButton},
+    {"mouse2", ui::VirtualKey::kRButton},
+    {"mclick", ui::VirtualKey::kMButton},
+    {"mmouse", ui::VirtualKey::kMButton},
+    {"mouse3", ui::VirtualKey::kMButton},
+    {"mouse4", ui::VirtualKey::kXButton1},
+    {"mouse5", ui::VirtualKey::kXButton2},
+    /* {"mwheelup", VK_BIND_MWHEELUP},
+    {"mwheeldown", VK_BIND_MWHEELDOWN},*/
+
+    {"control", ui::VirtualKey::kLControl},
+    {"ctrl", ui::VirtualKey::kLControl},
+    {"alt", ui::VirtualKey::kLMenu},
+    {"lcontrol", ui::VirtualKey::kLControl},
+    {"lctrl", ui::VirtualKey::kLControl},
+    {"lalt", ui::VirtualKey::kLMenu},
+    {"rcontrol", ui::VirtualKey::kRControl},
+    {"rctrl", ui::VirtualKey::kRControl},
+    {"altgr", ui::VirtualKey::kRMenu},
+    {"ralt", ui::VirtualKey::kRMenu},
+
+    {"lshift", ui::VirtualKey::kLShift},
+    {"shift", ui::VirtualKey::kLShift},
+    {"rshift", ui::VirtualKey::kRShift},
+
+    {"backspace", ui::VirtualKey::kBack},
+    {"down", ui::VirtualKey::kDown},
+    {"left", ui::VirtualKey::kLeft},
+    {"right", ui::VirtualKey::kRight},
+    {"up", ui::VirtualKey::kUp},
+    {"delete", ui::VirtualKey::kDelete},
+    {"end", ui::VirtualKey::kEnd},
+    {"escape", ui::VirtualKey::kEscape},
+    {"home", ui::VirtualKey::kHome},
+    {"pgdown", ui::VirtualKey::kNext},
+    {"pgup", ui::VirtualKey::kPrior},
+    {"return", ui::VirtualKey::kReturn},
+    {"enter", ui::VirtualKey::kReturn},
+    {"renter", ui::VirtualKey::kSeparator},
+    {"space", ui::VirtualKey::kSpace},
+    {"tab", ui::VirtualKey::kTab},
+    {"f1", ui::VirtualKey::kF1},
+    {"f2", ui::VirtualKey::kF2},
+    {"f3", ui::VirtualKey::kF3},
+    {"f4", ui::VirtualKey::kF4},
+    {"f5", ui::VirtualKey::kF5},
+    {"f6", ui::VirtualKey::kF6},
+    {"f7", ui::VirtualKey::kF7},
+    {"f8", ui::VirtualKey::kF8},
+    {"f9", ui::VirtualKey::kF9},
+    {"f10", ui::VirtualKey::kF10},
+    {"f11", ui::VirtualKey::kF11},
+    {"f12", ui::VirtualKey::kF12},
+    {"f13", ui::VirtualKey::kF13},
+    {"f14", ui::VirtualKey::kF14},
+    {"f15", ui::VirtualKey::kF15},
+    {"f16", ui::VirtualKey::kF16},
+    {"f17", ui::VirtualKey::kF17},
+    {"f18", ui::VirtualKey::kF18},
+    {"f19", ui::VirtualKey::kF19},
+    {"f20", ui::VirtualKey::kF10},
+    {"num0", ui::VirtualKey::kNumpad0},
+    {"num1", ui::VirtualKey::kNumpad1},
+    {"num2", ui::VirtualKey::kNumpad2},
+    {"num3", ui::VirtualKey::kNumpad3},
+    {"num4", ui::VirtualKey::kNumpad4},
+    {"num5", ui::VirtualKey::kNumpad5},
+    {"num6", ui::VirtualKey::kNumpad6},
+    {"num7", ui::VirtualKey::kNumpad7},
+    {"num8", ui::VirtualKey::kNumpad8},
+    {"num9", ui::VirtualKey::kNumpad9},
+    {"num+", ui::VirtualKey::kAdd},
+    {"num-", ui::VirtualKey::kSubtract},
+    {"num*", ui::VirtualKey::kMultiply},
+    {"num/", ui::VirtualKey::kDivide},
+    {"num.", ui::VirtualKey::kDecimal},
+    {"numenter", ui::VirtualKey::kSeparator},
+    {";", ui::VirtualKey::kOem1},
+    {":", ui::VirtualKey::kOem1},
+    {"=", ui::VirtualKey::kOemPlus},
+    {"+", ui::VirtualKey::kOemPlus},
+    {",", ui::VirtualKey::kOemComma},
+    {"<", ui::VirtualKey::kOemComma},
+    {"-", ui::VirtualKey::kOemMinus},
+    {"_", ui::VirtualKey::kOemMinus},
+    {".", ui::VirtualKey::kOemPeriod},
+    {">", ui::VirtualKey::kOemPeriod},
+    {"/", ui::VirtualKey::kOem2},
+    {"?", ui::VirtualKey::kOem2},
+    {"'", ui::VirtualKey::kOem3},  // uk keyboard
+    {"@", ui::VirtualKey::kOem3},  // uk keyboard
+    {"[", ui::VirtualKey::kOem4},
+    {"{", ui::VirtualKey::kOem4},
+    {"\\", ui::VirtualKey::kOem5},
+    {"|", ui::VirtualKey::kOem5},
+    {"]", ui::VirtualKey::kOem6},
+    {"}", ui::VirtualKey::kOem6},
+    {"#", ui::VirtualKey::kOem7},  // uk keyboard
+    {"\"", ui::VirtualKey::kOem7},
+    {"`", ui::VirtualKey::kOem8},  // uk keyboard, no idea what this is on US..
+};
+
 void WinKeyInputDriver::ParseKeyBinding(ui::VirtualKey output_key,
                                         const std::string_view description,
                                         const std::string_view source_tokens) {
@@ -226,6 +399,119 @@ void WinKeyInputDriver::ParseKeyBinding(ui::VirtualKey output_key,
   }
 }
 
+ui::VirtualKey WinKeyInputDriver::ParseButtonCombination(const char* combo) {
+  size_t len = strlen(combo);
+
+  uint16_t retval = 0;
+  std::string cur_token;
+
+  // Parse combo tokens into buttons bitfield (tokens separated by any
+  // non-alphabetical char, eg. +)
+  for (size_t i = 0; i < len; i++) {
+    char c = combo[i];
+
+    if (!isalpha(c) && c != '-') {
+      if (cur_token.length() && kXInputButtons.count(cur_token)) {
+        retval |= static_cast<uint16_t>(kXInputButtons.at(cur_token));
+      }
+
+      cur_token.clear();
+      continue;
+    }
+    cur_token += ::tolower(c);
+  }
+
+  if (cur_token.length() && kXInputButtons.count(cur_token)) {
+    retval |= static_cast<uint16_t>(kXInputButtons.at(cur_token));
+  }
+
+  return static_cast<ui::VirtualKey>(retval);
+}
+
+void WinKeyInputDriver::ParseCustomKeyBinding(
+    const std::string_view bindings_file) {
+  if (!std::filesystem::exists(bindings_file)) {
+    xe::ShowSimpleMessageBox(xe::SimpleMessageBoxType::Warning,
+                             "Xenia failed to load bindings.ini file, "
+                             "MouseHook won't have any keys bound!");
+    return;
+  }
+
+  // Read bindings file if it exists
+  std::ifstream binds(bindings_file.data());
+
+  std::string cur_section = "default";
+  uint32_t title_id = 0;
+
+  std::map<ui::VirtualKey, ui::VirtualKey> cur_binds;
+
+  std::string line;
+  while (std::getline(binds, line)) {
+    line = trim(line);
+    if (!line.length()) {
+      continue;  // blank line
+    }
+    if (line[0] == ';') {
+      continue;  // comment
+    }
+
+    if (line.length() >= 3 && line[0] == '[' &&
+        line[line.length() - 1] == ']') {
+      // New section
+      if (cur_binds.size() > 0) {
+        key_binds_.emplace(title_id, cur_binds);
+        cur_binds.clear();
+      }
+
+      cur_section = line.substr(1, line.length() - 2);
+      auto sep = cur_section.find_first_of(' ');
+      if (sep >= 0) {
+        cur_section = cur_section.substr(0, sep);
+      }
+
+      title_id = std::stoul(cur_section, nullptr, 16);
+
+      continue;
+    }
+
+    // Not a section, must be bind
+    auto sep = line.find_last_of('=');
+    if (sep < 0) {
+      continue;  // invalid
+    }
+
+    auto key_str = trim(line.substr(0, sep));
+    auto val_str = trim(line.substr(sep + 1));
+
+    // key tolower
+    std::transform(key_str.begin(), key_str.end(), key_str.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    // Parse key
+    ui::VirtualKey key = ui::VirtualKey::kNone;
+
+    if (kKeyMap.count(key_str)) {
+      key = kKeyMap.at(key_str);
+    } else if (key_str.length() == 1 &&
+               (isalpha(key_str[0]) || isdigit(key_str[0]))) {
+      key = static_cast<ui::VirtualKey>(toupper(key_str[0]));
+    }
+
+    if (key == ui::VirtualKey::kNone) {
+      continue;  // unknown key
+    }
+
+    // Parse value
+    auto const value = ParseButtonCombination(val_str.c_str());
+    cur_binds.emplace(key, value);
+  }
+
+  if (cur_binds.size() > 0) {
+    key_binds_.emplace(title_id, cur_binds);
+    cur_binds.clear();
+  }
+}
+
 WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
                                      size_t window_z_order)
     : InputDriver(window, window_z_order), window_input_listener_(*this) {
@@ -235,6 +521,16 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
                   cvars::cvar_name);
 #include "winkey_binding_table.inc"
 #undef XE_HID_WINKEY_BINDING
+
+  // Register our supported hookable games
+  hookable_games_.push_back(std::move(std::make_unique<GoldeneyeGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<Halo3Game>()));
+  hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
+  hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
+
+  auto path = std::filesystem::current_path() / "bindings.ini";
+
+  ParseCustomKeyBinding(path.string());
 
   window->AddInputListener(&window_input_listener_, window_z_order);
 }
@@ -287,14 +583,34 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
   int16_t thumb_ly = 0;
   int16_t thumb_rx = 0;
   int16_t thumb_ry = 0;
+  bool modifier_pressed = false;
 
-  if (window()->HasFocus()) {
-    bool capital = IsKeyToggled(VK_CAPITAL) || IsKeyDown(VK_SHIFT);
-    for (const KeyBinding& b : key_bindings_) {
-      if (((b.lowercase == b.uppercase) || (b.lowercase && !capital) ||
-           (b.uppercase && capital)) &&
-          IsKeyDown(b.input_key)) {
-        switch (b.output_key) {
+  RawInputState state;
+
+  if (window()->HasFocus() && is_active()) {
+    {
+      while (!mouse_events_.empty()) {
+        auto& mouse = mouse_events_.front();
+        state.mouse.x_delta += mouse.x_delta;
+        state.mouse.y_delta += mouse.y_delta;
+        state.mouse.wheel_delta += mouse.wheel_delta;
+        mouse_events_.pop();
+      }
+    }
+
+    for (int i = 0; i < sizeof(key_states_); i++) {
+      if (key_states_[i]) {
+        const auto& binds = key_binds_.at(title_id);
+        const auto vk_key = static_cast<ui::VirtualKey>(i);
+
+        if (!binds.count(vk_key)) {
+          break;
+        }
+
+        const auto key_binding = binds.at(vk_key);
+
+        // use if instead for binding combinations?
+        switch (key_binding) {
           case ui::VirtualKey::kXInputPadA:
             buttons |= X_INPUT_GAMEPAD_A;
             break;
@@ -370,6 +686,9 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
           case ui::VirtualKey::kXInputPadRThumbLeft:
             thumb_rx += SHRT_MIN;
             break;
+          case ui::VirtualKey::kModifier:
+            modifier_pressed = true;
+            break;
         }
       }
     }
@@ -383,6 +702,30 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
   out_state->gamepad.thumb_ly = thumb_ly;
   out_state->gamepad.thumb_rx = thumb_rx;
   out_state->gamepad.thumb_ry = thumb_ry;
+
+  // Check if we have any hooks/injections for the current game
+  bool game_modifier_handled = false;
+  if (title_id) {
+    for (auto& game : hookable_games_) {
+      if (game->IsGameSupported()) {
+        game->DoHooks(user_index, state, out_state);
+        if (modifier_pressed) {
+          game_modifier_handled =
+              game->ModifierKeyHandler(user_index, state, out_state);
+        }
+        break;
+      }
+    }
+  }
+
+  if (!game_modifier_handled && modifier_pressed) {
+    // Modifier not handled by any supported game class, apply default modifier
+    // (swap LS input to RS, for games that require RS movement)
+    out_state->gamepad.thumb_rx = out_state->gamepad.thumb_lx;
+    out_state->gamepad.thumb_ry = out_state->gamepad.thumb_ly;
+    out_state->gamepad.thumb_lx = 0;
+    out_state->gamepad.thumb_ly = 0;
+  }
 
   if (IsPassthroughEnabled()) {
     memset(out_state, 0, sizeof(out_state));
@@ -498,6 +841,21 @@ void WinKeyInputDriver::WinKeyWindowInputListener::OnKeyUp(ui::KeyEvent& e) {
   driver_.OnKey(e, false);
 }
 
+void WinKeyInputDriver::WinKeyWindowInputListener::OnRawKeyboard(
+    ui::KeyEvent& e) {
+  driver_.OnRawKeyboard(e);
+}
+
+void WinKeyInputDriver::OnRawKeyboard(ui::KeyEvent& e) {
+  if (!is_active()) {
+    return;
+  }
+
+  const auto key = static_cast<uint16_t>(e.virtual_key());
+
+  key_states_[key] = e.prev_state();
+}
+
 void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
   if (static_cast<KeyboardMode>(cvars::keyboard_mode) ==
       KeyboardMode::Disabled) {
@@ -526,6 +884,57 @@ InputType WinKeyInputDriver::GetInputType() const {
       break;
   }
   return InputType::Controller;
+}
+
+void WinKeyInputDriver::WinKeyWindowInputListener::OnRawMouse(
+    ui::MouseEvent& e) {
+  driver_.OnRawMouse(e);
+}
+
+void WinKeyInputDriver::OnRawMouse(ui::MouseEvent& evt) {
+  if (!is_active()) {
+    return;
+  }
+
+  MouseEvent mouse;
+  mouse.x_delta = evt.x();
+  mouse.y_delta = evt.y();
+  mouse.buttons = evt.scroll_x();
+  mouse.wheel_delta = evt.scroll_y();
+  mouse_events_.push(mouse);
+
+  {
+    if (mouse.buttons & RI_MOUSE_LEFT_BUTTON_DOWN) {
+      key_states_[VK_LBUTTON] = true;
+    }
+    if (mouse.buttons & RI_MOUSE_LEFT_BUTTON_UP) {
+      key_states_[VK_LBUTTON] = false;
+    }
+    if (mouse.buttons & RI_MOUSE_RIGHT_BUTTON_DOWN) {
+      key_states_[VK_RBUTTON] = true;
+    }
+    if (mouse.buttons & RI_MOUSE_RIGHT_BUTTON_UP) {
+      key_states_[VK_RBUTTON] = false;
+    }
+    if (mouse.buttons & RI_MOUSE_MIDDLE_BUTTON_DOWN) {
+      key_states_[VK_MBUTTON] = true;
+    }
+    if (mouse.buttons & RI_MOUSE_MIDDLE_BUTTON_UP) {
+      key_states_[VK_MBUTTON] = false;
+    }
+    if (mouse.buttons & RI_MOUSE_BUTTON_4_DOWN) {
+      key_states_[VK_XBUTTON1] = true;
+    }
+    if (mouse.buttons & RI_MOUSE_BUTTON_4_UP) {
+      key_states_[VK_XBUTTON1] = false;
+    }
+    if (mouse.buttons & RI_MOUSE_BUTTON_5_DOWN) {
+      key_states_[VK_XBUTTON2] = true;
+    }
+    if (mouse.buttons & RI_MOUSE_BUTTON_5_UP) {
+      key_states_[VK_XBUTTON2] = false;
+    }
+  }
 }
 
 }  // namespace winkey
