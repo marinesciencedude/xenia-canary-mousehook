@@ -608,24 +608,10 @@ bool GTKWindow::HandleKeyboard(
   bool ctrl_pressed = modifiers & GDK_CONTROL_MASK;
   bool alt_pressed = modifiers & GDK_META_MASK;
   bool super_pressed = modifiers & GDK_SUPER_MASK;
-
-  // Translate GTK to VK
-  VirtualKey vk = TranslateVirtualKey(event->keyval);
-  uint32_t unicode_char = gdk_keyval_to_unicode(event->keyval);
-
-  bool is_key_pressed = false;
-
-  // Backspace has unicode value but is not printable therefore we want
-  // OnKeyDown not OnKeyChar
-  if (unicode_char > 0) {
-    if (std::isprint(unicode_char)) {
-      is_key_pressed = true;
-      vk = static_cast<VirtualKey>(unicode_char);
-    }
-  }
-
-  KeyEvent e(this, vk, 1, event->type == GDK_KEY_RELEASE, shift_pressed,
-             ctrl_pressed, alt_pressed, super_pressed);
+  uint32_t key_char = gdk_keyval_to_unicode(event->keyval);
+  KeyEvent e(this, TranslateVirtualKey(event->keyval), 1,
+             event->type == GDK_KEY_RELEASE, shift_pressed, ctrl_pressed,
+             alt_pressed, super_pressed);
   switch (event->type) {
     case GDK_KEY_PRESS:
       if (is_key_pressed) {
