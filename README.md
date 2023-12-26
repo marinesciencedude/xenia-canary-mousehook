@@ -11,7 +11,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | CSGO | |
 | CSGO Beta | |
 | Left 4 Dead 2 | TU0 |
-| Left 4 Dead | TU0 |
+| Left 4 Dead | TU0, GOTY |
 | Portal 2 |  TU0 |
 | Team Fortress 2 | TU0 |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
