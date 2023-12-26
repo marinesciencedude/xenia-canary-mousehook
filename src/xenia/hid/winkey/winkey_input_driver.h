@@ -14,6 +14,7 @@
 
 #include "xenia/base/mutex.h"
 #include "xenia/hid/input_driver.h"
+#include "xenia/hid/winkey/hookables/hookable_game.h"
 #include "xenia/ui/virtual_key.h"
 
 namespace xe {
@@ -59,6 +60,8 @@ class WinKeyInputDriver final : public InputDriver {
 
     void OnKeyDown(ui::KeyEvent& e) override;
     void OnKeyUp(ui::KeyEvent& e) override;
+    void OnRawKeyboard(ui::KeyEvent& e) override;
+    void OnRawMouse(ui::MouseEvent& e) override;
 
    private:
     WinKeyInputDriver& driver_;
@@ -68,7 +71,15 @@ class WinKeyInputDriver final : public InputDriver {
                        const std::string_view description,
                        const std::string_view binding);
 
+  ui::VirtualKey ParseButtonCombination(const char* combo);
+
+  void ParseCustomKeyBinding(const std::string_view bindings_file);
+
+  void OnRawKeyboard(ui::KeyEvent& e);
+
   void OnKey(ui::KeyEvent& e, bool is_down);
+
+  void OnRawMouse(ui::MouseEvent& e);
 
   WinKeyWindowInputListener window_input_listener_;
 
@@ -76,7 +87,15 @@ class WinKeyInputDriver final : public InputDriver {
   std::queue<KeyEvent> key_events_;
   std::vector<KeyBinding> key_bindings_;
   uint8_t key_map_[256];
+
+  std::queue<MouseEvent> mouse_events_;
+
+  uint8_t key_states_[256] = {};
+  std::map<uint32_t, std::map<ui::VirtualKey, ui::VirtualKey>> key_binds_;
+
   uint32_t packet_number_ = 1;
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
 };
 
 }  // namespace winkey
