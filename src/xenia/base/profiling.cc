@@ -38,7 +38,6 @@
 #include "xenia/base/cvar.h"
 #include "xenia/base/profiling.h"
 #include "xenia/ui/ui_event.h"
-#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 
 #if XE_OPTION_PROFILING
@@ -128,18 +127,18 @@ void Profiler::ThreadEnter(const char* name) {
 
 void Profiler::ThreadExit() { MicroProfileOnThreadExit(); }
 
-void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e) {
+void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e, int key_code) {
   // https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
   bool handled = true;
-  switch (e.virtual_key()) {
-    case ui::VirtualKey::kOem3:  // `
+  switch (key_code) {
+    case VK_OEM_3: // `
       MicroProfileTogglePause();
       break;
 #if XE_OPTION_PROFILING_UI
-    case ui::VirtualKey::kTab:
+    case VK_TAB:
       ToggleDisplay();
       break;
-    case ui::VirtualKey::k1:
+    case 0x31: // 1
       MicroProfileModKey(1);
       break;
 #endif  // XE_OPTION_PROFILING_UI
@@ -153,11 +152,11 @@ void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e) {
   PostInputEvent();
 }
 
-void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e) {
+void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e, int key_code) {
   bool handled = true;
-  switch (e.virtual_key()) {
+  switch (key_code) {
 #if XE_OPTION_PROFILING_UI
-    case ui::VirtualKey::k1:
+    case 0x31: // 1
       MicroProfileModKey(0);
       break;
 #endif  // XE_OPTION_PROFILING_UI
@@ -271,6 +270,46 @@ void Profiler::SetUserIO(size_t z_order, ui::Window* window,
     }
 #endif  // XE_OPTION_PROFILING_UI
   }
+
+  // Pass through mouse events.
+  window_->on_mouse_down.AddListener([](ui::MouseEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnMouseDown(e);
+      e.set_handled(true);
+    }
+  });
+  window_->on_mouse_up.AddListener([](ui::MouseEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnMouseUp(e);
+      e.set_handled(true);
+    }
+  });
+  window_->on_mouse_move.AddListener([](ui::MouseEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnMouseMove(e);
+      e.set_handled(true);
+    }
+  });
+  window_->on_mouse_wheel.AddListener([](ui::MouseEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnMouseWheel(e);
+      e.set_handled(true);
+    }
+  });
+
+  // Watch for toggle/mode keys and such.
+  window_->on_key_down.AddListener([](ui::KeyEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnKeyDown(e, e.key_code());
+      e.set_handled(true);
+    }
+  });
+  window_->on_key_up.AddListener([](ui::KeyEvent& e) {
+    if (Profiler::is_visible()) {
+      Profiler::ProfilerWindowInputListener::OnKeyUp(e, e.key_code());
+      e.set_handled(true);
+    }
+  });
 }
 
 void Profiler::Flip() {
