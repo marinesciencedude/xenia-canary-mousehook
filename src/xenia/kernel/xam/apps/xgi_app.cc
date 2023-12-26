@@ -43,6 +43,22 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       uint32_t context_value = xe::load_and_swap<uint32_t>(buffer + 20);
       XELOGD("XGIUserSetContextEx({:08X}, {:08X}, {:08X})", user_index,
              context_id, context_value);
+
+      const util::XdbfGameData title_xdbf = kernel_state_->title_xdbf();
+      if (title_xdbf.is_valid()) {
+        const auto context = title_xdbf.GetContext(context_id);
+        const XLanguage title_language = title_xdbf.GetExistingLanguage(
+            static_cast<XLanguage>(XLanguage::kEnglish));
+        const std::string desc =
+            title_xdbf.GetStringTableEntry(title_language, context.string_id);
+        XELOGD("XGIUserSetContextEx: {} - Set to value: {}", desc,
+               context_value);
+
+        UserProfile* user_profile = kernel_state_->user_profile(user_index);
+        if (user_profile) {
+          user_profile->contexts_[context_id] = context_value;
+        }
+      }
       return X_E_SUCCESS;
     }
     case 0x000B0007: {
@@ -52,6 +68,17 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       uint32_t value_ptr = xe::load_and_swap<uint32_t>(buffer + 24);
       XELOGD("XGIUserSetPropertyEx({:08X}, {:08X}, {}, {:08X})", user_index,
              property_id, value_size, value_ptr);
+
+      const util::XdbfGameData title_xdbf = kernel_state_->title_xdbf();
+      if (title_xdbf.is_valid()) {
+        const auto property = title_xdbf.GetContext(property_id);
+        const XLanguage title_language = title_xdbf.GetExistingLanguage(
+            static_cast<XLanguage>(XLanguage::kEnglish));
+        const std::string desc =
+            title_xdbf.GetStringTableEntry(title_language, property.string_id);
+        XELOGD("XGIUserSetPropertyEx: Setting property: {}", desc);
+      }
+
       return X_E_SUCCESS;
     }
     case 0x000B0008: {
@@ -133,6 +160,13 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
              context_ptr, context_id);
       uint32_t value = 0;
       if (context) {
+        UserProfile* user_profile = kernel_state_->user_profile(user_index);
+        if (user_profile) {
+          if (user_profile->contexts_.find(context_id) !=
+              user_profile->contexts_.cend()) {
+            value = user_profile->contexts_[context_id];
+          }
+        }
         xe::store_and_swap<uint32_t>(context + 4, value);
       }
       return X_E_FAIL;

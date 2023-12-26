@@ -10,6 +10,7 @@
 #ifndef XENIA_KERNEL_XAM_USER_PROFILE_H_
 #define XENIA_KERNEL_XAM_USER_PROFILE_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -231,6 +232,8 @@ class UserProfile {
 
   void AddSetting(std::unique_ptr<Setting> setting);
   Setting* GetSetting(uint32_t setting_id);
+
+  std::map<uint32_t, uint32_t> contexts_;
 
  private:
   uint64_t xuid_;
