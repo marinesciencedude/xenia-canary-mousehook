@@ -320,6 +320,14 @@ object_ref<UserModule> KernelState::GetExecutableModule() {
   return executable_module_;
 }
 
+bool KernelState::has_executable_module() 
+{
+    if (executable_module_) {
+      return true;
+    }
+    return false;
+}
+
 void KernelState::SetExecutableModule(object_ref<UserModule> module) {
   if (module.get() == executable_module_.get()) {
     return;

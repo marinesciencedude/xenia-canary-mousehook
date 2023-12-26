@@ -18,7 +18,6 @@
 #include "xenia/base/logging.h"
 #include "xenia/base/platform_linux.h"
 #include "xenia/ui/surface_gnulinux.h"
-#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window_gtk.h"
 
 namespace xe {
@@ -432,10 +431,9 @@ bool GTKWindow::HandleKeyboard(
   bool alt_pressed = modifiers & GDK_META_MASK;
   bool super_pressed = modifiers & GDK_SUPER_MASK;
   uint32_t key_char = gdk_keyval_to_unicode(event->keyval);
-  // TODO(Triang3l): event->hardware_keycode to VirtualKey translation.
-  KeyEvent e(this, VirtualKey(event->hardware_keycode), 1,
-             event->type == GDK_KEY_RELEASE, shift_pressed, ctrl_pressed,
-             alt_pressed, super_pressed);
+  auto e =
+      KeyEvent(this, event->hardware_keycode, 1, event->type == GDK_KEY_RELEASE,
+               shift_pressed, ctrl_pressed, alt_pressed, super_pressed);
   switch (event->type) {
     case GDK_KEY_PRESS:
       OnKeyDown(e, destruction_receiver);

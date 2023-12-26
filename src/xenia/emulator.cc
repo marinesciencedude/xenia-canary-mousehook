@@ -75,6 +75,11 @@ DEFINE_string(
     "or the module specified by the game. Leave blank to launch the default "
     "module.",
     "General");
+	
+DEFINE_bool(ge_remove_blur, false,
+            "(GoldenEye) Removes low-res blur when in classic-graphics mode", "MouseHook");
+DEFINE_bool(ge_debug_menu, false,
+            "(GoldenEye) Enables the debug menu, accessible with LB/1", "MouseHook");
 
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
@@ -1219,6 +1224,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   title_id_ = std::nullopt;
   title_name_ = "";
   title_version_ = "";
+  executable_path_.clear();
   display_window_->SetIcon(nullptr, 0);
 
   // Allow xam to request module loads.
@@ -1243,6 +1249,9 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     XELOGE("Failed to initialize user module {}", xe::path_to_utf8(path));
     return result;
   }
+  
+  executable_path_ = path;
+  
   // Grab the current title ID.
   xex2_opt_execution_info* info = nullptr;
   uint32_t workspace_address = 0;
@@ -1346,6 +1355,139 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       }
     }
   }
+  
+  auto patch_addr = [module](uint32_t addr, uint32_t value) {
+        auto* patch_ptr =
+            (xe::be<uint32_t>*)module->memory()->TranslateVirtual(addr);
+        auto heap = module->memory()->LookupHeap(addr);
+
+        uint32_t old_protect = 0;
+        heap->Protect(addr, 4, kMemoryProtectRead | kMemoryProtectWrite,
+                      &old_protect);
+        *patch_ptr = value;
+        heap->Protect(addr, 4, old_protect);
+      };
+
+      if (module->title_id() == 0x584109C2) {
+        // Prevent game from writing RS thumbstick to crosshair/gun position
+        // Multiple PD revisions so we'll need to search the code...
+
+        std::vector<uint32_t> search_insns = {
+            0xD17F16A8,  // stfs      f11, 0x16A8(r31)
+            0xD19F16A4,  // stfs      f12, 0x16A4(r31)
+            0xD19F1690,  // stfs      f12, 0x1690(r31)
+            0xD15F1694,  // stfs      f10, 0x1694(r31)
+            0xD0FF0CFC,  // stfs      f7, 0xCFC(r31)
+            0xD0BF0D00   // stfs      f5, 0xD00(r31)
+        };
+
+        int patched = 0;
+
+        auto* xex = module->xex_module();
+        auto* check_addr =
+            (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+                xex->base_address());
+        auto* end_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+            xex->base_address() + xex->image_size());
+
+        while (end_addr > check_addr) {
+          auto value = *check_addr;
+
+          for (auto test : search_insns) {
+            if (test == value) {
+              uint32_t addr = module->memory()->HostToGuestVirtual(check_addr);
+              patch_addr(addr, 0x60000000);
+              patched++;
+              break;
+            }
+          }
+
+          check_addr++;
+        }
+      }
+
+      if (module->title_id() == 0x584108A9) {
+        struct GEPatchOffsets {
+          uint32_t check_addr;
+          uint32_t check_value;
+
+          uint32_t crosshair_addr1;
+          uint32_t crosshair_patch1;
+          uint32_t crosshair_addr2;
+          uint32_t crosshair_patch2;
+
+          uint32_t returnarcade_addr1;
+          uint32_t returnarcade_patch1;
+          uint32_t returnarcade_addr2;
+          uint32_t returnarcade_patch2;
+          uint32_t returnarcade_addr3;
+          uint32_t returnarcade_patch3;
+
+          uint32_t blur_addr;
+          uint32_t debug_addr;
+        };
+
+        std::vector<GEPatchOffsets> supported_builds = {
+            // Nov 2007 Release build
+            {0x8200336C, 0x676f6c64, 0x820A45D0, 0x4800003C, 0x820A46D4,
+             0x4800003C, 0x820F7750, 0x2F1E0007, 0x820F7D04, 0x2F1A0007,
+             0x820F7780, 0x2B0A0003, 0x82188E70, 0x82189F28},
+
+            // Nov 2007 Team build
+            {0x82003398, 0x676f6c64, 0x820C85B0, 0x480000B0, 0x820C88B8,
+             0x480000B0, 0x8213ABE8, 0x2F0B0007, 0x8213AF0C, 0x2F0B0007,
+             0x8213ACB4, 0x2B0B0004, 0x8221DF34, 0},
+
+            // Nov 2007 Debug build
+            {0x82005540, 0x676f6c64, 0x822A2BFC, 0x480000B0, 0x822A2F04,
+             0x480000B0, 0x82344D04, 0x2F0B0007, 0x82345030, 0x2F0B0007,
+             0x82344DD0, 0x2B0B0004, 0x824AB510, 0},
+        };
+
+        for (auto& build : supported_builds) {
+          auto* test_addr =
+              (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+                  build.check_addr);
+          if (*test_addr != build.check_value) {
+            continue;
+          }
+
+          // Prevent game from overwriting crosshair/gun positions
+          if (build.crosshair_addr1) {
+            patch_addr(build.crosshair_addr1, build.crosshair_patch1);
+          }
+          if (build.crosshair_addr2) {
+            patch_addr(build.crosshair_addr2, build.crosshair_patch2);
+          }
+
+          // Hide "return to arcade" menu option
+          if (build.returnarcade_addr1) {
+            patch_addr(build.returnarcade_addr1, build.returnarcade_patch1);
+          }
+          if (build.returnarcade_addr2) {
+            patch_addr(build.returnarcade_addr2, build.returnarcade_patch2);
+          }
+          // Prevent "return to arcade" code from being executed
+          if (build.returnarcade_addr3) {
+            patch_addr(build.returnarcade_addr3, build.returnarcade_patch3);
+          }
+
+          if (cvars::ge_remove_blur && build.blur_addr) {
+            // Patch out N64 blur
+            // Source:
+            // https://github.com/xenia-canary/game-patches/blob/main/patches/584108A9.patch
+
+            patch_addr(build.blur_addr, 0x60000000);
+          }
+
+          if (cvars::ge_debug_menu && build.debug_addr) {
+            // Enable debug menu
+            patch_addr(build.debug_addr, 0x2B0B0000);
+          }
+
+          break;
+        }
+    }
 
   // Initializing the shader storage in a blocking way so the user doesn't
   // miss the initial seconds - for instance, sound from an intro video may

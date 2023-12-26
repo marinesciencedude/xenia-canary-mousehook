@@ -15,6 +15,26 @@
 #include "xenia/base/mutex.h"
 #include "xenia/hid/input_driver.h"
 #include "xenia/ui/virtual_key.h"
+#include "xenia/hid/winkey/hookables/hookable_game.h"
+
+#define XINPUT_BUTTONS_MASK 0xFFFF
+#define XINPUT_BIND_LEFT_TRIGGER (1 << 16)
+#define XINPUT_BIND_RIGHT_TRIGGER (1 << 17)
+
+#define XINPUT_BIND_LS_UP (1 << 18)
+#define XINPUT_BIND_LS_DOWN (1 << 19)
+#define XINPUT_BIND_LS_LEFT (1 << 20)
+#define XINPUT_BIND_LS_RIGHT (1 << 21)
+
+#define XINPUT_BIND_RS_UP (1 << 22)
+#define XINPUT_BIND_RS_DOWN (1 << 23)
+#define XINPUT_BIND_RS_LEFT (1 << 24)
+#define XINPUT_BIND_RS_RIGHT (1 << 25)
+
+#define XINPUT_BIND_MODIFIER (1 << 26)
+
+#define VK_BIND_MWHEELUP 0x10000
+#define VK_BIND_MWHEELDOWN 0x20000
 
 namespace xe {
 namespace hid {
@@ -36,7 +56,7 @@ class WinKeyInputDriver final : public InputDriver {
 
  protected:
   struct KeyEvent {
-    ui::VirtualKey virtual_key = ui::VirtualKey::kNone;
+    int vkey = 0;
     int repeat_count = 0;
     bool transition = false;  // going up(false) or going down(true)
     bool prev_state = false;  // down(true) or up(false)
@@ -73,7 +93,18 @@ class WinKeyInputDriver final : public InputDriver {
   std::queue<KeyEvent> key_events_;
   std::vector<KeyBinding> key_bindings_;
 
-  uint32_t packet_number_ = 1;
+  std::mutex mouse_mutex_;
+  std::queue<MouseEvent> mouse_events_;
+
+  std::mutex key_mutex_;
+  bool key_states_[256];
+
+  uint32_t packet_number_;
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
+
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>
+      key_binds_;
 };
 
 }  // namespace winkey
