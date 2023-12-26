@@ -9,6 +9,7 @@ project("xenia-core")
   links({
     "fmt",
     "xenia-base",
+	"xenia-patcher",
   })
   defines({
   })
