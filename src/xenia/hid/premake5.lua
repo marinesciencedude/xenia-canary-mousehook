@@ -23,10 +23,13 @@ project("xenia-hid-demo")
     "fmt",
     "imgui",
     "xenia-base",
+    "xenia-core",
+    "xenia-helper-sdl",
     "xenia-hid",
     "xenia-hid-nop",
+    "xenia-hid-sdl",
     "xenia-ui",
-    "xenia-ui-vulkan",
+	"xenia-ui-vulkan",
   })
   includedirs({
     project_root.."/third_party/Vulkan-Headers/include",
