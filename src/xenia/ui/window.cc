@@ -661,6 +661,32 @@ void Window::OnMouseWheel(MouseEvent& e,
   }
 }
 
+void Window::OnRawMouse(MouseEvent& e,
+                        WindowDestructionReceiver& destruction_receiver) {
+  PropagateEventThroughInputListeners(
+      [&e](auto listener) {
+        listener->OnRawMouse(e);
+        return e.is_handled();
+      },
+      destruction_receiver);
+  if (destruction_receiver.IsWindowDestroyed()) {
+    return;
+  }
+}
+
+void Window::OnRawKeyboard(KeyEvent& e,
+                           WindowDestructionReceiver& destruction_receiver) {
+  PropagateEventThroughInputListeners(
+      [&e](auto listener) {
+        listener->OnRawKeyboard(e);
+        return e.is_handled();
+      },
+      destruction_receiver);
+  if (destruction_receiver.IsWindowDestroyed()) {
+    return;
+  }
+}
+
 void Window::OnTouchEvent(TouchEvent& e,
                           WindowDestructionReceiver& destruction_receiver) {
   PropagateEventThroughInputListeners(

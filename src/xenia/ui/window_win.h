@@ -97,6 +97,8 @@ class Win32Window : public Window {
 
   static LRESULT CALLBACK WndProcThunk(HWND hWnd, UINT message, WPARAM wParam,
                                        LPARAM lParam);
+
+  void ToggleCursorLock(bool lock);
   // This can't handle messages sent during CreateWindow (hwnd_ still not
   // assigned to) or after nulling hwnd_ in closing / deleting.
   virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam,
@@ -154,6 +156,8 @@ class Win32Window : public Window {
   bool cursor_currently_auto_hidden_ = false;
 
   HDEVNOTIFY usb_device_notify_ = nullptr;
+
+  RAWINPUT rawinput_data_;
 };
 
 class Win32MenuItem : public MenuItem {
