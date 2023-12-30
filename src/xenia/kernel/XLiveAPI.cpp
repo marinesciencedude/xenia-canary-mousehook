@@ -422,7 +422,8 @@ XLiveAPI::memory XLiveAPI::RegisterPlayer() {
   std::string machineId_str = fmt::format("{:06x}", GetMachineId());
 
   // User index hard-coded
-  uint64_t xuid_val = kernel_state()->xam_state()->GetUserProfile((uint32_t)0)->xuid();
+  uint64_t xuid_val =
+      kernel_state()->xam_state()->GetUserProfile((uint32_t)0)->xuid();
   std::string xuid = string_util::to_hex_string(xuid_val);
 
   doc.AddMember("xuid", xuid, doc.GetAllocator());
@@ -871,6 +872,10 @@ void XLiveAPI::SessionWriteStats(uint64_t sessionId, XSessionWriteStats* stats,
           break;
         case X_USER_DATA_TYPE::INT64:
           statObject.AddMember("value", statistics[statisticIndex].data.s64,
+                               rootObject.GetAllocator());
+          break;
+        case X_USER_DATA_TYPE::DOUBLE:
+          statObject.AddMember("value", statistics[statisticIndex].data.f64,
                                rootObject.GetAllocator());
           break;
         default:
