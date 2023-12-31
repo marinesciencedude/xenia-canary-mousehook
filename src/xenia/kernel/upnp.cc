@@ -94,7 +94,14 @@ void upnp::upnp_init() {
   const UPNPDev* dev = devlist;
 
   for (; dev; dev = dev->pNext) {
-    if (strstr(dev->st, "InternetGatewayDevice")) break;
+    if (dev != NULL) {
+      if (strstr(dev->st, "InternetGatewayDevice")) break;
+    }
+  }
+
+  if (dev == NULL) {
+    XELOGE("No UPNP device was found");
+    return;
   }
 
   int desc_xml_size = 0;
@@ -143,33 +150,58 @@ void upnp::add_port(std::string_view addr, uint16_t internal_port,
 
   internal_port = get_mapped_bind_port(internal_port);
 
-  uint16_t external_port = internal_port;
-  std::string internal_port_str = fmt::format("{}", internal_port);
+  const uint16_t external_port = internal_port;
+  const std::string internal_port_str = fmt::format("{}", internal_port);
+  const std::string external_port_str = fmt::format("{}", external_port);
+
+  // https://openconnectivity.org/developer/specifications/upnp-resources/upnp/internet-gateway-device-igd-v-2-0/
+  // http://upnp.org/specs/gw/UPnP-gw-WANIPConnection-v2-Service.pdf
+  const uint32_t OnlyPermanentLeasesSupported = 725;
+
   int res = 0;
 
-  std::string external_port_str = fmt::format("{}", external_port);
-  std::string lease_duration = fmt::format("{}", 3600);  // 1h
+  auto run = [&]() {
+    const std::string lease_duration = m_leases_supported ? "3600" : "0";  // 1h
 
-  res = UPNP_AddPortMapping(m_igd_urls.controlURL, m_igd_data.first.servicetype,
-                            external_port_str.c_str(),
-                            internal_port_str.c_str(), addr.data(), "Xenia",
-                            protocol.data(), nullptr, lease_duration.c_str());
+    res = UPNP_AddPortMapping(
+        m_igd_urls.controlURL, m_igd_data.first.servicetype,
+        external_port_str.c_str(), internal_port_str.c_str(), addr.data(),
+        "Xenia", protocol.data(), nullptr, lease_duration.c_str());
 
-  if (res == UPNPCOMMAND_SUCCESS) {
-    const auto& is_bound =
-        m_port_bindings[std::string(protocol)].find(internal_port);
+    if (res == OnlyPermanentLeasesSupported) {
+      XELOGI("Router only supports permanent lease times on port mappings.");
 
-    if (is_bound == m_port_bindings[std::string(protocol)].end()) {
-      m_port_bindings[std::string(protocol)][internal_port] = external_port;
+      m_leases_supported = false;
+      return;
+    };
 
-      XELOGI("Successfully bound {}:{}({}) to IGD:{}", addr, internal_port,
-             protocol, external_port);
+    if (res == UPNPCOMMAND_SUCCESS) {
+      const auto& is_bound =
+          m_port_bindings[std::string(protocol)].find(internal_port);
+
+      bool update = false;
+
+      if (update = (is_bound == m_port_bindings[std::string(protocol)].end())) {
+        m_port_bindings[std::string(protocol)][internal_port] = external_port;
+      }
+
+      XELOGI("Successfully {} {}:{}({}) to IGD:{}",
+             update ? "bound" : "updated", addr, internal_port, protocol,
+             external_port);
     } else {
-      XELOGI("Successfully updated {}:{}({}) to IGD:{}", addr, internal_port,
+      XELOGI("Failed to bind port!!! {}:{}({}) to IGD:{}", addr, internal_port,
              protocol, external_port);
+
+      XELOGI("UPnP error code {}", res);
     }
 
-    return;
+    m_port_binding_results[std::string(protocol)][external_port] = res;
+  };
+
+  run();
+
+  if (res == OnlyPermanentLeasesSupported) {
+    run();
   }
 }
 
@@ -194,8 +226,8 @@ void upnp::remove_port(uint16_t internal_port, std::string_view protocol) {
 
   remove_port_external(external_port, protocol);
 
-  //assert_true(m_port_bindings.at(str_protocol).erase(internal_port));
-  //assert_true(m_mapped_bind_ports.erase(internal_port));
+  // assert_true(m_port_bindings.at(str_protocol).erase(internal_port));
+  // assert_true(m_mapped_bind_ports.erase(internal_port));
 
   XELOGE("Successfully deleted port mapping {} to IGD:{}({})", internal_port,
          external_port, protocol);
@@ -215,6 +247,10 @@ void upnp::remove_port_external(uint16_t external_port,
 }
 
 void upnp::refresh_ports(std::string_view addr) {
+  if (!m_leases_supported) {
+    return;
+  }
+
   for (const auto& [protocol, m_prot_bindings] : m_port_bindings) {
     for (const auto& [internal_port, external_port] : m_prot_bindings) {
       add_port(addr, external_port, protocol);
@@ -243,37 +279,43 @@ void upnp::refresh_ports_timer() {
 
 uint16_t upnp::get_mapped_connect_port(uint16_t external_port) {
   if (m_mapped_connect_ports.find(external_port) !=
-      m_mapped_connect_ports.end())
+      m_mapped_connect_ports.end()) {
     return m_mapped_connect_ports[external_port];
-  else {
-    if (m_mapped_connect_ports.find(0) != m_mapped_connect_ports.end()) {
+  }
+
+  if (m_mapped_connect_ports.find(0) != m_mapped_connect_ports.end()) {
+    if (cvars::logging) {
       XELOGI("Using wildcard connect port for guest port {}!", external_port);
-      return m_mapped_connect_ports[0];
     }
 
-    if (cvars::logging) {
-      XELOGW("No mapped connect port found for {}!", external_port);
-    }
-    
-    return external_port;
+    return m_mapped_connect_ports[0];
   }
+
+  if (cvars::logging) {
+    XELOGW("No mapped connect port found for {}!", external_port);
+  }
+
+  return external_port;
 }
 
 uint16_t upnp::get_mapped_bind_port(uint16_t external_port) {
-  if (m_mapped_bind_ports.find(external_port) != m_mapped_bind_ports.end())
+  if (m_mapped_bind_ports.find(external_port) != m_mapped_bind_ports.end()) {
     return m_mapped_bind_ports[external_port];
-  else {
-    if (m_mapped_bind_ports.find(0) != m_mapped_bind_ports.end()) {
+  }
+
+  if (m_mapped_bind_ports.find(0) != m_mapped_bind_ports.end()) {
+    if (cvars::logging) {
       XELOGI("Using wildcard bind port for guest port {}!", external_port);
-      return m_mapped_bind_ports[0];
     }
 
-    if (cvars::logging) {
-      XELOGW("No mapped bind port found for {}!", external_port);
-    }
-    
-    return external_port;
+    return m_mapped_bind_ports[0];
   }
+
+  if (cvars::logging) {
+    XELOGW("No mapped bind port found for {}!", external_port);
+  }
+
+  return external_port;
 }
 
 bool upnp::is_active() const { return m_active; }

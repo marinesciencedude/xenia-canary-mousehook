@@ -18,6 +18,7 @@
 
 namespace xe {
 namespace kernel {
+
 class XLiveAPI {
  public:
   struct memory {
@@ -114,6 +115,14 @@ class XLiveAPI {
     xe::be<uint32_t> xoverlapped;
   };
 
+  struct XSessionSearchID {
+    XNKID* session_id;
+    xe::be<uint32_t> user_index;
+    xe::be<uint32_t> results_buffer;
+    xe::be<uint32_t> search_results;
+    xe::be<uint32_t> xoverlapped;
+  };
+
   struct XSessionDetails {
     xe::be<uint32_t> session_handle;
     xe::be<uint32_t> details_buffer_size;
@@ -162,6 +171,22 @@ class XLiveAPI {
     xe::be<uint32_t> leaderboard_id;
     xe::be<uint32_t> properties_count;
     xe::be<uint32_t> properties_guest_address;
+  };
+
+  struct XSessionJoin {
+    xe::be<uint32_t> session_handle;
+    xe::be<uint32_t> array_count;
+    xe::be<uint32_t> xuid_array_ptr;
+    xe::be<uint32_t> indices_array_ptr;
+    xe::be<uint32_t> private_slots_array_ptr;
+  };
+
+  struct XSessionLeave {
+    xe::be<uint32_t> session_handle;
+    xe::be<uint32_t> array_count;
+    xe::be<uint32_t> xuid_array_ptr;
+    xe::be<uint32_t> indices_array_ptr;
+    xe::be<uint32_t> unused;
   };
 
   struct XONLINE_SERVICE_INFO {
@@ -213,6 +238,8 @@ class XLiveAPI {
 
   static bool is_active();
 
+  static bool is_initialized();
+  
   static std::string GetApiAddress();
 
   static uint32_t GetNatType();
@@ -225,13 +252,13 @@ class XLiveAPI {
 
   static void Init();
 
-  static void RandomBytes(unsigned char* buffer_ptr, uint32_t length);
-
   static void clearXnaddrCache();
 
   static sockaddr_in Getwhoami();
 
   static sockaddr_in GetLocalIP();
+
+  static const std::string ip_to_string(in_addr addr);
 
   static const std::string ip_to_string(sockaddr_in sockaddr);
 
@@ -247,7 +274,7 @@ class XLiveAPI {
 
   static uint64_t GetMachineId();
 
-  static void RegisterPlayer();
+  static XLiveAPI::memory RegisterPlayer();
 
   static uint64_t hex_to_uint64(const char* hex);
 
@@ -280,6 +307,8 @@ class XLiveAPI {
 
   static void DeleteSession(xe::be<uint64_t> sessionId);
 
+  static void DeleteAllSessionsByMac();
+
   static void DeleteAllSessions();
 
   static void XSessionCreate(xe::be<uint64_t> sessionId, XSesion* data);
@@ -291,15 +320,19 @@ class XLiveAPI {
   static XLiveAPI::XONLINE_SERVICE_INFO GetServiceInfoById(
       xe::be<uint32_t> serviceId);
 
-  static void SessionJoinRemote(xe::be<uint64_t> sessionId, const char* data);
+  static void SessionJoinRemote(xe::be<uint64_t> sessionId,
+                                const std::vector<std::string> xuids);
 
-  static void SessionLeaveRemote(xe::be<uint64_t> sessionId, const char* data);
+  static void SessionLeaveRemote(xe::be<uint64_t> sessionId,
+                                 std::vector<std::string> xuids);
 
   static unsigned char* GenerateMacAddress();
 
   static unsigned char* GetMACaddress();
 
-  // static void resetQosCache();
+  static bool UpdateQoSCache(const xe::be<uint64_t> sessionId,
+                             const std::vector<char> qos_payload,
+                             const uint32_t payload_size);
 
   static const sockaddr_in LocalIP() { return local_ip_; };
   static const sockaddr_in OnlineIP() { return online_ip_; };
@@ -316,11 +349,14 @@ class XLiveAPI {
   inline static std::map<xe::be<uint32_t>, xe::be<uint64_t>> machineIdCache{};
   inline static std::map<xe::be<uint32_t>, xe::be<uint64_t>> sessionIdCache{};
   inline static std::map<xe::be<uint32_t>, xe::be<uint64_t>> macAddressCache{};
+  inline static std::map<xe::be<uint64_t>, std::vector<char>>
+      qos_payload_cache{};
 
   inline static int8_t version_status;
 
  private:
   inline static bool active_ = false;
+  inline static bool initialized_ = false;
 
   // std::shared_mutex mutex_;
 
@@ -347,9 +383,9 @@ class XLiveAPI {
     return realsize;
   };
 
-  inline static sockaddr_in online_ip_;
+  inline static sockaddr_in online_ip_{};
 
-  inline static sockaddr_in local_ip_;
+  inline static sockaddr_in local_ip_{};
 };
 }  // namespace kernel
 }  // namespace xe

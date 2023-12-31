@@ -36,6 +36,7 @@
 #include "xenia/hid/input_driver.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/kernel/kernel_state.h"
+#include "xenia/kernel/XLiveAPI.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/gameinfo_utils.h"
 #include "xenia/kernel/util/xdbf_utils.h"
@@ -802,6 +803,8 @@ bool Emulator::ExceptionCallback(Exception* ex) {
     });
   }
 
+  xe::kernel::XLiveAPI::DeleteAllSessionsByMac();
+
   // Now suspend ourself (we should be a guest thread).
   current_thread->Suspend(nullptr);
 
@@ -1051,6 +1054,26 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       }
       XELOGI("----------------- END OF ACHIEVEMENTS ----------------");
 
+      XELOGI("-------------------- PROPERTIES --------------------");
+      const std::vector<kernel::util::XdbfPropertyTableEntry> properties_list =
+          db.GetProperties();
+
+      for (const kernel::util::XdbfPropertyTableEntry& entry :
+           properties_list) {
+        std::string label = db.GetStringTableEntry(language, entry.string_id);
+        XELOGI("{:08X} - {} - {}", entry.id, label, entry.data_size);
+      }
+      XELOGI("----------------- END OF PROPERTIES ----------------");
+
+      XELOGI("-------------------- CONTEXTS --------------------");
+      const std::vector<kernel::util::XdbfContextTableEntry> contexts_list =
+          db.GetContexts();
+
+      for (const kernel::util::XdbfContextTableEntry& entry : contexts_list) {
+        std::string label = db.GetStringTableEntry(language, entry.string_id);
+        XELOGI("{:08X} - {} - {}", entry.id, label, entry.unk2);
+      }
+      XELOGI("----------------- END OF CONTEXTS ----------------");
       auto icon_block = db.icon();
       if (icon_block) {
         display_window_->SetIcon(icon_block.buffer, icon_block.size);

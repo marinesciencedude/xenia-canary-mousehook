@@ -483,12 +483,12 @@ void EmulatorApp::OnDestroy() {
 
 #pragma region NetplayCleanup
   // UPnP Shutdown
-
   if (cvars::upnp) {
     xe::kernel::XLiveAPI::upnp_handler.~upnp();
   }
 
-  xe::kernel::XLiveAPI::DeleteAllSessions();
+  // Delete sessions on shutdown.
+  xe::kernel::XLiveAPI::DeleteAllSessionsByMac();
 
   curl_global_cleanup();
 #pragma endregion

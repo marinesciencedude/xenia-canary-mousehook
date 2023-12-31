@@ -11,6 +11,7 @@
 #define XENIA_KERNEL_XSOCKET_H_
 
 #include <cstring>
+#include <future>
 #include <queue>
 
 #include "xenia/base/byte_order.h"
@@ -24,6 +25,7 @@ enum class X_WSAError : uint32_t {
   X_WSA_OPERATION_ABORTED = 0x03E3,
   X_WSA_IO_INCOMPLETE = 0x03E4,
   X_WSA_IO_PENDING = 0x03E5,
+  X_WSAEACCES = 0x271D,
   X_WSAEFAULT = 0x271E,
   X_WSAEINVAL = 0x2726,
   X_WSAEWOULDBLOCK = 0x2733,
@@ -147,7 +149,8 @@ class XSocket : public XObject {
   std::mutex incoming_packet_mutex_;
   std::queue<uint8_t*> incoming_packets_;
 
-  std::thread receive_thread_;
+  std::future<int> polling_task_;
+
   std::mutex receive_mutex_;
   std::condition_variable receive_cv_;
   std::mutex receive_socket_mutex_;
