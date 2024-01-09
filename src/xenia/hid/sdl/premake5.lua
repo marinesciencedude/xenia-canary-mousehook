@@ -11,6 +11,8 @@ project("xenia-hid-sdl")
     "xenia-hid",
     "xenia-ui",
     "SDL2",
+	"xenia-kernel",
+	"xenia-hid-mousehook",
   })
   defines({
   })

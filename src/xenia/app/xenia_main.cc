@@ -102,6 +102,27 @@ DECLARE_bool(debug);
 
 DEFINE_bool(discord, true, "Enable Discord rich presence", "General");
 
+DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
+DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");
+DEFINE_bool(swap_wheel, false,
+            "Swaps binds for wheel, so wheel up will go to next weapon & down "
+            "will go to prev",
+            "MouseHook");
+DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
+DEFINE_bool(disable_autoaim, true,
+            "Disable autoaim in games that support it (currently GE & PD)",
+            "MouseHook");
+DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
+              "MouseHook");
+DEFINE_int32(walk_orthogonal, 22800,
+             "Joystick movement for forward/backward/left/right shiftwalking, "
+             "default 22800 equates to 134.99 h.u./s",
+             "MouseHook");
+DEFINE_int32(walk_diagonal, 18421,
+             "Joystick movement for diagonal shiftwalking, default 18421 "
+             "equates to 134.99 h.u./s",
+             "MouseHook");
+
 namespace xe {
 namespace app {
 
@@ -354,15 +375,15 @@ std::vector<std::unique_ptr<hid::InputDriver>> EmulatorApp::CreateInputDrivers(
   } else {
     Factory<hid::InputDriver, ui::Window*, size_t> factory;
 #if XE_PLATFORM_WIN32
-    // WinKey input driver should always be the last input driver added!
-    factory.Add("winkey", xe::hid::winkey::Create);
-#endif  // XE_PLATFORM_WIN32
-#if XE_PLATFORM_WIN32
     factory.Add("xinput", xe::hid::xinput::Create);
 #endif  // XE_PLATFORM_WIN32
 #if !XE_PLATFORM_ANDROID
     factory.Add("sdl", xe::hid::sdl::Create);
 #endif  // !XE_PLATFORM_ANDROID
+#if XE_PLATFORM_WIN32
+    // WinKey input driver should always be the last input driver added!
+    factory.Add("winkey", xe::hid::winkey::Create);
+#endif  // XE_PLATFORM_WIN32
     for (auto& driver : factory.CreateAll(cvars::hid, window,
                                           EmulatorWindow::kZOrderHidInput)) {
       if (XSUCCEEDED(driver->Setup())) {

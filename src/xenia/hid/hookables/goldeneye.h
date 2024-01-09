@@ -10,12 +10,11 @@
 #ifndef XENIA_HID_WINKEY_GOLDENEYE_H_
 #define XENIA_HID_WINKEY_GOLDENEYE_H_
 
-#include "xenia/hid/winkey/hookables/hookable_game.h"
+#include "xenia/hid/hookables/hookable_game.h"
 #include "xenia/kernel/xclock.h"
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 class GoldeneyeGame : public HookableGame {
  public:
@@ -53,7 +52,6 @@ class GoldeneyeGame : public HookableGame {
   bool disable_sway_ = false;  // temporarily prevents sway being applied
 };
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 

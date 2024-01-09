@@ -23,6 +23,12 @@
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
 
+#include <src/xenia/kernel/util/shim_utils.h>
+
+#include "xenia/hid/hookables/mousehook.h"
+
+const uint32_t kTitleIdDefaultBindings = 0;
+
 // TODO(joellinn) make this path relative to the config folder.
 DEFINE_path(mappings_file, "gamecontrollerdb.txt",
             "Filename of a database with custom game controller mappings.",
@@ -40,7 +46,26 @@ SDLInputDriver::SDLInputDriver(xe::ui::Window* window, size_t window_z_order)
       sdl_pumpevents_queued_(false),
       controllers_(),
       controllers_mutex_(),
-      keystroke_states_() {}
+      keystroke_states_()
+{
+  memset(key_states_, 0, 256);
+
+  // Register our supported hookable games
+  RegisterHookables(hookable_games_);
+
+  // Read bindings file if it exists
+  ReadBindings(kTitleIdDefaultBindings, key_binds_);
+
+  // Register our event listeners
+  window->on_raw_mouse.AddListener([this](ui::MouseEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+
+    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_,
+                          key_states_);
+  });
+}
 
 SDLInputDriver::~SDLInputDriver() {
   // Make sure the CallInUIThread is executed before destroying the references.
@@ -201,6 +226,36 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
     // pressed buttons aren't lost and will be visible again.
     std::memset(&out_state->gamepad, 0, sizeof(out_state->gamepad));
   }
+
+  uint16_t buttons = 0;
+  uint8_t left_trigger = 0;
+  uint8_t right_trigger = 0;
+  int16_t thumb_lx = 0;
+  int16_t thumb_ly = 0;
+  int16_t thumb_rx = 0;
+  int16_t thumb_ry = 0;
+  bool modifier_pressed = false;
+
+  X_RESULT result = X_ERROR_SUCCESS;
+
+  RawInputState state;
+
+  if (window()->HasFocus() && is_active &&
+      xe::kernel::kernel_state()->has_executable_module()) {
+    HandleKeyBindings(state, mouse_events_, &mouse_mutex_, &key_mutex_,
+                      key_states_, key_binds_, kTitleIdDefaultBindings, &buttons, &left_trigger,
+                      &right_trigger, &thumb_lx, &thumb_ly, &thumb_rx,
+                      &thumb_ry, &modifier_pressed);
+  }
+
+  out_state->gamepad.buttons = buttons;
+  out_state->gamepad.left_trigger = left_trigger;
+  out_state->gamepad.right_trigger = right_trigger;
+  out_state->gamepad.thumb_lx = thumb_lx;
+  out_state->gamepad.thumb_ly = thumb_ly;
+  out_state->gamepad.thumb_rx = thumb_rx;
+  out_state->gamepad.thumb_ry = thumb_ry;
+
   return X_ERROR_SUCCESS;
 }
 

@@ -11,6 +11,9 @@
 #define XENIA_HID_XINPUT_XINPUT_INPUT_DRIVER_H_
 
 #include "xenia/hid/input_driver.h"
+#include <queue>
+
+#include "xenia/hid/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
@@ -38,6 +41,19 @@ class XInputInputDriver final : public InputDriver {
   void* XInputGetKeystroke_;
   void* XInputSetState_;
   void* XInputEnable_;
+
+  ui::WindowInputListener window_input_listener_;
+
+  std::mutex mouse_mutex_;
+  std::queue<MouseEvent> mouse_events_;
+
+  std::mutex key_mutex_;
+  bool key_states_[256];
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
+
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>
+      key_binds_;
 };
 
 }  // namespace xinput

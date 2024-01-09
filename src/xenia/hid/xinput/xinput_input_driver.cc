@@ -17,6 +17,13 @@
 #include "xenia/base/clock.h"
 #include "xenia/base/logging.h"
 #include "xenia/hid/hid_flags.h"
+
+#include <src/xenia/kernel/util/shim_utils.h>
+
+#include "xenia/hid/hookables/mousehook.h"
+
+const uint32_t kTitleIdDefaultBindings = 0;
+
 namespace xe {
 namespace hid {
 namespace xinput {
@@ -24,13 +31,35 @@ namespace xinput {
 XInputInputDriver::XInputInputDriver(xe::ui::Window* window,
                                      size_t window_z_order)
     : InputDriver(window, window_z_order),
+      window_input_listener_(),
       module_(nullptr),
       XInputGetCapabilities_(nullptr),
       XInputGetState_(nullptr),
       XInputGetStateEx_(nullptr),
       XInputGetKeystroke_(nullptr),
       XInputSetState_(nullptr),
-      XInputEnable_(nullptr) {}
+      XInputEnable_(nullptr)
+{
+  memset(key_states_, 0, 256);
+
+  // Register our supported hookable games
+  RegisterHookables(hookable_games_);
+
+  // Read bindings file if it exists
+  ReadBindings(kTitleIdDefaultBindings, key_binds_);
+
+  // Register our event listeners
+  window->on_raw_mouse.AddListener([this](ui::MouseEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+
+    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_,
+                          key_states_);
+  });
+
+  window->AddInputListener(&window_input_listener_, window_z_order);
+}
 
 XInputInputDriver::~XInputInputDriver() {
   if (module_) {
@@ -161,14 +190,54 @@ X_RESULT XInputInputDriver::GetState(uint32_t user_index,
     return result;
   }
 
+  uint16_t buttons = 0;
+  uint8_t left_trigger = 0;
+  uint8_t right_trigger = 0;
+  int16_t thumb_lx = 0;
+  int16_t thumb_ly = 0;
+  int16_t thumb_rx = 0;
+  int16_t thumb_ry = 0;
+  bool modifier_pressed = false;
+
+  RawInputState state;
+
+  if (window()->HasFocus() && is_active() &&
+      xe::kernel::kernel_state()->has_executable_module()) {
+    HandleKeyBindings(state, mouse_events_, &mouse_mutex_, &key_mutex_,
+                      key_states_, key_binds_, kTitleIdDefaultBindings,
+                      &buttons, &left_trigger, &right_trigger, &thumb_lx,
+                      &thumb_ly, &thumb_rx, &thumb_ry, &modifier_pressed);
+  }
+
   out_state->packet_number = native_state.state.dwPacketNumber;
-  out_state->gamepad.buttons = native_state.state.Gamepad.wButtons;
-  out_state->gamepad.left_trigger = native_state.state.Gamepad.bLeftTrigger;
-  out_state->gamepad.right_trigger = native_state.state.Gamepad.bRightTrigger;
-  out_state->gamepad.thumb_lx = native_state.state.Gamepad.sThumbLX;
-  out_state->gamepad.thumb_ly = native_state.state.Gamepad.sThumbLY;
-  out_state->gamepad.thumb_rx = native_state.state.Gamepad.sThumbRX;
-  out_state->gamepad.thumb_ry = native_state.state.Gamepad.sThumbRY;
+  if (buttons)
+    out_state->gamepad.buttons = buttons;
+  else 
+    out_state->gamepad.buttons = native_state.state.Gamepad.wButtons;
+  if (left_trigger)
+    out_state->gamepad.left_trigger = left_trigger;
+  else
+    out_state->gamepad.left_trigger = native_state.state.Gamepad.bLeftTrigger;
+  if (right_trigger)
+    out_state->gamepad.right_trigger = right_trigger;
+  else
+    out_state->gamepad.right_trigger = native_state.state.Gamepad.bRightTrigger;
+  if (thumb_lx)
+    out_state->gamepad.thumb_lx = thumb_lx;
+  else
+    out_state->gamepad.thumb_lx = native_state.state.Gamepad.sThumbLX;
+  if (thumb_ly)
+    out_state->gamepad.thumb_ly = thumb_ly;
+  else
+    out_state->gamepad.thumb_ly = native_state.state.Gamepad.sThumbLY;
+  if (thumb_rx)
+    out_state->gamepad.thumb_rx = thumb_rx;
+  else
+    out_state->gamepad.thumb_rx = native_state.state.Gamepad.sThumbRX;
+  if (thumb_ry)
+    out_state->gamepad.thumb_ry = thumb_ry;
+  else
+    out_state->gamepad.thumb_ry = native_state.state.Gamepad.sThumbRY;
 
   return result;
 }

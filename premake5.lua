@@ -309,6 +309,7 @@ workspace("xenia")
     include("src/xenia/apu/sdl")
     include("src/xenia/helper/sdl")
     include("src/xenia/hid/sdl")
+	include("src/xenia/hid/hookables")
   end
 
   if os.istarget("windows") then

@@ -14,9 +14,12 @@
 #include <atomic>
 #include <mutex>
 #include <optional>
+#include <queue>
 
 #include "SDL.h"
 #include "xenia/hid/input_driver.h"
+
+#include "xenia/hid/hookables/hookable_game.h"
 
 #define HID_SDL_USER_COUNT 4
 #define HID_SDL_THUMB_THRES 0x4E00
@@ -86,6 +89,17 @@ class SDLInputDriver final : public InputDriver {
   std::array<ControllerState, HID_SDL_USER_COUNT> controllers_;
   std::mutex controllers_mutex_;
   std::array<KeystrokeState, HID_SDL_USER_COUNT> keystroke_states_;
+
+  std::mutex mouse_mutex_;
+  std::queue<MouseEvent> mouse_events_;
+
+  std::mutex key_mutex_;
+  bool key_states_[256];
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
+
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>
+      key_binds_;
 };
 
 }  // namespace sdl

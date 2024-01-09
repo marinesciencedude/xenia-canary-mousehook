@@ -15,7 +15,7 @@
 #include "xenia/base/mutex.h"
 #include "xenia/hid/input_driver.h"
 #include "xenia/ui/virtual_key.h"
-#include "xenia/hid/winkey/hookables/hookable_game.h"
+#include "xenia/hid/hookables/hookable_game.h"
 
 #define XINPUT_BUTTONS_MASK 0xFFFF
 #define XINPUT_BIND_LEFT_TRIGGER (1 << 16)

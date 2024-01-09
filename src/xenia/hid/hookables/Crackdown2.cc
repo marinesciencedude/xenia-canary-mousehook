@@ -9,7 +9,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/Crackdown2.h"
+#include "xenia/hid/hookables/Crackdown2.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -31,7 +31,6 @@ const uint32_t kTitleIdCrackdown2 = 0x4D5308BC;
 
 namespace xe {
 namespace hid {
-namespace winkey {
 struct GameBuildAddrs {
   uint32_t base_address;
   std::string title_version;
@@ -144,6 +143,5 @@ bool Crackdown2Game::ModifierKeyHandler(uint32_t user_index,
                                         X_INPUT_STATE* out_state) {
   return false;
 }
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe

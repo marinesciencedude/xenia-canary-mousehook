@@ -7,7 +7,7 @@
  ******************************************************************************
  */
 
-#include "xenia/hid/winkey/hookables/halo3.h"
+#include "xenia/hid/hookables/halo3.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/hid/hid_flags.h"
@@ -30,7 +30,6 @@ const uint32_t kTitleIdHalo4 = 0x4D530919;
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 Halo3Game::~Halo3Game() = default;
 
@@ -201,6 +200,5 @@ bool Halo3Game::ModifierKeyHandler(uint32_t user_index,
   return false;
 }
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe
