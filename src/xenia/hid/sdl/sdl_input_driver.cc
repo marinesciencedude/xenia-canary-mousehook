@@ -64,6 +64,33 @@ SDLInputDriver::SDLInputDriver(xe::ui::Window* window, size_t window_z_order)
 
     RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_, key_states_);
   });
+
+  window->on_key_down.AddListener([this](ui::KeyEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+    auto global_lock = global_critical_region_.Acquire();
+
+    KeyEvent key;
+    key.vkey = evt.key_code();
+    key.transition = true;
+    key.prev_state = evt.prev_state();
+    key.repeat_count = evt.repeat_count();
+    key_events_.push(key);
+  });
+  window->on_key_up.AddListener([this](ui::KeyEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+    auto global_lock = global_critical_region_.Acquire();
+
+    KeyEvent key;
+    key.vkey = evt.key_code();
+    key.transition = false;
+    key.prev_state = evt.prev_state();
+    key.repeat_count = evt.repeat_count();
+    key_events_.push(key);
+  });
 }
 
 SDLInputDriver::~SDLInputDriver() {
@@ -226,7 +253,7 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
     std::memset(&out_state->gamepad, 0, sizeof(out_state->gamepad));
   }
 
-  /* uint16_t buttons = 0;
+  uint16_t buttons = 0;
   uint8_t left_trigger = 0;
   uint8_t right_trigger = 0;
   int16_t thumb_lx = 0;
@@ -235,11 +262,11 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
   int16_t thumb_ry = 0;
   bool modifier_pressed = false;
 
-  X_RESULT result = X_ERROR_SUCCESS;*/
+  X_RESULT result = X_ERROR_SUCCESS;
 
   RawInputState state;
 
-  /* if (window()->HasFocus() && is_active &&
+  if (window()->HasFocus() && is_active &&
       xe::kernel::kernel_state()->has_executable_module()) {
     HandleKeyBindings(state, mouse_events_, &mouse_mutex_, &key_mutex_,
                       key_states_, key_binds_, kTitleIdDefaultBindings, &buttons, &left_trigger,
@@ -247,13 +274,20 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
                       &thumb_ry, &modifier_pressed);
   }
 
-  out_state->gamepad.buttons = buttons;
-  out_state->gamepad.left_trigger = left_trigger;
-  out_state->gamepad.right_trigger = right_trigger;
-  out_state->gamepad.thumb_lx = thumb_lx;
-  out_state->gamepad.thumb_ly = thumb_ly;
-  out_state->gamepad.thumb_rx = thumb_rx;
-  out_state->gamepad.thumb_ry = thumb_ry;*/
+  if (buttons)
+    out_state->gamepad.buttons = buttons;
+  if (left_trigger)
+    out_state->gamepad.left_trigger = left_trigger;
+  if (right_trigger)
+    out_state->gamepad.right_trigger = right_trigger;
+  if (thumb_lx)
+    out_state->gamepad.thumb_lx = thumb_lx;
+  if (thumb_ly)
+    out_state->gamepad.thumb_ly = thumb_ly;
+  if (thumb_rx)
+    out_state->gamepad.thumb_rx = thumb_rx;
+  if (thumb_ry)
+    out_state->gamepad.thumb_ry = thumb_ry;
 
   if (xe::kernel::kernel_state()->has_executable_module()) {
     for (auto& game : hookable_games_) {

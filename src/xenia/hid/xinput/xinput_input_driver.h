@@ -12,6 +12,7 @@
 
 #include "xenia/hid/input_driver.h"
 #include <queue>
+#include "xenia/base/mutex.h"
 
 #include "xenia/hid/hookables/hookable_game.h"
 
@@ -33,6 +34,14 @@ class XInputInputDriver final : public InputDriver {
   X_RESULT GetKeystroke(uint32_t user_index, uint32_t flags,
                         X_INPUT_KEYSTROKE* out_keystroke) override;
 
+ protected:
+  struct KeyEvent {
+    int vkey = 0;
+    int repeat_count = 0;
+    bool transition = false;  // going up(false) or going down(true)
+    bool prev_state = false;  // down(true) or up(false)
+  };
+
  private:
   void* module_;
   void* XInputGetCapabilities_;
@@ -43,6 +52,9 @@ class XInputInputDriver final : public InputDriver {
   void* XInputEnable_;
 
   //ui::WindowInputListener window_input_listener_;
+
+  xe::global_critical_region global_critical_region_;
+  std::queue<KeyEvent> key_events_;
 
   std::mutex mouse_mutex_;
   std::queue<MouseEvent> mouse_events_;

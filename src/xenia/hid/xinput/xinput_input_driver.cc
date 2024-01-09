@@ -58,6 +58,33 @@ XInputInputDriver::XInputInputDriver(xe::ui::Window* window,
   });
 
   //window->AddInputListener(&window_input_listener_, window_z_order);
+
+  window->on_key_down.AddListener([this](ui::KeyEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+    auto global_lock = global_critical_region_.Acquire();
+
+    KeyEvent key;
+    key.vkey = evt.key_code();
+    key.transition = true;
+    key.prev_state = evt.prev_state();
+    key.repeat_count = evt.repeat_count();
+    key_events_.push(key);
+  });
+  window->on_key_up.AddListener([this](ui::KeyEvent& evt) {
+    if (!is_active()) {
+      return;
+    }
+    auto global_lock = global_critical_region_.Acquire();
+
+    KeyEvent key;
+    key.vkey = evt.key_code();
+    key.transition = false;
+    key.prev_state = evt.prev_state();
+    key.repeat_count = evt.repeat_count();
+    key_events_.push(key);
+  });
 }
 
 XInputInputDriver::~XInputInputDriver() {
