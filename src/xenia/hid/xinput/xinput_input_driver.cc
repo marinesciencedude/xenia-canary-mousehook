@@ -31,7 +31,7 @@ namespace xinput {
 XInputInputDriver::XInputInputDriver(xe::ui::Window* window,
                                      size_t window_z_order)
     : InputDriver(window, window_z_order),
-      window_input_listener_(),
+      //window_input_listener_(),
       module_(nullptr),
       XInputGetCapabilities_(nullptr),
       XInputGetState_(nullptr),
@@ -54,11 +54,10 @@ XInputInputDriver::XInputInputDriver(xe::ui::Window* window,
       return;
     }
 
-    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_,
-                          key_states_);
+    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_, key_states_);
   });
 
-  window->AddInputListener(&window_input_listener_, window_z_order);
+  //window->AddInputListener(&window_input_listener_, window_z_order);
 }
 
 XInputInputDriver::~XInputInputDriver() {
@@ -72,6 +71,8 @@ XInputInputDriver::~XInputInputDriver() {
     XInputSetState_ = nullptr;
     XInputEnable_ = nullptr;
   }
+
+  //window()->RemoveInputListener(&window_input_listener_);
 }
 
 X_STATUS XInputInputDriver::Setup() {
@@ -238,6 +239,16 @@ X_RESULT XInputInputDriver::GetState(uint32_t user_index,
     out_state->gamepad.thumb_ry = thumb_ry;
   else
     out_state->gamepad.thumb_ry = native_state.state.Gamepad.sThumbRY;
+
+  if (xe::kernel::kernel_state()->has_executable_module()) {
+    for (auto& game : hookable_games_) {
+      if (game->IsGameSupported()) {
+        std::unique_lock<std::mutex> key_lock(key_mutex_);
+        game->DoHooks(user_index, state, out_state);
+        break;
+      }
+    }
+  }
 
   return result;
 }

@@ -62,8 +62,7 @@ SDLInputDriver::SDLInputDriver(xe::ui::Window* window, size_t window_z_order)
       return;
     }
 
-    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_,
-                          key_states_);
+    RegisterMouseListener(evt, &mouse_mutex_, mouse_events_, &key_mutex_, key_states_);
   });
 }
 
@@ -227,7 +226,7 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
     std::memset(&out_state->gamepad, 0, sizeof(out_state->gamepad));
   }
 
-  uint16_t buttons = 0;
+  /* uint16_t buttons = 0;
   uint8_t left_trigger = 0;
   uint8_t right_trigger = 0;
   int16_t thumb_lx = 0;
@@ -236,11 +235,11 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
   int16_t thumb_ry = 0;
   bool modifier_pressed = false;
 
-  X_RESULT result = X_ERROR_SUCCESS;
+  X_RESULT result = X_ERROR_SUCCESS;*/
 
   RawInputState state;
 
-  if (window()->HasFocus() && is_active &&
+  /* if (window()->HasFocus() && is_active &&
       xe::kernel::kernel_state()->has_executable_module()) {
     HandleKeyBindings(state, mouse_events_, &mouse_mutex_, &key_mutex_,
                       key_states_, key_binds_, kTitleIdDefaultBindings, &buttons, &left_trigger,
@@ -254,7 +253,17 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
   out_state->gamepad.thumb_lx = thumb_lx;
   out_state->gamepad.thumb_ly = thumb_ly;
   out_state->gamepad.thumb_rx = thumb_rx;
-  out_state->gamepad.thumb_ry = thumb_ry;
+  out_state->gamepad.thumb_ry = thumb_ry;*/
+
+  if (xe::kernel::kernel_state()->has_executable_module()) {
+    for (auto& game : hookable_games_) {
+      if (game->IsGameSupported()) {
+        std::unique_lock<std::mutex> key_lock(key_mutex_);
+        game->DoHooks(user_index, state, out_state);
+        break;
+      }
+    }
+  }
 
   return X_ERROR_SUCCESS;
 }

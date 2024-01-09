@@ -42,7 +42,7 @@ class XInputInputDriver final : public InputDriver {
   void* XInputSetState_;
   void* XInputEnable_;
 
-  ui::WindowInputListener window_input_listener_;
+  //ui::WindowInputListener window_input_listener_;
 
   std::mutex mouse_mutex_;
   std::queue<MouseEvent> mouse_events_;
