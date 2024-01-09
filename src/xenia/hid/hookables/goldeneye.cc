@@ -7,7 +7,7 @@
  ******************************************************************************
  */
 
-#include "xenia/hid/winkey/hookables/goldeneye.h"
+#include "xenia/hid/hookables/goldeneye.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/hid/hid_flags.h"
@@ -38,7 +38,6 @@ const uint32_t kTitleIdPerfectDark = 0x584109C2;
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 GoldeneyeGame::~GoldeneyeGame() = default;
 
@@ -533,6 +532,5 @@ bool GoldeneyeGame::ModifierKeyHandler(uint32_t user_index,
   return true;
 }
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe

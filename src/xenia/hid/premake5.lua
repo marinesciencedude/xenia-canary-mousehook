@@ -50,6 +50,7 @@ project("xenia-hid-demo")
     links({
       "xenia-helper-sdl",
       "xenia-hid-sdl",
+	  "xenia-hid-mousehook",
     })
 
   filter("platforms:Linux")

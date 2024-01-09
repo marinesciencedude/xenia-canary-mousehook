@@ -15,7 +15,6 @@
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 struct MouseEvent {
   int32_t x_delta = 0;
@@ -41,7 +40,6 @@ class HookableGame {
                                   X_INPUT_STATE* out_state) = 0;
 };
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 

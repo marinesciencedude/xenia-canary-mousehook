@@ -10,11 +10,10 @@
 #ifndef XENIA_HID_WINKEY_HALO3_H_
 #define XENIA_HID_WINKEY_HALO3_H_
 
-#include "xenia/hid/winkey/hookables/hookable_game.h"
+#include "xenia/hid/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 class Halo3Game : public HookableGame {
  public:
@@ -59,7 +58,6 @@ class Halo3Game : public HookableGame {
   GameBuild game_build_ = GameBuild::Unknown;
 };
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 

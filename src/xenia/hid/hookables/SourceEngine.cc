@@ -7,7 +7,7 @@
  ******************************************************************************
  */
 
-#include "xenia/hid/winkey/hookables/SourceEngine.h"
+#include "xenia/hid/hookables/SourceEngine.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -37,7 +37,6 @@ const uint32_t kTitleIdPortal2 = 0x45410912;
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
 bool __inline IsKeyToggled(uint8_t key) {
   return (GetKeyState(key) & 0x1) == 0x1;
@@ -264,6 +263,5 @@ bool SourceEngine::ModifierKeyHandler(uint32_t user_index,
 
 }
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe

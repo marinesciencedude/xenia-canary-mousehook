@@ -95,6 +95,7 @@ project("xenia-app")
       "xenia-debug-ui",
       "xenia-helper-sdl",
       "xenia-hid-sdl",
+	  "xenia-hid-mousehook",
     })
 
   filter("platforms:Linux")

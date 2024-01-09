@@ -7,38 +7,53 @@
  ******************************************************************************
  */
 
-#ifndef XENIA_HID_WINKEY_Crackdown2_H_
-#define XENIA_HID_WINKEY_Crackdown2_H_
+#ifndef XENIA_HID_WINKEY_SOURCE_ENGINE_H_
+#define XENIA_HID_WINKEY_SOURCE_ENGINE_H_
 
-#include "xenia/hid/winkey/hookables/hookable_game.h"
+#include "xenia/hid/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
-namespace winkey {
 
-class Crackdown2Game : public HookableGame {
+class SourceEngine : public HookableGame {
  public:
-  enum class GameBuild { Unknown, Crackdown2_TU0, Crackdown2_TU5 };
+  enum class GameBuild {
+    Unknown,
+    CSGO,
+    CSGO_Beta,
+    L4D1,
+    L4D1_GOTY,
+    L4D2,
+    OrangeBox,
+    PortalSA,
+    Portal2,
+    Portal2_TU1
+  };
 
-  ~Crackdown2Game() override;
+  SourceEngine();
+  ~SourceEngine() override;
 
   bool IsGameSupported();
-
-  float RadianstoDegree(float radians);
-  float DegreetoRadians(float degree);
-
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
-
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+
+  struct QAngle {
+    xe::be<float> pitchY;
+    xe::be<float> pitchX;
+    xe::be<float> yaw;
+  };
+
+  bool engine_360;
+
+  double original_sensitivity;
 };
 
-}  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 
-#endif  // XENIA_HID_WINKEY_Crackdown2_H_
+#endif  // XENIA_HID_WINKEY_CSGO_H_

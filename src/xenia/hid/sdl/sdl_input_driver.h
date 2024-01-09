@@ -14,9 +14,13 @@
 #include <atomic>
 #include <mutex>
 #include <optional>
+#include <queue>
 
 #include "SDL.h"
 #include "xenia/hid/input_driver.h"
+#include "xenia/base/mutex.h"
+
+#include "xenia/hid/hookables/hookable_game.h"
 
 #define HID_SDL_USER_COUNT 4
 #define HID_SDL_THUMB_THRES 0x4E00
@@ -41,6 +45,14 @@ class SDLInputDriver final : public InputDriver {
   X_RESULT SetState(uint32_t user_index, X_INPUT_VIBRATION* vibration) override;
   X_RESULT GetKeystroke(uint32_t user_index, uint32_t flags,
                         X_INPUT_KEYSTROKE* out_keystroke) override;
+
+ protected:
+  struct KeyEvent {
+    int vkey = 0;
+    int repeat_count = 0;
+    bool transition = false;  // going up(false) or going down(true)
+    bool prev_state = false;  // down(true) or up(false)
+  };
 
  private:
   struct ControllerState {
@@ -86,6 +98,20 @@ class SDLInputDriver final : public InputDriver {
   std::array<ControllerState, HID_SDL_USER_COUNT> controllers_;
   std::mutex controllers_mutex_;
   std::array<KeystrokeState, HID_SDL_USER_COUNT> keystroke_states_;
+
+  xe::global_critical_region global_critical_region_;
+  std::queue<KeyEvent> key_events_;
+
+  std::mutex mouse_mutex_;
+  std::queue<MouseEvent> mouse_events_;
+
+  std::mutex key_mutex_;
+  bool key_states_[256];
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
+
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, uint32_t>>
+      key_binds_;
 };
 
 }  // namespace sdl
