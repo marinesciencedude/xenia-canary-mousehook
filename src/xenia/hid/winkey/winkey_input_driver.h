@@ -56,7 +56,7 @@ class WinKeyInputDriver final : public InputDriver {
 
  protected:
   struct KeyEvent {
-    int vkey = 0;
+    ui::VirtualKey virtual_key = ui::VirtualKey::kNone;
     int repeat_count = 0;
     bool transition = false;  // going up(false) or going down(true)
     bool prev_state = false;  // down(true) or up(false)
@@ -99,7 +99,7 @@ class WinKeyInputDriver final : public InputDriver {
   std::mutex key_mutex_;
   bool key_states_[256];
 
-  uint32_t packet_number_;
+  uint32_t packet_number_ = 1;
 
   std::vector<std::unique_ptr<HookableGame>> hookable_games_;
 
