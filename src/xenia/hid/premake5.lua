@@ -29,7 +29,7 @@ project("xenia-hid-demo")
     "xenia-hid-nop",
     "xenia-hid-sdl",
     "xenia-ui",
-	"xenia-ui-vulkan",
+    "xenia-ui-vulkan",
   })
   includedirs({
     project_root.."/third_party/Vulkan-Headers/include",
