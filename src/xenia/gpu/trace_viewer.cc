@@ -37,6 +37,7 @@
 #include "xenia/ui/immediate_drawer.h"
 #include "xenia/ui/presenter.h"
 #include "xenia/ui/ui_event.h"
+#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
 #include "xenia/xbox.h"
@@ -168,8 +169,8 @@ void TraceViewer::TraceViewerWindowListener::OnClosing(xe::ui::UIEvent& e) {
 }
 
 void TraceViewer::TraceViewerWindowListener::OnKeyDown(xe::ui::KeyEvent& e) {
-  switch (e.key_code()) {
-    case 0x74: /* VK_F5 */
+  switch (e.virtual_key()) {
+    case xe::ui::VirtualKey::kF5:
       trace_viewer_.graphics_system_->ClearCaches();
       break;
     default:
