@@ -17,6 +17,7 @@
 #include "xenia/base/platform.h"
 #include "xenia/base/string.h"
 #include "xenia/ui/ui_drawer.h"
+#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window_listener.h"
 
 #if XE_PLATFORM_WIN32
@@ -203,8 +204,8 @@ class Profiler {
 #if XE_OPTION_PROFILING
   class ProfilerWindowInputListener final : public ui::WindowInputListener {
    public:
-    static void OnKeyDown(ui::KeyEvent& e, int key_code);
-    static void OnKeyUp(ui::KeyEvent& e, int key_code);
+    static void OnKeyDown(ui::KeyEvent& e);
+    static void OnKeyUp(ui::KeyEvent& e);
 #if XE_OPTION_PROFILING_UI
     static void OnMouseDown(ui::MouseEvent& e);
     static void OnMouseMove(ui::MouseEvent& e);
