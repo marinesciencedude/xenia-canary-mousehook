@@ -9,7 +9,7 @@ project("xenia-core")
   links({
     "fmt",
     "xenia-base",
-	"xenia-patcher",
+    "xenia-patcher",
   })
   defines({
     "CURL_STATICLIB"
