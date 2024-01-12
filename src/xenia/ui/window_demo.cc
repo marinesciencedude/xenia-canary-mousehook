@@ -19,6 +19,7 @@
 #include "xenia/ui/imgui_drawer.h"
 #include "xenia/ui/presenter.h"
 #include "xenia/ui/ui_event.h"
+#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/window_demo.h"
 
@@ -109,10 +110,12 @@ void WindowDemoApp::WindowDemoWindowListener::OnClosing(UIEvent& e) {
 }
 
 void WindowDemoApp::WindowDemoWindowListener::OnKeyDown(KeyEvent& e) {
-  switch (e.key_code()) {
-      case 0x72: {  // F3
+  switch (e.virtual_key()) {
+    case VirtualKey::kF3:
       Profiler::ToggleDisplay();
-      } break;
+      break;
+    default:
+      return;
   }
   e.set_handled(true);
 }
