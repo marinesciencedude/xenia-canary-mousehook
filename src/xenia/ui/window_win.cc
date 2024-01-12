@@ -920,7 +920,7 @@ bool Win32Window::HandleMouse(UINT message, WPARAM wParam, LPARAM lParam,
 bool Win32Window::HandleKeyboard(
     UINT message, WPARAM wParam, LPARAM lParam,
     WindowDestructionReceiver& destruction_receiver) {
-  KeyEvent e(this, static_cast<int>(wParam), lParam & 0xFFFF0000,
+  KeyEvent e(this, VirtualKey(wParam), lParam & 0xFFFF,
              !!(lParam & (LPARAM(1) << 30)), !!(GetKeyState(VK_SHIFT) & 0x80),
              !!(GetKeyState(VK_CONTROL) & 0x80),
              !!(GetKeyState(VK_MENU) & 0x80), !!(GetKeyState(VK_LWIN) & 0x80));
@@ -1068,101 +1068,103 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
         // Adjust VK code passed to handlers
         // Based on
         // https://blog.molecular-matters.com/2011/09/05/properly-handling-keyboard-input/
-        auto vkey = keyData.VKey;
+        ui::VirtualKey vkey = (ui::VirtualKey)keyData.VKey;
         bool isE0 = (keyData.Flags & RI_KEY_E0) != 0;
 
         // discard "fake keys" which are part of an escaped sequence
-        if (vkey == 255) {
+        if (vkey == (ui::VirtualKey)255) {
           return 0;
-        } else if (vkey == VK_SHIFT) {
+        } else if (vkey == ui::VirtualKey::kShift) {
           // correct left-hand / right-hand SHIFT
-          vkey = MapVirtualKey(keyData.MakeCode, MAPVK_VSC_TO_VK_EX);
+          vkey = (ui::VirtualKey)MapVirtualKey(keyData.MakeCode,
+                                               MAPVK_VSC_TO_VK_EX);
         } else {
           switch (vkey) {
             // right-hand CONTROL and ALT have their e0 bit set
-            case VK_CONTROL:
-              vkey = isE0 ? VK_RCONTROL : VK_LCONTROL;
+            case ui::VirtualKey::kControl:
+              vkey =
+                  isE0 ? ui::VirtualKey::kRControl : ui::VirtualKey::kLControl;
               break;
 
-            case VK_MENU:
-              vkey = isE0 ? VK_RMENU : VK_LMENU;
+            case ui::VirtualKey::kMenu:
+              vkey = isE0 ? ui::VirtualKey::kRMenu : ui::VirtualKey::kLMenu;
               break;
 
-            case VK_RETURN:
+            case ui::VirtualKey::kReturn:
               if (isE0) {
-                vkey = VK_SEPARATOR;
+                vkey = ui::VirtualKey::kSeparator;
               }
               break;
 
             // the standard INSERT, DELETE, HOME, END, PRIOR and NEXT keys will
             // always have their e0 bit set, but the corresponding keys on the
             // NUMPAD will not.
-            case VK_INSERT:
+            case ui::VirtualKey::kInsert:
               if (!isE0) {
-                vkey = VK_NUMPAD0;
+                vkey = ui::VirtualKey::kNumpad0;
               }
               break;
 
-            case VK_DELETE:
+            case ui::VirtualKey::kDelete:
               if (!isE0) {
-                vkey = VK_DECIMAL;
+                vkey = ui::VirtualKey::kDecimal;
               }
               break;
 
-            case VK_HOME:
+            case ui::VirtualKey::kHome:
               if (!isE0) {
-                vkey = VK_NUMPAD7;
+                vkey = ui::VirtualKey::kNumpad7;
               }
               break;
 
-            case VK_END:
+            case ui::VirtualKey::kEnd:
               if (!isE0) {
-                vkey = VK_NUMPAD1;
+                vkey = ui::VirtualKey::kNumpad1;
               }
               break;
 
-            case VK_PRIOR:
+            case ui::VirtualKey::kPrior:
               if (!isE0) {
-                vkey = VK_NUMPAD9;
+                vkey = ui::VirtualKey::kNumpad9;
               }
               break;
 
-            case VK_NEXT:
+            case ui::VirtualKey::kNext:
               if (!isE0) {
-                vkey = VK_NUMPAD3;
+                vkey = ui::VirtualKey::kNumpad3;
               }
               break;
 
             // the standard arrow keys will always have their e0 bit set, but
             // the corresponding keys on the NUMPAD will not.
-            case VK_LEFT:
+            case ui::VirtualKey::kLeft:
               if (!isE0) {
-                vkey = VK_NUMPAD4;
+                vkey = ui::VirtualKey::kNumpad4;
               }
               break;
 
-            case VK_RIGHT:
+            case ui::VirtualKey::kRight:
               if (!isE0) {
-                vkey = VK_NUMPAD6;
+                vkey = ui::VirtualKey::kNumpad6;
               }
               break;
 
-            case VK_UP:
+            case ui::VirtualKey::kUp:
               if (!isE0) {
-                vkey = VK_NUMPAD8;
+                vkey = ui::VirtualKey::kNumpad8;
               }
               break;
 
-            case VK_DOWN:
+            case ui::VirtualKey::kDown:
               if (!isE0) {
-                vkey = VK_NUMPAD2;
+                vkey = ui::VirtualKey::kNumpad2;
               }
               break;
 
             // NUMPAD 5 doesn't have its e0 bit set
-            case VK_CLEAR:
+            case ui::VirtualKey::kClear:
               if (!isE0) {
-                vkey = VK_NUMPAD5;
+                vkey = ui::VirtualKey::kNumpad5;
               }
               break;
           }
