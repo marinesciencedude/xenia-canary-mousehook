@@ -11,7 +11,6 @@
 #define XENIA_HID_WINKEY_GOLDENEYE_H_
 
 #include "xenia/hid/winkey/hookables/hookable_game.h"
-#include "xenia/kernel/xclock.h"
 
 namespace xe {
 namespace hid {
