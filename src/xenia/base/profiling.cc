@@ -38,6 +38,7 @@
 #include "xenia/base/cvar.h"
 #include "xenia/base/profiling.h"
 #include "xenia/ui/ui_event.h"
+#include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 
 #if XE_OPTION_PROFILING
@@ -127,18 +128,18 @@ void Profiler::ThreadEnter(const char* name) {
 
 void Profiler::ThreadExit() { MicroProfileOnThreadExit(); }
 
-void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e, int key_code) {
+void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e) {
   // https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
   bool handled = true;
-  switch (key_code) {
-    case VK_OEM_3: // `
+  switch (e.virtual_key()) {
+    case ui::VirtualKey::kOem3:  // `
       MicroProfileTogglePause();
       break;
 #if XE_OPTION_PROFILING_UI
-    case VK_TAB:
+    case ui::VirtualKey::kTab:
       ToggleDisplay();
       break;
-    case 0x31: // 1
+    case ui::VirtualKey::k1:
       MicroProfileModKey(1);
       break;
 #endif  // XE_OPTION_PROFILING_UI
@@ -152,11 +153,11 @@ void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e, int key_c
   PostInputEvent();
 }
 
-void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e, int key_code) {
+void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e) {
   bool handled = true;
-  switch (key_code) {
+  switch (e.virtual_key()) {
 #if XE_OPTION_PROFILING_UI
-    case 0x31: // 1
+    case ui::VirtualKey::k1:
       MicroProfileModKey(0);
       break;
 #endif  // XE_OPTION_PROFILING_UI
@@ -271,7 +272,7 @@ void Profiler::SetUserIO(size_t z_order, ui::Window* window,
 #endif  // XE_OPTION_PROFILING_UI
   }
 
-  // Pass through mouse events.
+   // Pass through mouse events.
   window_->on_mouse_down.AddListener([](ui::MouseEvent& e) {
     if (Profiler::is_visible()) {
       Profiler::ProfilerWindowInputListener::OnMouseDown(e);
@@ -300,13 +301,13 @@ void Profiler::SetUserIO(size_t z_order, ui::Window* window,
   // Watch for toggle/mode keys and such.
   window_->on_key_down.AddListener([](ui::KeyEvent& e) {
     if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnKeyDown(e, e.key_code());
+      Profiler::ProfilerWindowInputListener::OnKeyDown(e);
       e.set_handled(true);
     }
   });
   window_->on_key_up.AddListener([](ui::KeyEvent& e) {
     if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnKeyUp(e, e.key_code());
+      Profiler::ProfilerWindowInputListener::OnKeyUp(e);
       e.set_handled(true);
     }
   });

@@ -799,41 +799,41 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     return;
   }
 
-  switch (e.key_code()) {
-      case 0x4F: {  // o
+  switch (e.virtual_key()) {
+    case ui::VirtualKey::kO: {
       if (!e.is_ctrl_pressed()) {
         return;
       }
       FileOpen();
     } break;
-    case 0x6A: { // numpad *
+    case ui::VirtualKey::kMultiply: {
       CpuTimeScalarReset();
     } break;
-    case 0x6D: { // numpad minus
+    case ui::VirtualKey::kSubtract: {
       CpuTimeScalarSetHalf();
     } break;
-    case 0x6B: { // numpad plus
+    case ui::VirtualKey::kAdd: {
       CpuTimeScalarSetDouble();
     } break;
 
-    case 0x72: { // F3
+    case ui::VirtualKey::kF3: {
       Profiler::ToggleDisplay();
     } break;
 
-    case 0x73: { // VK_F4
+    case ui::VirtualKey::kF4: {
       GpuTraceFrame();
     } break;
-    case 0x74: { // VK_F5
+    case ui::VirtualKey::kF5: {
       GpuClearCaches();
     } break;
 
-    case 0x75: { // VK_F6
+    case ui::VirtualKey::kF6: {
       ToggleDisplayConfigDialog();
     } break;
-    case 0x7A: { // VK_F11
+    case ui::VirtualKey::kF11: {
       ToggleFullscreen();
     } break;
-    case 0x1B: { // VK_ESCAPE
+    case ui::VirtualKey::kEscape: {
       // Allow users to escape fullscreen (but not enter it).
       if (!window_->IsFullscreen()) {
         return;
@@ -842,13 +842,13 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     } break;
 
 #ifdef DEBUG
-    case 0x76: { // VK_F7
+    case ui::VirtualKey::kF7: {
       // Save to file
       // TODO: Choose path based on user input, or from options
       // TODO: Spawn a new thread to do this.
       emulator()->SaveToFile("test.sav");
     } break;
-    case 0x77: { // VK_F8
+    case ui::VirtualKey::kF8: {
       // Restore from file
       // TODO: Choose path from user
       // TODO: Spawn a new thread to do this.
@@ -856,22 +856,22 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     } break;
 #endif  // #ifdef DEBUG
 
-    case 0x13: { // VK_PAUSE
+    case ui::VirtualKey::kPause: {
       CpuBreakIntoDebugger();
     } break;
-    case 0x03: { // VK_CANCEL
+    case ui::VirtualKey::kCancel: {
       CpuBreakIntoHostDebugger();
     } break;
 
-    case 0x70: { // VK_F1
+    case ui::VirtualKey::kF1: {
       ShowFAQ();
     } break;
 
-    case 0x71: { // VK_F2
-        ShowBuildCommit();
+    case ui::VirtualKey::kF2: {
+      ShowBuildCommit();
     } break;
 
-    case 0x78: { // VK_F9
+    case ui::VirtualKey::kF9: {
       RunPreviouslyPlayedTitle();
     } break;
 

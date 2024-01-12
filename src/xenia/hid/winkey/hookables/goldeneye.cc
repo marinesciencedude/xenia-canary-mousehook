@@ -151,8 +151,6 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   auto& game_addrs = supported_builds[game_build_];
 
-  auto time = xe::kernel::XClock::now();
-
   // Move menu selection crosshair
   // TODO: detect if we're actually in the menu first
   if (game_addrs.menu_addr) {
