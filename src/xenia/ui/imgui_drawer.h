@@ -91,6 +91,7 @@ class ImGuiDrawer : public WindowInputListener, public UIDrawer {
   void RenderDrawLists(ImDrawData* data, UIDrawContext& ui_draw_context);
 
   void ClearInput();
+  void OnKey(KeyEvent& e, bool is_down);
   void UpdateMousePosition(float x, float y);
   void SwitchToPhysicalMouseAndUpdateMousePosition(const MouseEvent& e);
 
