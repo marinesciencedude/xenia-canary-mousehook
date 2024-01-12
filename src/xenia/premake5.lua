@@ -9,6 +9,6 @@ project("xenia-core")
   links({
     "fmt",
     "xenia-base",
-	"xenia-patcher",
+    "xenia-patcher",
   })
   files({"*.h", "*.cc"})
