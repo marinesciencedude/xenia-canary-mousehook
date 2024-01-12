@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <filesystem>
 
+#include "xenia/ui/virtual_key.h"
+
 namespace xe {
 namespace ui {
 
@@ -71,11 +73,12 @@ class FileDropEvent : public UIEvent {
 
 class KeyEvent : public UIEvent {
  public:
-  explicit KeyEvent(Window* target, int key_code, int repeat_count, bool prev_state,
-           bool modifier_shift_pressed, bool modifier_ctrl_pressed,
-           bool modifier_alt_pressed, bool modifier_super_pressed)
+  explicit KeyEvent(Window* target, VirtualKey virtual_key, int repeat_count,
+                    bool prev_state, bool modifier_shift_pressed,
+                    bool modifier_ctrl_pressed, bool modifier_alt_pressed,
+                    bool modifier_super_pressed)
       : UIEvent(target),
-        key_code_(key_code),
+        virtual_key_(virtual_key),
         repeat_count_(repeat_count),
         prev_state_(prev_state),
         modifier_shift_pressed_(modifier_shift_pressed),
@@ -87,7 +90,7 @@ class KeyEvent : public UIEvent {
   bool is_handled() const { return handled_; }
   void set_handled(bool value) { handled_ = value; }
 
-int key_code() const { return key_code_; }
+  VirtualKey virtual_key() const { return virtual_key_; }
 
   int repeat_count() const { return repeat_count_; }
   bool prev_state() const { return prev_state_; }
@@ -99,7 +102,7 @@ int key_code() const { return key_code_; }
 
  private:
   bool handled_ = false;
-  int key_code_ = 0;
+  VirtualKey virtual_key_ = VirtualKey::kNone;
 
   int repeat_count_ = 0;
   bool prev_state_ = false;  // Key previously down(true) or up(false)
