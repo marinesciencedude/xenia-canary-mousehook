@@ -48,6 +48,8 @@ class InputSystem {
   void UpdateUsedSlot(uint8_t slot, bool connected);
   uint8_t GetConnectedSlots() const { return connected_slot; }
 
+  void UpdateTitleId(uint32_t title_id);
+
   std::unique_lock<xe_unlikely_mutex> lock();
 
  private:
