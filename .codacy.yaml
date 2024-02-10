@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  - 'tools/**'
+  - 'third_party/**'
+  - 'docs/**'
+  - 'android/**'
+  - '**.md'
+  - 'src/xenia/gpu/shaders/**'

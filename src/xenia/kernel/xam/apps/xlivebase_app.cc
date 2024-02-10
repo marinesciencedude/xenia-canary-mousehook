@@ -22,7 +22,7 @@
 #include <netinet/in.h>
 #endif
 
-#include <xenia/kernel/XLiveAPI.h>
+#include "xenia/kernel/XLiveAPI.h"
 
 DEFINE_bool(stub_xlivebase, false,
             "Return success for all unimplemented XLiveBase calls.", "Live");
@@ -171,6 +171,10 @@ X_HRESULT XLiveBaseApp::DispatchMessageSync(uint32_t message,
              buffer_length);
       return XStorageBuildServerPath(buffer_ptr);
     }
+    case 0x00058037: {
+      XELOGD("XPresenceInitialize({:08X}, {:08X})", buffer_ptr, buffer_length);
+      return X_E_SUCCESS;
+    }
     case 0x00058044: {
       XELOGD("XPresenceUnsubscribe({:08X}, {:08X})", buffer_ptr, buffer_length);
       return X_E_SUCCESS;
@@ -202,13 +206,13 @@ X_HRESULT XLiveBaseApp::GetServiceInfo(uint32_t serviceid,
     return X_E_SUCCESS;
   }
 
-  XLiveAPI::XONLINE_SERVICE_INFO* service_info =
-      reinterpret_cast<XLiveAPI::XONLINE_SERVICE_INFO*>(
+  XONLINE_SERVICE_INFO* service_info =
+      reinterpret_cast<XONLINE_SERVICE_INFO*>(
           memory_->TranslateVirtual(serviceinfo));
 
-  memset(service_info, 0, sizeof(XLiveAPI::XONLINE_SERVICE_INFO));
+  memset(service_info, 0, sizeof(XONLINE_SERVICE_INFO));
 
-  XLiveAPI::XONLINE_SERVICE_INFO retrieved_service_info =
+  XONLINE_SERVICE_INFO retrieved_service_info =
       XLiveAPI::GetServiceInfoById(serviceid);
 
   if (retrieved_service_info.ip.s_addr == 0) {
