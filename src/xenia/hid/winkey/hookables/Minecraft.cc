@@ -36,17 +36,47 @@ struct GameBuildAddrs {
   std::string title_version;
   int32_t camera_x_offset;
   int32_t camera_y_offset;
+
   uint32_t inventory_flag;
   uint32_t inventory_ptr;
+
   uint32_t inventory_x_offset;
   uint32_t inventory_y_offset;
+  uint32_t workbench_x_offset;
+  uint32_t workbench_y_offset;
+  uint32_t furnace_x_offset;
+  uint32_t furnace_y_offset;
+  uint32_t chest_x_offset; //chest (normal/trapped/ender), dispenser, dropper, hopper, minecart variants
+  uint32_t chest_y_offset;
+  uint32_t anvil_x_offset;
+  uint32_t anvil_y_offset;
+  uint32_t enchanting_x_offset;
+  uint32_t enchanting_y_offset;
+  uint32_t brewing_x_offset;
+  uint32_t brewing_y_offset;
+  uint32_t beacon_x_offset;
+  uint32_t beacon_y_offset;
+  uint32_t creative_x_offset;
+  uint32_t creative_y_offset;
 };
 
 //compiler cannot be trusted to std::map structs properly
 struct GameBuildAddrs supported_builds[3] = {
-    {NULL, "", NULL, NULL, NULL, NULL, NULL, NULL}, 
-    {0x705AFD60, "1.0", 0x88, 0x8C, NULL, NULL, NULL, NULL}, 
-    {0x3002B02C, "1.0.80", -0x4EC, -0x4E8, 0x409EC558, 0x409E3DC0, 0x1A1C,0x1A20}
+    {NULL,  "",   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, 
+    {0x705AFD60, "1.0", 0x88, 0x8C, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL}, 
+    {
+        0x3002B02C, "1.0.80", -0x4EC, -0x4E8, 
+        0x40A1B034, 0x409E3DC0, 
+        0x1A1C, 0x1A20, 
+        0x14EC, 0x14F0,
+        0x2118, 0x211C,
+        0x1284, 0x1288,
+        0x1A2C, 0x1A30,
+        0x1D5C, 0x1D60,
+        0x2390, 0x2394,
+        0x1A48, 0x1A4C,
+        0x25FC, 0x2600
+    }
 };
 
 /* std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
@@ -81,45 +111,115 @@ bool MinecraftGame::IsGameSupported() {
 
 bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
+    if (!IsGameSupported()) {
     return false;
-  }
+    }
 
-  XThread* current_thread = XThread::GetCurrentThread();
+    XThread* current_thread = XThread::GetCurrentThread();
 
-  if (!current_thread) {
+    if (!current_thread) {
     return false;
-  }
+    }
 
-  auto inventory_flag = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_flag);
-  if (inventory_flag == 1)
-  {
-        auto inventory_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_ptr);
-        if (inventory_addr != 0)
+    auto inventory_flag_ptr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_flag);
+    if (inventory_flag_ptr)
+    {
+        auto inventory_flag = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_flag_ptr + 0x4);
+        if (inventory_flag)
         {
-            auto inventory_input = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_addr);
-            auto* inventory_ptr = kernel_memory()->TranslateVirtual(inventory_input);
-            auto* inventoryX_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + supported_builds[game_build_].inventory_x_offset);
-            auto* inventoryY_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + supported_builds[game_build_].inventory_y_offset);
+            uint32_t x_offset;
+            uint32_t y_offset;
+    
+            switch (inventory_flag) 
+            {
+            case 1:
+                {
+                    x_offset = supported_builds[game_build_].inventory_x_offset;
+                    y_offset = supported_builds[game_build_].inventory_y_offset;
+                    break;
+                }
+            case 37:
+                {
+                    x_offset = supported_builds[game_build_].workbench_x_offset;
+                    y_offset = supported_builds[game_build_].workbench_y_offset;
+                    break;
+                }
+            case 4: 
+                {
+                    x_offset = supported_builds[game_build_].furnace_x_offset;        
+                    y_offset = supported_builds[game_build_].furnace_y_offset;
+                    break;
+                }
+            case 10: //normal/trapped/ender chests
+            case 11: //dispenser/dropper
+            case 32: //hopper
+                {
+                    x_offset = supported_builds[game_build_].chest_x_offset;
+                    y_offset = supported_builds[game_build_].chest_y_offset;
+                    break;
+                }
+            case 27:
+                {
+                    x_offset = supported_builds[game_build_].anvil_x_offset;
+                    y_offset = supported_builds[game_build_].anvil_y_offset;
+                    break;
+                }
+            case 20: 
+                {
+                    x_offset = supported_builds[game_build_].enchanting_x_offset;
+                    y_offset = supported_builds[game_build_].enchanting_y_offset;
+                    break;
+                }
+            case 18: 
+                {
+                    x_offset = supported_builds[game_build_].brewing_x_offset;
+                    y_offset = supported_builds[game_build_].brewing_y_offset;
+                    break;
+                }
+            case 34: 
+                {
+                    x_offset = supported_builds[game_build_].beacon_x_offset;
+                    y_offset = supported_builds[game_build_].beacon_y_offset;
+                    break;
+                }
+            case 14: 
+                {
+                    x_offset = supported_builds[game_build_].creative_x_offset;
+                    y_offset = supported_builds[game_build_].creative_y_offset;
+                    break;
+                }
+            default: //sometimes we need to check if offsets are being set at all to make sure it doesn't crash when re-entering games
+                 return false;
+            }
 
-            float inventoryX = *inventoryX_ptr;
-            float inventoryY = *inventoryY_ptr;
+            auto inventory_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_ptr);
+            if (inventory_addr != 0)
+            {
+                auto inventory_input = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_addr);
+                auto* inventory_ptr = kernel_memory()->TranslateVirtual(inventory_input);
 
-              inventoryX += (((float)input_state.mouse.x_delta)) *
-                      (float)cvars::sensitivity;
+                auto* inventoryX_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + x_offset);
+                auto* inventoryY_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + y_offset);
 
-              inventoryY += (((float)input_state.mouse.y_delta)) *
-                      (float)cvars::sensitivity;
+                float inventoryX = *inventoryX_ptr;
+                float inventoryY = *inventoryY_ptr;
 
-            *inventoryX_ptr = inventoryX;
-            *inventoryY_ptr = inventoryY;
+                inventoryX += (((float)input_state.mouse.x_delta)) *
+                            (float)cvars::sensitivity;
 
-            return true;
+                inventoryY += (((float)input_state.mouse.y_delta)) *
+                            (float)cvars::sensitivity;
+
+                *inventoryX_ptr = inventoryX;
+                *inventoryY_ptr = inventoryY;
+
+                return true;
+            }
         }
-  }
+    }
 
     auto global_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].camera_base_addr);
-  int32_t offset = supported_builds[game_build_].camera_x_offset;
+    int32_t offset = supported_builds[game_build_].camera_x_offset;
     if (global_addr && global_addr < 0x0000000050000000) { //is realistically going to be between 40000000-50000000
       auto* input_globals = kernel_memory()->TranslateVirtual(global_addr);
 
@@ -157,7 +257,7 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       *player_cam_y = camY;
     }
 
-  return true;
+    return true;
 }
 
 bool MinecraftGame::ModifierKeyHandler(uint32_t user_index,
