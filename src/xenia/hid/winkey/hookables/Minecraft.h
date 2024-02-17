@@ -21,6 +21,7 @@ class MinecraftGame : public HookableGame {
   enum /* class */ GameBuild{
     Unknown,
     TU0,
+    TU68,
     TU75
   };
 

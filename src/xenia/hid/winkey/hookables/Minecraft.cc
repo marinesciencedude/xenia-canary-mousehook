@@ -61,10 +61,23 @@ struct GameBuildAddrs {
 };
 
 //compiler cannot be trusted to std::map structs properly
-struct GameBuildAddrs supported_builds[3] = {
+struct GameBuildAddrs supported_builds[4] = {
     {NULL,  "",   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, 
     {0x705AFD60, "1.0", 0x88, 0x8C, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL}, 
-    {
+    { //TU68
+        0x7018E75C, "1.0.73", 0x80, 0x84, 
+        0x40AD7444, 0x40ED0140, 
+        0x1A1C, 0x1A20, 
+        0x14EC, 0x14F0,
+        0x2118, 0x211C,
+        0x1284, 0x1288,
+        0x1A2C, 0x1A30,
+        0x1D5C, 0x1D60,
+        0x2390, 0x2394,
+        0x1A48, 0x1A4C,
+        0x25FC, 0x2600
+    },
+    { //TU75
         0x3002B02C, "1.0.80", -0x4EC, -0x4E8, 
         0x40A1B034, 0x409E3DC0, 
         0x1A1C, 0x1A20, 
@@ -81,6 +94,7 @@ struct GameBuildAddrs supported_builds[3] = {
 
 /* std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
     {MinecraftGame::GameBuild::TU0, {0x705AFD60, "1.0",  0x88, 0x8C, NULL, NULL, NULL, NULL}},
+    {MinecraftGame::GameBuild::TU68, {0x705AFD60, "1.0.73",  }},
     {MinecraftGame::GameBuild::TU75,{0x3002B02C, "1.0.80", -0x4EC, -0x4E8, 0x409EC558, 0x409E3DC0, 0x1A1C, 0x1A20}}};*/
 
 bool MinecraftGame::IsGameSupported() {
@@ -97,7 +111,7 @@ bool MinecraftGame::IsGameSupported() {
       return true;
     }
   }*/
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < sizeof(supported_builds); i++)
   {
         if (current_version == supported_builds[i].title_version)
         {
@@ -121,106 +135,110 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
     }
 
-    auto inventory_flag_ptr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_flag);
-    if (inventory_flag_ptr)
+    uint32_t inv_flag = supported_builds[game_build_].inventory_flag;
+    if (inv_flag)
     {
-        auto inventory_flag = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_flag_ptr + 0x4);
-        if (inventory_flag)
+        auto inventory_flag_ptr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_flag);
+
+        if (inventory_flag_ptr && inventory_flag_ptr > 0x0000000040000000) 
         {
-            uint32_t x_offset;
-            uint32_t y_offset;
+            auto inventory_flag = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_flag_ptr + 0x4);
+            if (inventory_flag)
+            {
+                uint32_t x_offset;
+                uint32_t y_offset;
     
-            switch (inventory_flag) 
-            {
-            case 1:
+                switch (inventory_flag) 
                 {
-                    x_offset = supported_builds[game_build_].inventory_x_offset;
-                    y_offset = supported_builds[game_build_].inventory_y_offset;
-                    break;
+                case 1:
+                    {
+                        x_offset = supported_builds[game_build_].inventory_x_offset;
+                        y_offset = supported_builds[game_build_].inventory_y_offset;
+                        break;
+                    }
+                case 37:
+                    {
+                        x_offset = supported_builds[game_build_].workbench_x_offset;
+                        y_offset = supported_builds[game_build_].workbench_y_offset;
+                        break;
+                    }
+                case 4: 
+                    {
+                        x_offset = supported_builds[game_build_].furnace_x_offset;        
+                        y_offset = supported_builds[game_build_].furnace_y_offset;
+                        break;
+                    }
+                case 10: //normal/trapped/ender chests
+                case 11: //dispenser/dropper
+                case 32: //hopper
+                    {
+                        x_offset = supported_builds[game_build_].chest_x_offset;
+                        y_offset = supported_builds[game_build_].chest_y_offset;
+                        break;
+                    }
+                case 27:
+                    {
+                        x_offset = supported_builds[game_build_].anvil_x_offset;
+                        y_offset = supported_builds[game_build_].anvil_y_offset;
+                        break;
+                    }
+                case 20: 
+                    {
+                        x_offset = supported_builds[game_build_].enchanting_x_offset;
+                        y_offset = supported_builds[game_build_].enchanting_y_offset;
+                        break;
+                    }
+                case 18: 
+                    {
+                        x_offset = supported_builds[game_build_].brewing_x_offset;
+                        y_offset = supported_builds[game_build_].brewing_y_offset;
+                        break;
+                    }
+                case 34: 
+                    {
+                        x_offset = supported_builds[game_build_].beacon_x_offset;
+                        y_offset = supported_builds[game_build_].beacon_y_offset;
+                        break;
+                    }
+                case 14: 
+                    {
+                        x_offset = supported_builds[game_build_].creative_x_offset;
+                        y_offset = supported_builds[game_build_].creative_y_offset;
+                        break;
+                    }
+                default: //sometimes we need to check if offsets are being set at all to make sure it doesn't crash when re-entering games
+                     return false;
                 }
-            case 37:
-                {
-                    x_offset = supported_builds[game_build_].workbench_x_offset;
-                    y_offset = supported_builds[game_build_].workbench_y_offset;
-                    break;
-                }
-            case 4: 
-                {
-                    x_offset = supported_builds[game_build_].furnace_x_offset;        
-                    y_offset = supported_builds[game_build_].furnace_y_offset;
-                    break;
-                }
-            case 10: //normal/trapped/ender chests
-            case 11: //dispenser/dropper
-            case 32: //hopper
-                {
-                    x_offset = supported_builds[game_build_].chest_x_offset;
-                    y_offset = supported_builds[game_build_].chest_y_offset;
-                    break;
-                }
-            case 27:
-                {
-                    x_offset = supported_builds[game_build_].anvil_x_offset;
-                    y_offset = supported_builds[game_build_].anvil_y_offset;
-                    break;
-                }
-            case 20: 
-                {
-                    x_offset = supported_builds[game_build_].enchanting_x_offset;
-                    y_offset = supported_builds[game_build_].enchanting_y_offset;
-                    break;
-                }
-            case 18: 
-                {
-                    x_offset = supported_builds[game_build_].brewing_x_offset;
-                    y_offset = supported_builds[game_build_].brewing_y_offset;
-                    break;
-                }
-            case 34: 
-                {
-                    x_offset = supported_builds[game_build_].beacon_x_offset;
-                    y_offset = supported_builds[game_build_].beacon_y_offset;
-                    break;
-                }
-            case 14: 
-                {
-                    x_offset = supported_builds[game_build_].creative_x_offset;
-                    y_offset = supported_builds[game_build_].creative_y_offset;
-                    break;
-                }
-            default: //sometimes we need to check if offsets are being set at all to make sure it doesn't crash when re-entering games
-                 return false;
-            }
 
-            auto inventory_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_ptr);
-            if (inventory_addr != 0)
-            {
-                auto inventory_input = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_addr);
-                auto* inventory_ptr = kernel_memory()->TranslateVirtual(inventory_input);
+                auto inventory_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].inventory_ptr);
+                if (inventory_addr != 0)
+                {
+                    auto inventory_input = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(inventory_addr);
+                    auto* inventory_ptr = kernel_memory()->TranslateVirtual(inventory_input);
 
-                auto* inventoryX_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + x_offset);
-                auto* inventoryY_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + y_offset);
+                    auto* inventoryX_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + x_offset);
+                    auto* inventoryY_ptr = reinterpret_cast<xe::be<float>*>(inventory_ptr + y_offset);
 
-                float inventoryX = *inventoryX_ptr;
-                float inventoryY = *inventoryY_ptr;
+                    float inventoryX = *inventoryX_ptr;
+                    float inventoryY = *inventoryY_ptr;
 
-                inventoryX += (((float)input_state.mouse.x_delta)) *
-                            (float)cvars::sensitivity;
+                    inventoryX += (((float)input_state.mouse.x_delta)) *
+                                (float)cvars::sensitivity;
 
-                inventoryY += (((float)input_state.mouse.y_delta)) *
-                            (float)cvars::sensitivity;
+                    inventoryY += (((float)input_state.mouse.y_delta)) *
+                                (float)cvars::sensitivity;
 
-                *inventoryX_ptr = inventoryX;
-                *inventoryY_ptr = inventoryY;
+                    *inventoryX_ptr = inventoryX;
+                    *inventoryY_ptr = inventoryY;
 
-                return true;
+                    return true;
+                }
             }
         }
     }
 
     auto global_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(supported_builds[game_build_].camera_base_addr);
-    int32_t offset = supported_builds[game_build_].camera_x_offset;
-    if (global_addr && global_addr < 0x0000000050000000) { //is realistically going to be between 40000000-50000000
+    if (global_addr && 0x0000000040000000 < global_addr && global_addr < 0x0000000050000000) { //is realistically going to be between 40000000-50000000
       auto* input_globals = kernel_memory()->TranslateVirtual(global_addr);
 
       auto* player_cam_x = reinterpret_cast<xe::be<float>*>(input_globals + supported_builds[game_build_].camera_x_offset);
