@@ -749,6 +749,14 @@ X_STATUS Emulator::CreateZarchivePackage(
   return X_STATUS_SUCCESS;
 }
 
+void Emulator::DumpXLast() {
+  if (title_xlast_) {
+    const std::string title_ver =
+        title_version().empty() ? "" : " - " + title_version();
+    title_xlast_->Dump(fmt::format("{:08X}{}", title_id(), title_ver));
+  }
+}
+
 void Emulator::Pause() {
   if (paused_) {
     return;

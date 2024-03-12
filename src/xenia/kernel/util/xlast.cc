@@ -151,6 +151,7 @@ std::vector<uint32_t> XLast::GetAllValuesFromNode(
 
 void XLast::Dump(std::string file_name) {
   if (xlast_decompressed_xml_.empty()) {
+    XELOGI("XLast data not found");
     return;
   }
 
@@ -158,7 +159,13 @@ void XLast::Dump(std::string file_name) {
     file_name = xe::to_utf8(GetTitleName());
   }
 
-  FILE* outfile = fopen(fmt::format("{}.xml", file_name).c_str(), "ab");
+  const std::string file = fmt::format("{}.xml", file_name);
+
+  if (std::filesystem::exists(file)) {
+    return;
+  }
+
+  FILE* outfile = fopen(file.c_str(), "ab");
   if (!outfile) {
     return;
   }
@@ -166,6 +173,8 @@ void XLast::Dump(std::string file_name) {
   fwrite(xlast_decompressed_xml_.data(), 1, xlast_decompressed_xml_.size(),
          outfile);
   fclose(outfile);
+
+  XELOGI("XLast file saved {}", file);
 }
 
 std::string XLast::GetLocaleStringFromLanguage(XLanguage language) {

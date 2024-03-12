@@ -587,6 +587,9 @@ bool EmulatorWindow::Initialize() {
     file_menu->AddChild(MenuItem::Create(
         MenuItem::Type::kString, "Show content directory...",
         std::bind(&EmulatorWindow::ShowContentDirectory, this)));
+    file_menu->AddChild(
+        MenuItem::Create(MenuItem::Type::kString, "Dump XLast",
+        std::bind(&EmulatorWindow::DumpXLast, this)));
     file_menu->AddChild(MenuItem::Create(MenuItem::Type::kSeparator));
     file_menu->AddChild(
         MenuItem::Create(MenuItem::Type::kString, "E&xit", "Alt+F4",
@@ -1158,6 +1161,8 @@ void EmulatorWindow::ShowContentDirectory() {
 
   LaunchFileExplorer(target_path);
 }
+
+void EmulatorWindow::DumpXLast() { emulator()->DumpXLast(); }
 
 void EmulatorWindow::CpuTimeScalarReset() {
   Clock::set_guest_time_scalar(1.0);
