@@ -11,8 +11,8 @@
 #define XENIA_KERNEL_XAM_USER_PROFILE_H_
 
 #include <map>
-#include <random>
 #include <memory>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
