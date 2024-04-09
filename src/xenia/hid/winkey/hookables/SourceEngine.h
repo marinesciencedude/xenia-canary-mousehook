@@ -28,7 +28,8 @@ class SourceEngine : public HookableGame {
     OrangeBox,
     PortalSA,
     Portal2,
-    Portal2_TU1
+    Portal2_TU1,
+    Postal3
   };
 
   SourceEngine();
