@@ -94,6 +94,10 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
     {
         SourceEngine::GameBuild::Portal2_TU1,
         {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}
+    },
+    {
+        SourceEngine::GameBuild::Postal3,
+        {kTitleIdOrangeBox, "1.0.1.16", NULL, 0x86438700}
     }
 };
 
