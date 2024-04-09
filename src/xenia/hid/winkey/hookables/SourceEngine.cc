@@ -59,21 +59,47 @@ struct GameBuildAddrs {
 
 // Replace with build names when we introduce more compatibility
 std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
-    {SourceEngine::GameBuild::CSGO, {kTitleIdCSGO, "5.0", 0x86955490, 0x4AE8}},
-    {SourceEngine::GameBuild::CSGO_Beta,
-     {kTitleIdCSGO, "1.0.1.16", 0x8697DB30, 0x4AC8}},
-    {SourceEngine::GameBuild::L4D1, {kTitleIdL4D1, "1.0", 0x86536888, 0x4B44}},
-    {SourceEngine::GameBuild::L4D1_GOTY,
-     {kTitleIdL4D1, "6.0", 0x86537FA0, 0x4B44}},
-    {SourceEngine::GameBuild::L4D2, {kTitleIdL4D2, "3.0", 0x86CC4E60, 0x4A94}},
-    {SourceEngine::GameBuild::OrangeBox,
-     {kTitleIdOrangeBox, "4.0", NULL, 0x863F53A8}},
-    {SourceEngine::GameBuild::PortalSA,
-     {kTitleIdPortalSA, "3.0.1", NULL, 0x863F56B0}},
-    {SourceEngine::GameBuild::Portal2,
-     {kTitleIdPortal2, "4.0", 0x82C50180, 0x4A98}},
-    {SourceEngine::GameBuild::Portal2_TU1,
-     {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}}};
+    {
+        SourceEngine::GameBuild::CSGO, 
+        {kTitleIdCSGO, "5.0", 0x86955490, 0x4AE8}
+    },
+    {
+        SourceEngine::GameBuild::CSGO_Beta, 
+        {kTitleIdCSGO, "1.0.1.16", 0x8697DB30, 0x4AC8}
+    }, 
+    {
+        SourceEngine::GameBuild::L4D1, 
+        {kTitleIdL4D1, "1.0", 0x86536888, 0x4B44}
+    },
+    {
+        SourceEngine::GameBuild::L4D1_GOTY, 
+        {kTitleIdL4D1, "6.0", 0x86537FA0, 0x4B44}
+    },
+    {
+        SourceEngine::GameBuild::L4D2, 
+        {kTitleIdL4D2, "3.0", 0x86CC4E60, 0x4A94}
+    },
+    {
+        SourceEngine::GameBuild::OrangeBox, 
+        {kTitleIdOrangeBox, "4.0", NULL, 0x863F53A8}
+    },
+    {
+        SourceEngine::GameBuild::PortalSA,
+        {kTitleIdPortalSA, "3.0.1", NULL, 0x863F56B0}
+    },
+    {
+        SourceEngine::GameBuild::Portal2,
+        {kTitleIdPortal2, "4.0", 0x82C50180, 0x4A98}
+    },
+    {
+        SourceEngine::GameBuild::Portal2_TU1,
+        {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}
+    },
+    {
+        SourceEngine::GameBuild::Postal3,
+        {kTitleIdOrangeBox, "1.0.1.16", NULL, 0x86438700}
+    }
+};
 
 bool SourceEngine::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
