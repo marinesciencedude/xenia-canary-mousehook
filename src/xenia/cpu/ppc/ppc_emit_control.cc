@@ -132,23 +132,23 @@ int InstrEmit_branch(PPCHIRBuilder& f, const char* src, uint64_t cia,
 #else
     {
 #endif
-    // Jump to pointer.
-    bool likely_return = !lk && nia_is_lr;
-    if (likely_return) {
-      call_flags |= CALL_POSSIBLE_RETURN;
-    }
-    if (cond) {
-      if (!expect_true) {
-        cond = f.IsFalse(cond);
+      // Jump to pointer.
+      bool likely_return = !lk && nia_is_lr;
+      if (likely_return) {
+        call_flags |= CALL_POSSIBLE_RETURN;
       }
-      f.CallIndirectTrue(cond, nia, call_flags);
-    } else {
-      f.CallIndirect(nia, call_flags);
+      if (cond) {
+        if (!expect_true) {
+          cond = f.IsFalse(cond);
+        }
+        f.CallIndirectTrue(cond, nia, call_flags);
+      } else {
+        f.CallIndirect(nia, call_flags);
+      }
     }
   }
-}
 
-return 0;
+  return 0;
 }  // namespace ppc
 
 int InstrEmit_bx(PPCHIRBuilder& f, const InstrData& i) {

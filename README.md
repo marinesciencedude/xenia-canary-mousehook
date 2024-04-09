@@ -182,6 +182,7 @@ This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) a
 | Halo Reach | TU0/TU1 |
 | Halo 4 | TU0/TU8 |
 | Crackdown 2 | TU0/TU5 |
+| Postal III | |
 
 ---
 
