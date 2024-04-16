@@ -136,6 +136,10 @@ void XLiveAPI::Init() {
   // If player already exists on server then no need to post it again?
   auto player = FindPlayer(OnlineIP_str());
 
+  if (player->XUID() != kernel_state()->user_profile((uint32_t)0)->xuid()) {
+    assert_always();
+  }
+
   if (reg_result.http_code == HTTP_STATUS_CODE::HTTP_CREATED &&
       player->XUID() != 0) {
     initialized_ = InitState::Success;
