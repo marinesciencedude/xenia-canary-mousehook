@@ -11,6 +11,8 @@ project("xenia-kernel")
     "fmt",
     "libcurl",
     "miniupnp",
+    "zlib",
+    "pugixml",
     "xenia-apu",
     "xenia-base",
     "xenia-cpu",

@@ -71,9 +71,10 @@ class FileDropEvent : public UIEvent {
 
 class KeyEvent : public UIEvent {
  public:
-  explicit KeyEvent(Window* target, int key_code, int repeat_count, bool prev_state,
-           bool modifier_shift_pressed, bool modifier_ctrl_pressed,
-           bool modifier_alt_pressed, bool modifier_super_pressed)
+  explicit KeyEvent(Window* target, int key_code, int repeat_count,
+                    bool prev_state, bool modifier_shift_pressed,
+                    bool modifier_ctrl_pressed, bool modifier_alt_pressed,
+                    bool modifier_super_pressed)
       : UIEvent(target),
         key_code_(key_code),
         repeat_count_(repeat_count),
@@ -87,7 +88,7 @@ class KeyEvent : public UIEvent {
   bool is_handled() const { return handled_; }
   void set_handled(bool value) { handled_ = value; }
 
-int key_code() const { return key_code_; }
+  int key_code() const { return key_code_; }
 
   int repeat_count() const { return repeat_count_; }
   bool prev_state() const { return prev_state_; }

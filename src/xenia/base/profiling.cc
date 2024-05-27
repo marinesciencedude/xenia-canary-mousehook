@@ -127,18 +127,19 @@ void Profiler::ThreadEnter(const char* name) {
 
 void Profiler::ThreadExit() { MicroProfileOnThreadExit(); }
 
-void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e, int key_code) {
+void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e,
+                                                      int key_code) {
   // https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx
   bool handled = true;
   switch (key_code) {
-    case VK_OEM_3: // `
+    case VK_OEM_3:  // `
       MicroProfileTogglePause();
       break;
 #if XE_OPTION_PROFILING_UI
     case VK_TAB:
       ToggleDisplay();
       break;
-    case 0x31: // 1
+    case 0x31:  // 1
       MicroProfileModKey(1);
       break;
 #endif  // XE_OPTION_PROFILING_UI
@@ -152,11 +153,12 @@ void Profiler::ProfilerWindowInputListener::OnKeyDown(ui::KeyEvent& e, int key_c
   PostInputEvent();
 }
 
-void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e, int key_code) {
+void Profiler::ProfilerWindowInputListener::OnKeyUp(ui::KeyEvent& e,
+                                                    int key_code) {
   bool handled = true;
   switch (key_code) {
 #if XE_OPTION_PROFILING_UI
-    case 0x31: // 1
+    case 0x31:  // 1
       MicroProfileModKey(0);
       break;
 #endif  // XE_OPTION_PROFILING_UI

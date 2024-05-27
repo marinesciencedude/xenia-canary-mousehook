@@ -343,8 +343,10 @@ void HidDemoApp::DrawInputGetState() const {
 static const std::map<std::underlying_type<X_INPUT_GAMEPAD_VK>::type,
                       const std::string>
     vk_pretty = {
-        {X_INPUT_GAMEPAD_VK_A, "A"}, {X_INPUT_GAMEPAD_VK_B, "B"},
-        {X_INPUT_GAMEPAD_VK_X, "X"}, {X_INPUT_GAMEPAD_VK_Y, "Y"},
+        {X_INPUT_GAMEPAD_VK_A, "A"},
+        {X_INPUT_GAMEPAD_VK_B, "B"},
+        {X_INPUT_GAMEPAD_VK_X, "X"},
+        {X_INPUT_GAMEPAD_VK_Y, "Y"},
         {X_INPUT_GAMEPAD_VK_RSHOULDER, "R Shoulder"},
         {X_INPUT_GAMEPAD_VK_LSHOULDER, "L Shoulder"},
         {X_INPUT_GAMEPAD_VK_LTRIGGER, "L Trigger"},
@@ -354,7 +356,8 @@ static const std::map<std::underlying_type<X_INPUT_GAMEPAD_VK>::type,
         {X_INPUT_GAMEPAD_VK_DPAD_DOWN, "DPad down"},
         {X_INPUT_GAMEPAD_VK_DPAD_LEFT, "DPad left"},
         {X_INPUT_GAMEPAD_VK_DPAD_RIGHT, "DPad right"},
-        {X_INPUT_GAMEPAD_VK_START, "Start"}, {X_INPUT_GAMEPAD_VK_BACK, "Back"},
+        {X_INPUT_GAMEPAD_VK_START, "Start"},
+        {X_INPUT_GAMEPAD_VK_BACK, "Back"},
         {X_INPUT_GAMEPAD_VK_LTHUMB_PRESS, "L Thumb press"},
         {X_INPUT_GAMEPAD_VK_RTHUMB_PRESS, "R Thumb press"},
 

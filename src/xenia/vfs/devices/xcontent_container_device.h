@@ -16,12 +16,17 @@
 
 #include "xenia/base/math.h"
 #include "xenia/kernel/util/xex2_info.h"
+#include "xenia/kernel/xam/content_manager.h"
 #include "xenia/vfs/device.h"
 #include "xenia/vfs/devices/stfs_xbox.h"
-#include "xenia/kernel/xam/content_manager.h"
 
 namespace xe {
 namespace vfs {
+
+constexpr fourcc_t kLIVESignature = make_fourcc("LIVE");
+constexpr fourcc_t kCONSignature = make_fourcc("CON ");
+constexpr fourcc_t kPIRSSignature = make_fourcc("PIRS");
+
 class XContentContainerDevice : public Device {
  public:
   const static uint32_t kBlockSize = 0x1000;
@@ -71,10 +76,11 @@ class XContentContainerDevice : public Device {
   };
 
   virtual Result Read() = 0;
-  // Load all host files. Usually STFS is only 1 file, meanwhile SVOD is usually multiple file.
+  // Load all host files. Usually STFS is only 1 file, meanwhile SVOD is usually
+  // multiple file.
   virtual Result LoadHostFiles(FILE* header_file) = 0;
   // Initialize any container specific fields.
-  virtual void SetupContainer() { };
+  virtual void SetupContainer(){};
 
   Entry* ResolvePath(const std::string_view path);
   void CloseFiles();
@@ -89,7 +95,9 @@ class XContentContainerDevice : public Device {
 
   const std::filesystem::path& GetHostPath() const { return host_path_; }
 
-  const XContentContainerHeader* GetContainerHeader() const { return header_.get(); }
+  const XContentContainerHeader* GetContainerHeader() const {
+    return header_.get();
+  }
 
   std::string name_;
   std::filesystem::path host_path_;

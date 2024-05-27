@@ -136,9 +136,9 @@ void ImGuiDrawer::Initialize() {
   // This will give us state we can swap to the ImGui globals when in use.
   internal_state_ = ImGui::CreateContext();
   ImGui::SetCurrentContext(internal_state_);
-  
+
   auto& io = ImGui::GetIO();
-  
+
   // TODO(gibbed): disable imgui.ini saving for now,
   // imgui assumes paths are char* so we can't throw a good path at it on
   // Windows.
@@ -200,7 +200,7 @@ void ImGuiDrawer::Initialize() {
       ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
   style.Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.00f, 1.00f, 0.00f, 0.21f);
   style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
-  
+
   io.KeyMap[ImGuiKey_Tab] = 0x09;  // VK_TAB;
   io.KeyMap[ImGuiKey_LeftArrow] = 0x25;
   io.KeyMap[ImGuiKey_RightArrow] = 0x27;
@@ -281,7 +281,7 @@ void ImGuiDrawer::SetupNotificationTextures() {
 static const ImWchar font_glyph_ranges[] = {
     0x0020, 0x00FF,  // Basic Latin + Latin Supplement
     0x0370, 0x03FF,  // Greek
-    0x0400, 0x044F,  // Cyrillic
+    0x0400, 0x04FF,  // Cyrillic
     0x2000, 0x206F,  // General Punctuation
     0,
 };

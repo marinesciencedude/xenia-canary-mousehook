@@ -39,62 +39,6 @@ struct CreateOptions {
   static const uint32_t FILE_RANDOM_ACCESS = 0x00000800;
 };
 
-static bool IsValidPath(const std::string_view s, bool is_pattern) {
-  // TODO(gibbed): validate path components individually
-  bool got_asterisk = false;
-  for (const auto& c : s) {
-    if (c <= 31 || c >= 127) {
-      return false;
-    }
-    if (got_asterisk) {
-      // * must be followed by a . (*.)
-      //
-      // 4D530819 has a bug in its game code where it attempts to
-      // FindFirstFile() with filters of "Game:\\*_X3.rkv", "Game:\\m*_X3.rkv",
-      // and "Game:\\w*_X3.rkv" and will infinite loop if the path filter is
-      // allowed.
-      if (c != '.') {
-        return false;
-      }
-      got_asterisk = false;
-    }
-    switch (c) {
-      case '"':
-      // case '*':
-      case '+':
-      case ',':
-      // case ':':
-      case ';':
-      case '<':
-      case '=':
-      case '>':
-      // case '?':
-      case '|': {
-        return false;
-      }
-      case '*': {
-        // Pattern-specific (for NtQueryDirectoryFile)
-        if (!is_pattern) {
-          return false;
-        }
-        got_asterisk = true;
-        break;
-      }
-      case '?': {
-        // Pattern-specific (for NtQueryDirectoryFile)
-        if (!is_pattern) {
-          return false;
-        }
-        break;
-      }
-      default: {
-        break;
-      }
-    }
-  }
-  return true;
-}
-
 dword_result_t NtCreateFile_entry(lpdword_t handle_out, dword_t desired_access,
                                   pointer_t<X_OBJECT_ATTRIBUTES> object_attrs,
                                   pointer_t<X_IO_STATUS_BLOCK> io_status_block,
@@ -779,8 +723,9 @@ dword_result_t IoCreateDevice_entry(dword_t driver_object,
 }
 DECLARE_XBOXKRNL_EXPORT1(IoCreateDevice, kFileSystem, kStub);
 
-//supposed to invoke a callback on the driver object! its some sort of destructor function
-//intended to be called for all devices created from the driver
+// supposed to invoke a callback on the driver object! its some sort of
+// destructor function intended to be called for all devices created from the
+// driver
 void IoDeleteDevice_entry(dword_t device_ptr, const ppc_context_t& ctx) {
   if (device_ptr) {
     auto kernel_mem = ctx->kernel_state->memory();

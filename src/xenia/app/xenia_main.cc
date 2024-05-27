@@ -27,6 +27,7 @@
 #include "xenia/config.h"
 #include "xenia/debug/ui/debug_window.h"
 #include "xenia/emulator.h"
+#include "xenia/kernel/xam/xam_module.h"
 #include "xenia/ui/file_picker.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/window_listener.h"
@@ -484,7 +485,7 @@ void EmulatorApp::OnDestroy() {
 #pragma region NetplayCleanup
   // UPnP Shutdown
   if (cvars::upnp) {
-    xe::kernel::XLiveAPI::upnp_handler.~upnp();
+    delete xe::kernel::XLiveAPI::upnp_handler;
   }
 
   // Delete sessions on shutdown.
@@ -643,6 +644,20 @@ void EmulatorApp::EmulatorThread() {
       xe::FatalError(fmt::format("Failed to launch target: {:08X}", result));
       app_context().RequestDeferredQuit();
       return;
+    }
+  }
+
+  auto xam = emulator_->kernel_state()->GetKernelModule<kernel::xam::XamModule>(
+      "xam.xex");
+
+  if (xam) {
+    xam->LoadLoaderData();
+
+    if (xam->loader_data().launch_data_present) {
+      const std::filesystem::path host_path = xam->loader_data().host_path;
+      app_context().CallInUIThread([this, host_path]() {
+        return emulator_window_->RunTitle(host_path);
+      });
     }
   }
 

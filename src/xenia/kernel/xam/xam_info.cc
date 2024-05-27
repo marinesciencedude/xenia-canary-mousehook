@@ -33,7 +33,18 @@
 
 #include "third_party/fmt/include/fmt/format.h"
 
-DEFINE_int32(avpack, 8, "Video modes", "Video");
+DEFINE_int32(avpack, 8,
+             "Video modes\n"
+             " 0 = PAL-60 Component (SD)\n"
+             " 1 = Unused\n"
+             " 2 = PAL-60 SCART\n"
+             " 3 = 480p Component (HD)\n"
+             " 4 = HDMI+A\n"
+             " 5 = PAL-60 Composite/S-Video\n"
+             " 6 = VGA\n"
+             " 7 = TV PAL-60\n"
+             " 8 = HDMI (default)",
+             "Video");
 DECLARE_int32(user_country);
 DECLARE_int32(user_language);
 
@@ -198,7 +209,8 @@ dword_result_t XamGetSystemVersion_entry() {
   // 0x200A3200 = 2.0.2610.0
   // 0x20096B00 = 2.0.2411.0
   // 0x200CE900 = 2.0.3305.0
-  // Latest https://support.xbox.com/en-GB/help/xbox-360/console/system-update-operating-system
+  // Latest
+  // https://support.xbox.com/en-GB/help/xbox-360/console/system-update-operating-system
   // 0x20449700 = 2.0.17559.0
 
   auto ver = 0x20449700;
@@ -207,10 +219,12 @@ dword_result_t XamGetSystemVersion_entry() {
     ver = 0;
   }
 
-  auto version = fmt::format("Kernel version: {}.{}.{}.{}", (ver >> 28) & 0xF,
-                             (ver >> 24) & 0xF, (ver >> 8) & 0xFFFF, ver & 0xF);
+  // auto version = fmt::format("Kernel version: {}.{}.{}.{}", (ver >> 28) &
+  // 0xF,
+  //                            (ver >> 24) & 0xF, (ver >> 8) & 0xFFFF, ver &
+  //                            0xF);
 
-  XELOGD("{}", version);
+  // XELOGD("{}", version);
 
   return ver;
 }
@@ -306,24 +320,6 @@ dword_result_t XamLoaderSetLaunchData_entry(lpvoid_t data, dword_t size) {
   loader_data.launch_data_present = size ? true : false;
   loader_data.launch_data.resize(size);
   std::memcpy(loader_data.launch_data.data(), data, size);
-
-  // Because we have no way to restart game while it is working. Remove as soon
-  // as possible.
-  const std::filesystem::path launch_data_dir = "launch_data";
-
-  std::filesystem::path file_path =
-      launch_data_dir /
-      fmt::format("{:08X}_launch_data.bin", kernel_state()->title_id());
-
-  if (!std::filesystem::exists(launch_data_dir)) {
-    std::filesystem::create_directories(launch_data_dir);
-  }
-
-  auto file = xe::filesystem::OpenFile(file_path, "wb+");
-  if (file) {
-    fwrite(loader_data.launch_data.data(), size, 1, file);
-    fclose(file);
-  }
   return 0;
 }
 DECLARE_XAM_EXPORT1(XamLoaderSetLaunchData, kNone, kSketchy);
@@ -372,14 +368,11 @@ void XamLoaderLaunchTitle_entry(lpstring_t raw_name_ptr, dword_t flags) {
     if (path.empty()) {
       loader_data.launch_path = "game:\\default.xex";
     } else {
-      if (xe::utf8::find_name_from_guest_path(path) == path) {
-        path = xe::utf8::join_guest_paths(
-            xe::utf8::find_base_guest_path(
-                kernel_state()->GetExecutableModule()->path()),
-            path);
-      }
-      loader_data.launch_path = path;
+      loader_data.launch_path = xe::path_to_utf8(path);
+      loader_data.launch_data_present = true;
     }
+
+    xam->SaveLoaderData();
 
     if (loader_data.launch_data_present) {
       auto display_window = kernel_state()->emulator()->display_window();
@@ -390,8 +383,8 @@ void XamLoaderLaunchTitle_entry(lpstring_t raw_name_ptr, dword_t flags) {
             [imgui_drawer]() {
               xe::ui::ImGuiDialog::ShowMessageBox(
                   imgui_drawer, "Title was restarted",
-                  "Title closed with new launch data. \nPlease close Xenia and "
-                  "start title again.");
+                  "Title closed with new launch data. \nPlease restart Xenia. "
+                  "Game will be loaded automatically.");
             });
       }
     }

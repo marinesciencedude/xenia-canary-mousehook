@@ -10,6 +10,7 @@
 #include "xenia/kernel/xam/content_manager.h"
 
 #include <array>
+#include <set>
 #include <string>
 
 #include "third_party/fmt/include/fmt/format.h"
@@ -96,28 +97,47 @@ std::vector<XCONTENT_AGGREGATE_DATA> ContentManager::ListContent(
     title_id = kernel_state_->title_id();
   }
 
-  // Search path:
-  // content_root/title_id/type_name/*
-  auto package_root = ResolvePackageRoot(content_type, title_id);
-  auto file_infos = xe::filesystem::ListFiles(package_root);
-  for (const auto& file_info : file_infos) {
-    if (file_info.type != xe::filesystem::FileInfo::Type::kDirectory) {
-      // Directories only.
-      continue;
-    }
+  std::set<uint32_t> title_ids = {title_id};
 
-    XCONTENT_AGGREGATE_DATA content_data;
-    if (XSUCCEEDED(
-            ReadContentHeaderFile(xe::path_to_utf8(file_info.name) + ".header",
-                                  content_type, content_data, title_id))) {
-      result.emplace_back(std::move(content_data));
-    } else {
-      content_data.device_id = device_id;
-      content_data.content_type = content_type;
-      content_data.set_display_name(xe::path_to_utf16(file_info.name));
-      content_data.set_file_name(xe::path_to_utf8(file_info.name));
-      content_data.title_id = title_id;
-      result.emplace_back(std::move(content_data));
+  if (content_type == XContentType::kPublisher) {
+    std::string publisher_id_regex =
+        fmt::format("^{:04X}.*", static_cast<uint16_t>(title_id >> 16));
+    // Get all publisher entries
+    auto publisher_entries = xe::filesystem::FilterByName(
+        xe::filesystem::ListDirectories(root_path_),
+        std::regex(publisher_id_regex));
+
+    for (const auto& entry : publisher_entries) {
+      title_ids.insert(xe::string_util::from_string<uint32_t>(
+          xe::path_to_utf8(entry.name), true));
+    }
+  }
+
+  for (const uint32_t& title_id : title_ids) {
+    // Search path:
+    // content_root/title_id/type_name/*
+    auto package_root = ResolvePackageRoot(content_type, title_id);
+    auto file_infos = xe::filesystem::ListFiles(package_root);
+
+    for (const auto& file_info : file_infos) {
+      if (file_info.type != xe::filesystem::FileInfo::Type::kDirectory) {
+        // Directories only.
+        continue;
+      }
+
+      XCONTENT_AGGREGATE_DATA content_data;
+      if (XSUCCEEDED(ReadContentHeaderFile(
+              xe::path_to_utf8(file_info.name) + ".header", content_type,
+              content_data, title_id))) {
+        result.emplace_back(std::move(content_data));
+      } else {
+        content_data.device_id = device_id;
+        content_data.content_type = content_type;
+        content_data.set_display_name(xe::path_to_utf16(file_info.name));
+        content_data.set_file_name(xe::path_to_utf8(file_info.name));
+        content_data.title_id = title_id;
+        result.emplace_back(std::move(content_data));
+      }
     }
   }
   return result;
@@ -287,9 +307,7 @@ X_RESULT ContentManager::GetContentThumbnail(
   auto thumb_path = package_path / kThumbnailFileName;
   if (std::filesystem::exists(thumb_path)) {
     auto file = xe::filesystem::OpenFile(thumb_path, "rb");
-    fseek(file, 0, SEEK_END);
-    size_t file_len = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    size_t file_len = std::filesystem::file_size(thumb_path);
     buffer->resize(file_len);
     fread(const_cast<uint8_t*>(buffer->data()), 1, buffer->size(), file);
     fclose(file);

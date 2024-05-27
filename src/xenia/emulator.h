@@ -20,6 +20,7 @@
 #include "xenia/base/delegate.h"
 #include "xenia/base/exception_handler.h"
 #include "xenia/kernel/kernel_state.h"
+#include "xenia/kernel/util/xlast.h"
 #include "xenia/memory.h"
 #include "xenia/patcher/patcher.h"
 #include "xenia/patcher/plugin_loader.h"
@@ -52,6 +53,8 @@ class Window;
 namespace xe {
 
 constexpr fourcc_t kEmulatorSaveSignature = make_fourcc("XSAV");
+static const std::string kDefaultGameSymbolicLink = "GAME:";
+static const std::string kDefaultPartitionSymbolicLink = "D:";
 
 // The main type that runs the whole emulator.
 // This is responsible for initializing and managing all the various subsystems.
@@ -111,7 +114,7 @@ class Emulator {
 
   // Version of the title as a string.
   const std::string& title_version() const { return title_version_; }
-  
+
   // Host path of the executable being ran
   const std::filesystem::path& executable_path() const {
     return executable_path_;
@@ -184,11 +187,28 @@ class Emulator {
   // Terminates the currently running title.
   X_STATUS TerminateTitle();
 
-  const std::unique_ptr<vfs::Device> CreateVfsDeviceBasedOnPath(
+  const std::unique_ptr<vfs::Device> CreateVfsDevice(
       const std::filesystem::path& path, const std::string_view mount_path);
 
   X_STATUS MountPath(const std::filesystem::path& path,
                      const std::string_view mount_path);
+
+  enum class FileSignatureType {
+    XEX1,
+    XEX2,
+    ELF,
+    CON,
+    LIVE,
+    PIRS,
+    XISO,
+    ZAR,
+    EXE,
+    Unknown
+  };
+
+  // Determine the executable signature
+  FileSignatureType GetFileSignature(const std::filesystem::path& path);
+
   // Launches a game from the given file path.
   // This will attempt to infer the type of the given file (such as an iso, etc)
   // using heuristics.
@@ -212,6 +232,23 @@ class Emulator {
   // Extract content of package to content specific directory.
   X_STATUS InstallContentPackage(const std::filesystem::path& path);
 
+  // Extract content of zar package to desired directory.
+  X_STATUS Emulator::ExtractZarchivePackage(
+      const std::filesystem::path& path,
+      const std::filesystem::path& extract_dir);
+
+  // Pack contents of a folder into a zar package.
+  X_STATUS CreateZarchivePackage(const std::filesystem::path& inputDirectory,
+                                 const std::filesystem::path& outputFile);
+
+  struct PackContext {
+    std::filesystem::path outputFilePath;
+    std::ofstream currentOutputFile;
+    bool hasError{false};
+  };
+
+  void DumpXLast();
+
   void Pause();
   void Resume();
   bool is_paused() const { return paused_; }
@@ -233,13 +270,9 @@ class Emulator {
   xe::Delegate<> on_exit;
 
  private:
-  enum : uint64_t {
-    EmulatorFlagDisclaimerAcknowledged = 1ULL << 0
-  };
+  enum : uint64_t { EmulatorFlagDisclaimerAcknowledged = 1ULL << 0 };
   static uint64_t GetPersistentEmulatorFlags();
   static void SetPersistentEmulatorFlags(uint64_t new_flags);
-  static std::string CanonicalizeFileExtension(
-      const std::filesystem::path& path);
   static bool ExceptionCallbackThunk(Exception* ex, void* data);
   bool ExceptionCallback(Exception* ex);
 
@@ -255,7 +288,7 @@ class Emulator {
   std::filesystem::path storage_root_;
   std::filesystem::path content_root_;
   std::filesystem::path cache_root_;
-  
+
   std::filesystem::path executable_path_;
 
   std::string title_name_;
@@ -290,6 +323,7 @@ class Emulator {
   kernel::object_ref<kernel::XThread> main_thread_;
   kernel::object_ref<kernel::XHostThread> plugin_loader_thread_;
   std::optional<uint32_t> title_id_;  // Currently running title ID
+  std::unique_ptr<kernel::util::XLast> title_xlast_;
 
   bool paused_;
   bool restoring_;

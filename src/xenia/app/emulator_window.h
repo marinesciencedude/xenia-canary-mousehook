@@ -61,8 +61,8 @@ class EmulatorWindow {
   int32_t selected_title_index = -1;
 
   static constexpr int64_t diff_in_ms(
-    const steady_clock::time_point t1,
-    const steady_clock::time_point t2) noexcept {
+      const steady_clock::time_point t1,
+      const steady_clock::time_point t2) noexcept {
     using ms = std::chrono::milliseconds;
     return std::chrono::duration_cast<ms>(t1 - t2).count();
   }
@@ -85,6 +85,7 @@ class EmulatorWindow {
   void UpdateTitle();
   void SetFullscreen(bool fullscreen);
   void ToggleFullscreen();
+  void SetAPIAddress(std::string address);
   void SetInitializingShaderStorage(bool initializing);
 
   // Types of button functions for hotkeys.
@@ -206,7 +207,10 @@ class EmulatorWindow {
   void FileOpen();
   void FileClose();
   void InstallContent();
+  void ExtractZarchive();
+  void CreateZarchive();
   void ShowContentDirectory();
+  void DumpXLast();
   void CpuTimeScalarReset();
   void CpuTimeScalarSetHalf();
   void CpuTimeScalarSetDouble();
@@ -226,9 +230,11 @@ class EmulatorWindow {
   void GamepadHotKeys();
   void ToggleGPUSetting(gpu_cvar index);
   bool IsUseNexusForGameBarEnabled();
-  std::string BoolToString(bool value);
   void NetplayStatus();
   void DisplayHotKeysConfig();
+
+  static std::string CanonicalizeFileExtension(
+      const std::filesystem::path& path);
 
   void RunPreviouslyPlayedTitle();
   void FillRecentlyLaunchedTitlesMenu(xe::ui::MenuItem* recent_menu);

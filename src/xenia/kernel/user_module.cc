@@ -126,9 +126,12 @@ X_STATUS UserModule::LoadFromMemory(const void* addr, const size_t length) {
   } else if (magic == xe::cpu::kElfSignature) {
     module_format_ = kModuleFormatElf;
   } else {
-    be<uint16_t> magic16;
-    magic16.value = xe::load<uint16_t>(addr);
-    if (magic16 == 0x4D5A) {
+    uint8_t M = xe::load<uint8_t>(addr);
+    uint8_t Z = xe::load<uint8_t>(reinterpret_cast<void*>(
+        reinterpret_cast<uint64_t>(addr) + sizeof(uint8_t)));
+
+    magic = make_fourcc(M, Z, 0, 0);
+    if (magic == kEXESignature) {
       XELOGE("XNA executables are not yet implemented");
       return X_STATUS_NOT_IMPLEMENTED;
     } else {
@@ -643,7 +646,23 @@ void UserModule::Dump() {
         sb.Append("  XEX_HEADER_MULTIDISC_MEDIA_IDS (TODO):\n");
       } break;
       case XEX_HEADER_ALTERNATE_TITLE_IDS: {
-        sb.Append("  XEX_HEADER_ALTERNATE_TITLE_IDS (TODO):\n");
+        sb.Append("  XEX_HEADER_ALTERNATE_TITLE_IDS:");
+        auto opt_alternate_title_id =
+            reinterpret_cast<const xex2_opt_generic_u32*>(opt_header_ptr);
+
+        std::string title_ids = "";
+
+        for (uint32_t i = 0; i < opt_alternate_title_id->count(); i++) {
+          if (opt_alternate_title_id->values[i] != 0) {
+            title_ids.append(
+                fmt::format(" {:08X},", opt_alternate_title_id->values[i]));
+          }
+        }
+        // Remove last character as it is not necessary
+        if (!title_ids.empty()) {
+          title_ids.pop_back();
+          sb.AppendFormat("{}\n", title_ids);
+        }
       } break;
       case XEX_HEADER_ADDITIONAL_TITLE_MEMORY: {
         sb.AppendFormat("  XEX_HEADER_ADDITIONAL_TITLE_MEMORY: {}\n",

@@ -2,7 +2,7 @@
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2023 Xenia Emulator. All rights reserved.                        *
+ * Copyright 2024 Xenia Emulator. All rights reserved.                        *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
@@ -10,9 +10,8 @@
 #ifndef XENIA_KERNEL_XSESSION_H_
 #define XENIA_KERNEL_XSESSION_H_
 
-#include <third_party/libcurl/include/curl/curl.h>
-
 #include "xenia/base/byte_order.h"
+#include "xenia/kernel/session_object_json.h"
 #include "xenia/kernel/xnet.h"
 #include "xenia/kernel/xobject.h"
 
@@ -125,17 +124,14 @@ struct XSessionModify {
   xe::be<uint32_t> xoverlapped;
 };
 
-struct XSessionSearchEx {
-  xe::be<uint32_t> proc_index;
-  xe::be<uint32_t> user_index;
-  xe::be<uint32_t> num_results;
-  // xe::be<uint32_t> num_users; will break struct
-  xe::be<uint16_t> num_props;
-  xe::be<uint16_t> num_ctx;
-  xe::be<uint32_t> props_ptr;
-  xe::be<uint32_t> ctx_ptr;
-  xe::be<uint32_t> results_buffer;
-  xe::be<uint32_t> search_results;
+struct XSessionStart {
+  xe::be<uint32_t> obj_ptr;
+  xe::be<uint32_t> flags;
+  xe::be<uint32_t> xoverlapped;
+};
+
+struct XSessionEnd {
+  xe::be<uint32_t> obj_ptr;
   xe::be<uint32_t> xoverlapped;
 };
 
@@ -153,11 +149,11 @@ struct XSessionSearch {
 };
 
 struct XSessionSearchID {
-  xe::kernel::XNKID* session_id;
   xe::be<uint32_t> user_index;
+  xe::kernel::XNKID session_id;
   xe::be<uint32_t> results_buffer_size;
   xe::be<uint32_t> search_results_ptr;
-  xe::be<uint32_t> xoverlapped_ptr;
+  // xe::be<uint32_t> xoverlapped_ptr;
 };
 
 struct XSessionDetails {
@@ -169,8 +165,8 @@ struct XSessionDetails {
 
 struct XSessionMigate {
   xe::be<uint32_t> obj_ptr;
-  xe::be<uint32_t> user_index;
   xe::be<uint32_t> session_info_ptr;
+  xe::be<uint32_t> user_index;
   xe::be<uint32_t> pXOverlapped;
 };
 
@@ -204,6 +200,13 @@ struct XSessionWriteStats {
   xe::be<uint32_t> xoverlapped;
 };
 
+struct XSessionModifySkill {
+  xe::be<uint32_t> obj_ptr;
+  xe::be<uint32_t> array_count;
+  xe::be<uint32_t> xuid_array_ptr;
+  xe::be<uint32_t> xoverlapped;
+};
+
 struct XSessionViewProperties {
   xe::be<uint32_t> leaderboard_id;
   xe::be<uint32_t> properties_count;
@@ -224,41 +227,6 @@ struct XSessionLeave {
   xe::be<uint32_t> xuid_array_ptr;
   xe::be<uint32_t> indices_array_ptr;
   xe::be<uint32_t> unused;
-};
-
-struct Player {
-  xe::be<uint64_t> xuid;
-  std::string hostAddress;
-  xe::be<uint64_t> machineId;
-  uint16_t port;
-  xe::be<uint64_t> macAddress;  // 6 Bytes
-  xe::be<uint64_t> sessionId;
-};
-
-struct SessionJSON {
-  xe::be<uint64_t> sessionid;
-  xe::be<uint16_t> port;
-  xe::be<uint32_t> flags;
-  std::string hostAddress;
-  std::string macAddress;
-  xe::be<uint32_t> publicSlotsCount;
-  xe::be<uint32_t> privateSlotsCount;
-  xe::be<uint32_t> openPublicSlotsCount;
-  xe::be<uint32_t> openPrivateSlotsCount;
-  xe::be<uint32_t> filledPublicSlotsCount;
-  xe::be<uint32_t> filledPrivateSlotsCount;
-  std::vector<Player> players;
-};
-
-struct MachineInfo {
-  xe::be<uint64_t> machineId;
-  xe::be<uint32_t> playerCount;
-  std::vector<uint64_t> xuids;
-};
-
-struct XSessionArbitrationJSON {
-  xe::be<uint32_t> totalPlayers;
-  std::vector<MachineInfo> machines;
 };
 
 // TODO(Gliniak): Put it in more reasonable location.
@@ -312,7 +280,11 @@ class XSession : public XObject {
   X_RESULT GetSessionDetails(XSessionDetails* data);
   X_RESULT MigrateHost(XSessionMigate* data);
   X_RESULT RegisterArbitration(XSessionArbitrationData* data);
+  X_RESULT ModifySkill(XSessionModifySkill* data);
   X_RESULT WriteStats(XSessionWriteStats* data);
+
+  X_RESULT StartSession(uint32_t flags);
+  X_RESULT EndSession();
 
   static X_RESULT GetSessions(Memory* memory, XSessionSearch* search_data);
   static X_RESULT GetSessionByID(Memory* memory, XSessionSearchID* search_data);
@@ -330,13 +302,19 @@ class XSession : public XObject {
                               uint8_t private_slots, uint32_t flags);
   X_RESULT JoinExistingSession(XSESSION_INFO* session_info);
 
+  // May trigger for sessions creared with older netplay builds.
+  const bool IsOnlineSession(uint64_t session_id) {
+    return ((session_id >> 56) & 0xFF) == 0xAE;
+  }
+
   const bool HasSessionFlag(SessionFlags flags,
                             SessionFlags checked_flag) const {
     return (flags & checked_flag) == checked_flag;
   };
 
-  static void FillSessionSearchResult(const SessionJSON* session_info,
-                                      XSESSION_SEARCHRESULT* result);
+  static void FillSessionSearchResult(
+      const std::unique_ptr<SessionObjectJSON>& session_info,
+      XSESSION_SEARCHRESULT* result);
 
   static void FillSessionContext(Memory* memory,
                                  std::map<uint32_t, uint32_t> contexts,

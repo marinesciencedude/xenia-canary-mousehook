@@ -39,7 +39,6 @@ SDLInputDriver::SDLInputDriver(xe::ui::Window* window, size_t window_z_order)
       sdl_events_unflushed_(0),
       sdl_pumpevents_queued_(false),
       controllers_(),
-      controllers_mutex_(),
       keystroke_states_() {}
 
 SDLInputDriver::~SDLInputDriver() {
@@ -111,34 +110,85 @@ X_STATUS SDLInputDriver::Setup() {
     if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) < 0) {
       return;
     }
+
     sdl_gamecontroller_initialized_ = true;
 
-    if (!cvars::mappings_file.empty()) {
-      if (!std::filesystem::exists(cvars::mappings_file)) {
-        XELOGW("SDL GameControllerDB: file '{}' does not exist.",
-               xe::path_to_utf8(cvars::mappings_file));
-      } else {
-        auto mappings_file = filesystem::OpenFile(cvars::mappings_file, "rb");
-        if (!mappings_file) {
-          XELOGE("SDL GameControllerDB: failed to open file '{}'.",
-                 xe::path_to_utf8(cvars::mappings_file));
-        } else {
-          auto mappings_result = SDL_GameControllerAddMappingsFromRW(
-              SDL_RWFromFP(mappings_file, SDL_TRUE), 1);
-          if (mappings_result < 0) {
-            XELOGE("SDL GameControllerDB: error loading file '{}': {}.",
-                   xe::path_to_utf8(cvars::mappings_file), mappings_result);
-          } else {
-            XELOGI("SDL GameControllerDB: loaded {} mappings.",
-                   mappings_result);
-          }
-        }
-      }
-    }
+    LoadGameControllerDB();
   });
+
   return (sdl_events_initialized_ && sdl_gamecontroller_initialized_)
              ? X_STATUS_SUCCESS
              : X_STATUS_UNSUCCESSFUL;
+}
+
+void SDLInputDriver::LoadGameControllerDB() {
+  if (cvars::mappings_file.empty()) {
+    return;
+  }
+
+  if (!std::filesystem::exists(cvars::mappings_file)) {
+    XELOGW("SDL GameControllerDB: file '{}' does not exist.",
+           xe::path_to_utf8(cvars::mappings_file));
+    return;
+  }
+
+  XELOGI("SDL GameControllerDB: Loading {}",
+         xe::path_to_utf8(cvars::mappings_file));
+
+  uint32_t updated_mappings = 0;
+  uint32_t added_mappings = 0;
+
+  rapidcsv::Document mappings(
+      xe::path_to_utf8(cvars::mappings_file), rapidcsv::LabelParams(-1, -1),
+      rapidcsv::SeparatorParams(), rapidcsv::ConverterParams(),
+      rapidcsv::LineReaderParams(true /* pSkipCommentLines */,
+                                 '#' /* pCommentPrefix */,
+                                 true /* pSkipEmptyLines */));
+
+  for (size_t i = 0; i < mappings.GetRowCount(); i++) {
+    std::vector<std::string> row = mappings.GetRow<std::string>(i);
+
+    if (row.size() < 2) {
+      continue;
+    }
+
+    std::string guid = row[0];
+    std::string controller_name = row[1];
+
+    auto format = [](std::string& ss, std::string& s) {
+      return ss.empty() ? s : ss + "," + s;
+    };
+
+    std::string mapping_str =
+        std::accumulate(row.begin(), row.end(), std::string{}, format);
+
+    int updated = SDL_GameControllerAddMapping(mapping_str.c_str());
+
+    switch (updated) {
+      case 0: {
+        XELOGI("SDL GameControllerDB: Updated {}, {}", controller_name, guid);
+        updated_mappings++;
+      } break;
+      case 1: {
+        added_mappings++;
+      } break;
+      default:
+        XELOGW("SDL GameControllerDB: error loading mapping '{}'", mapping_str);
+        break;
+    }
+  }
+
+  for (uint32_t i = 0; i < HID_SDL_USER_COUNT; i++) {
+    auto controller = GetControllerState(i);
+
+    if (controller) {
+      XELOGI("SDL Controller {}: {}", i,
+             SDL_GameControllerMapping(controller->sdl));
+    }
+  }
+
+  XELOGI("SDL GameControllerDB: Updated {} mappings.", updated_mappings);
+  XELOGI("SDL GameControllerDB: Added {} mappings.", added_mappings);
 }
 
 X_RESULT SDLInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
@@ -149,8 +199,6 @@ X_RESULT SDLInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
   }
 
   QueueControllerUpdate();
-
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
 
   auto controller = GetControllerState(user_index);
   if (!controller) {
@@ -178,8 +226,6 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
   if (is_active) {
     QueueControllerUpdate();
   }
-
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
 
   auto controller = GetControllerState(user_index);
   if (!controller) {
@@ -212,8 +258,6 @@ X_RESULT SDLInputDriver::SetState(uint32_t user_index,
   }
 
   QueueControllerUpdate();
-
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
 
   auto controller = GetControllerState(user_index);
   if (!controller) {
@@ -296,8 +340,6 @@ X_RESULT SDLInputDriver::GetKeystroke(uint32_t users, uint32_t flags,
   if (is_active) {
     QueueControllerUpdate();
   }
-
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
 
   for (uint32_t user_index = (user_any ? 0 : users);
        user_index < (user_any ? HID_SDL_USER_COUNT : users + 1); user_index++) {
@@ -422,20 +464,26 @@ void SDLInputDriver::HandleEvent(const SDL_Event& event) {
 }
 
 void SDLInputDriver::OnControllerDeviceAdded(const SDL_Event& event) {
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
-
   // Open the controller.
   const auto controller = SDL_GameControllerOpen(event.cdevice.which);
   if (!controller) {
     assert_always();
     return;
   }
+
+  char guid_str[33];
+
+  SDL_JoystickGetGUIDString(
+      SDL_JoystickGetGUID(SDL_GameControllerGetJoystick(controller)), guid_str,
+      33);
+
   XELOGI(
       "SDL OnControllerDeviceAdded: \"{}\", "
       "JoystickType({}), "
       "GameControllerType({}), "
       "VendorID(0x{:04X}), "
-      "ProductID(0x{:04X})",
+      "ProductID(0x{:04X}), "
+      "GUID({})",
       SDL_GameControllerName(controller),
       SDL_JoystickGetType(SDL_GameControllerGetJoystick(controller)),
 #if SDL_VERSION_ATLEAST(2, 0, 12)
@@ -445,10 +493,11 @@ void SDLInputDriver::OnControllerDeviceAdded(const SDL_Event& event) {
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 6)
       SDL_GameControllerGetVendor(controller),
-      SDL_GameControllerGetProduct(controller));
+      SDL_GameControllerGetProduct(controller),
 #else
-      "?", "?");
+      "?", "?",
 #endif
+      guid_str);
   int user_id = -1;
 #if SDL_VERSION_ATLEAST(2, 0, 9)
   // Check if the controller has a player index LED.
@@ -479,6 +528,8 @@ void SDLInputDriver::OnControllerDeviceAdded(const SDL_Event& event) {
     UpdateXCapabilities(state);
 
     XELOGI("SDL OnControllerDeviceAdded: Added at index {}.", user_id);
+    XELOGI("SDL Controller {}: {}", user_id,
+           SDL_GameControllerMapping(controller));
   } else {
     // No more controllers needed, close it.
     SDL_GameControllerClose(controller);
@@ -487,8 +538,6 @@ void SDLInputDriver::OnControllerDeviceAdded(const SDL_Event& event) {
 }
 
 void SDLInputDriver::OnControllerDeviceRemoved(const SDL_Event& event) {
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
-
   // Find the disconnected gamecontroller and close it.
   auto idx = GetControllerIndexFromInstanceID(event.cdevice.which);
   if (idx) {
@@ -503,8 +552,6 @@ void SDLInputDriver::OnControllerDeviceRemoved(const SDL_Event& event) {
 }
 
 void SDLInputDriver::OnControllerDeviceAxisMotion(const SDL_Event& event) {
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
-
   auto idx = GetControllerIndexFromInstanceID(event.caxis.which);
   assert(idx);
   auto& pad = controllers_.at(*idx).state.gamepad;
@@ -535,8 +582,6 @@ void SDLInputDriver::OnControllerDeviceAxisMotion(const SDL_Event& event) {
 }
 
 void SDLInputDriver::OnControllerDeviceButtonChanged(const SDL_Event& event) {
-  std::unique_lock<std::mutex> guard(controllers_mutex_);
-
   // Define a lookup table to map between SDL and XInput button codes.
   // These need to be in the order of the SDL_GameControllerButton enum.
   static constexpr std::array<

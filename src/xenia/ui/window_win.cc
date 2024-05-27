@@ -184,8 +184,8 @@ bool Win32Window::OpenImpl() {
   // Disable rounded corners starting with Windows 11 (or silently receive and
   // ignore E_INVALIDARG on Windows versions before 10.0.22000.0), primarily to
   // preserve all pixels of the guest output.
-  //DWM_WINDOW_CORNER_PREFERENCE window_corner_preference = DWMWCP_DONOTROUND;
-  //DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE,
+  // DWM_WINDOW_CORNER_PREFERENCE window_corner_preference = DWMWCP_DONOTROUND;
+  // DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE,
   //                      &window_corner_preference,
   //                      sizeof(window_corner_preference));
   // Disable flicks.
@@ -206,7 +206,7 @@ bool Win32Window::OpenImpl() {
 
   // Enable file dragging from external sources
   DragAcceptFiles(hwnd_, true);
-  
+
   // Enable raw input for mouse & keyboard
   RAWINPUTDEVICE device;
   device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
@@ -1032,7 +1032,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       }
       OnAfterClose();
     } break;
-	case WM_INPUT: {
+    case WM_INPUT: {
       HRAWINPUT hRawInput = (HRAWINPUT)lParam;
       UINT dataSize = 0;
 
@@ -1059,7 +1059,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
         auto e = MouseEvent(this, MouseEvent::Button::kNone, mouseData.lLastX,
                             mouseData.lLastY, mouseData.usButtonFlags,
                             (int16_t)mouseData.usButtonData);
-		WindowDestructionReceiver destruction_receiver(this);
+        WindowDestructionReceiver destruction_receiver(this);
         OnRawMouse(e, destruction_receiver);
         return 0;
       } else if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
@@ -1170,7 +1170,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
 
         auto e = KeyEvent(this, vkey, 0, !(keyData.Flags & RI_KEY_BREAK), false,
                           false, false, false);
-		WindowDestructionReceiver destruction_receiver(this);
+        WindowDestructionReceiver destruction_receiver(this);
         OnRawKeyboard(e, destruction_receiver);
         return 0;
       }
@@ -1301,7 +1301,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       if (IsFullscreen()) {
         ToggleCursorLock(true);
       }
-	  
+
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(true, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {

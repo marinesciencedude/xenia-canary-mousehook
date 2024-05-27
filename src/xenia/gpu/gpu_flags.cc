@@ -20,7 +20,10 @@ DEFINE_path(
 
 DEFINE_bool(vsync, true, "Enable VSYNC.", "GPU");
 
-DEFINE_uint64(vsync_fps, 60, "VSYNC frames per second", "GPU");
+DEFINE_uint64(framerate_limit, 60,
+              "Maximum frames per second. 0 = Unlimited frames.\n"
+              "Defaults to 60, when set to 0, and VSYNC is enabled.",
+              "GPU");
 
 DEFINE_bool(
     gpu_allow_invalid_fetch_constants, true,
@@ -28,6 +31,13 @@ DEFINE_bool(
     "unsafe because the constant may contain completely invalid values, but "
     "may be used to bypass fetch constant type errors in certain games until "
     "the real reason why they're invalid is found.",
+    "GPU");
+
+DEFINE_bool(
+    non_seamless_cube_map, true,
+    "Disable filtering between cube map faces near edges where possible "
+    "(Vulkan with VK_EXT_non_seamless_cube_map) to reproduce the Direct3D 9 "
+    "behavior.",
     "GPU");
 
 // Extremely bright screen borders in 4D5307E6.

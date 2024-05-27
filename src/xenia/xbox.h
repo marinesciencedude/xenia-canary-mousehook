@@ -312,7 +312,6 @@ struct X_EX_TITLE_TERMINATE_REGISTRATION {
 };
 static_assert_size(X_EX_TITLE_TERMINATE_REGISTRATION, 16);
 
-
 enum X_OBJECT_HEADER_FLAGS : uint16_t {
   OBJECT_HEADER_FLAG_NAMED_OBJECT =
       1,  // if set, has X_OBJECT_HEADER_NAME_INFO prior to X_OBJECT_HEADER
@@ -437,6 +436,13 @@ enum class XContentType : uint32_t {
   kPodcastVideo = 0x00500000,
   kViralVideo = 0x00600000,
   kCommunityGame = 0x02000000,
+};
+
+enum class XDeploymentType : uint32_t {
+  kOpticalDisc = 0,
+  kHardDrive = 1,  // Like extracted?
+  kGoD = 2,
+  kUnknown = 0xFF,
 };
 
 }  // namespace xe

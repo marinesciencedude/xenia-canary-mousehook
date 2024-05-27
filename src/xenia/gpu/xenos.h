@@ -10,10 +10,8 @@
 #ifndef XENIA_GPU_XENOS_H_
 #define XENIA_GPU_XENOS_H_
 
-
-#include "xenia/base/memory.h"
 #include "xenia/base/math.h"
-
+#include "xenia/base/memory.h"
 
 namespace xe {
 namespace gpu {
@@ -421,7 +419,7 @@ float Float7e3To32(uint32_t f10);
 // floating-point number.
 // Converts an IEEE-754 32-bit floating-point number to Xenos floating-point
 // depth, rounding to the nearest even or towards zero.
-XE_NOALIAS 
+XE_NOALIAS
 uint32_t Float32To20e4(float f32, bool round_to_nearest_even) noexcept;
 // Converts Xenos floating-point depth in bits 0:23 (not clamping) to an
 // IEEE-754 32-bit floating-point number.
@@ -1114,8 +1112,9 @@ union alignas(uint32_t) LoopConstant {
     // The resulting aL is `iterator * step + start`, 10-bit, and has the real
     // range of [-256, 256], according to the IPR2015-00325 sequencer
     // specification.
-    uint32_t start : 8;  // +8
-    int32_t step : 8;    // +16
+    uint32_t start : 8;    // +8
+    int32_t step : 8;      // +16
+    uint32_t _pad_24 : 8;  // +24
   };
 };
 static_assert_size(LoopConstant, sizeof(uint32_t));
@@ -1255,7 +1254,7 @@ union alignas(uint32_t) xe_gpu_texture_fetch_t {
     union {  // dword_2
       struct {
         uint32_t width : 24;
-        uint32_t : 8;
+        uint32_t _pad_88 : 8;
       } size_1d;
       struct {
         uint32_t width : 13;

@@ -1,6 +1,6 @@
 [submodule "third_party/xbyak"]
 	path = third_party/xbyak
-	url = https://github.com/xenia-project/xbyak.git
+	url = https://github.com/herumi/xbyak.git
 [submodule "third_party/imgui"]
 	path = third_party/imgui
 	url = https://github.com/ocornut/imgui.git
@@ -30,7 +30,7 @@
 	url = https://github.com/openluopworld/aes_128.git
 [submodule "third_party/capstone"]
 	path = third_party/capstone
-	url = https://github.com/xenia-project/capstone.git
+	url = https://github.com/capstone-engine/capstone.git
 [submodule "third_party/cpptoml"]
 	path = third_party/cpptoml
 	url = https://github.com/skystrife/cpptoml.git
@@ -91,6 +91,12 @@
 [submodule "third_party/zarchive"]
 	path = third_party/zarchive
 	url = https://github.com/exzap/ZArchive.git
+[submodule "third_party/tabulate"]
+	path = third_party/tabulate
+	url = https://github.com/p-ranav/tabulate.git
+[submodule "third_party/rapidcsv"]
+	path = third_party/rapidcsv
+	url = https://github.com/d99kris/rapidcsv
 [submodule "third_party/libcurl"]
 	path = third_party/libcurl
 	url = https://github.com/curl/curl.git
@@ -100,3 +106,9 @@
 [submodule "third_party/wolfssl"]
 	path = third_party/wolfssl
 	url = https://github.com/wolfssl/wolfssl.git
+[submodule "third_party/zlib"]
+	path = third_party/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "third_party/pugixml"]
+	path = third_party/pugixml
+	url = https://github.com/zeux/pugixml.git

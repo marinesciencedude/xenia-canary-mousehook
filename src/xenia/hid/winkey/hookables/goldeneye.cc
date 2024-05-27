@@ -22,15 +22,17 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 
-DEFINE_double(ge_aim_turn_distance, 0.4f,
-              "(GoldenEye/Perfect Dark) Distance crosshair can move in aim-mode before "
-              "turning the camera [range 0 - 1]",
-              "MouseHook");
+DEFINE_double(
+    ge_aim_turn_distance, 0.4f,
+    "(GoldenEye/Perfect Dark) Distance crosshair can move in aim-mode before "
+    "turning the camera [range 0 - 1]",
+    "MouseHook");
 
 DEFINE_double(ge_menu_sensitivity, 0.5f,
               "(GoldenEye) Mouse sensitivity when in menus", "MouseHook");
 
-DEFINE_bool(ge_gun_sway, true, "(GoldenEye/Perfect Dark) Enable gun sway as camera is turned",
+DEFINE_bool(ge_gun_sway, true,
+            "(GoldenEye/Perfect Dark) Enable gun sway as camera is turned",
             "MouseHook");
 
 const uint32_t kTitleIdGoldenEye = 0x584108A9;
@@ -55,10 +57,11 @@ struct RareGameBuildAddrs {
 
   uint32_t player_addr;  // addr to pointer of player data
 
-  uint32_t player_offset_watch_status; // some watch-status counter, if non-zero then game is paused
-  uint32_t player_offset_disabled;  // offset to "is control disabled" flag
-  uint32_t player_offset_cam_x;   // offset to camera X pos
-  uint32_t player_offset_cam_y;   // offset to camera Y pos
+  uint32_t player_offset_watch_status;  // some watch-status counter, if
+                                        // non-zero then game is paused
+  uint32_t player_offset_disabled;      // offset to "is control disabled" flag
+  uint32_t player_offset_cam_x;         // offset to camera X pos
+  uint32_t player_offset_cam_y;         // offset to camera Y pos
   uint32_t player_offset_crosshair_x;
   uint32_t player_offset_crosshair_y;
   uint32_t player_offset_gun_x;
@@ -69,55 +72,43 @@ struct RareGameBuildAddrs {
 
 std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> supported_builds = {
     // GoldenEye Nov2007 build (aka Aug2007 build)
-    {
-      GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Release,
-        {0x8200336C, 0x676f6c64, 0x8272B37C, 0x82F1E70C, 0x83088228, 0x298, 0x82F1FA98,
-        0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0, 0x22C,
-        0x11AC}
-    },
-    {
-      GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Team,
-        {0x82003398, 0x676f6c64, 0x827DB384, 0x82FCE6CC, 0x831382D0, 0x2A0, 0x82FCFA98,
-        0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0, 0x22C,
-        0x11AC}
-    },
+    {GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Release,
+     {0x8200336C, 0x676f6c64, 0x8272B37C, 0x82F1E70C, 0x83088228, 0x298,
+      0x82F1FA98, 0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0,
+      0x22C, 0x11AC}},
+    {GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Team,
+     {0x82003398, 0x676f6c64, 0x827DB384, 0x82FCE6CC, 0x831382D0, 0x2A0,
+      0x82FCFA98, 0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0,
+      0x22C, 0x11AC}},
     // TODO: unsure about 83A4EABC
-    {
-      GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Debug,
-        {0x82005540, 0x676f6c64, 0x830C8564, 0x83A4EABC, 0x83BFC018, 0x2A0, 0x83A50298,
-        0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0, 0x22C,
-        0x11AC}
-    },
+    {GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Debug,
+     {0x82005540, 0x676f6c64, 0x830C8564, 0x83A4EABC, 0x83BFC018, 0x2A0,
+      0x83A50298, 0x2E8, 0x80, 0x254, 0x264, 0x10A8, 0x10AC, 0x10BC, 0x10C0,
+      0x22C, 0x11AC}},
 
     // PD: player_offset_disabled seems to be stored at 0x0
     // PD TODO: 0x104 almost seems like a good player_watch_status, but
     // unfortunately gets triggered when health bar appears...
-    {
-      GoldeneyeGame::GameBuild::PerfectDark_Devkit_33,
-        {0x825CBC59, 0x30303333, 0, 0, 0x82620E08, 0, 0x826284C4, 0x1A4C, 0x0, 0x14C,
-          0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
-    },
-    {
-      GoldeneyeGame::GameBuild::PerfectDark_Release_52,
-        {0x825EC0E5, 0x30303532, 0, 0, 0x826419C0, 0, 0x8264909C, 0x1A4C, 0x0, 0x14C,
-          0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
-    },
-    {
-      GoldeneyeGame::GameBuild::PerfectDark_Devkit_102,
-        {0x825EC0E5, 0x30313032, 0, 0, 0x82641A80, 0, 0x82649274, 0x1A4C, 0x0, 0x14C,
-          0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
-    },
+    {GoldeneyeGame::GameBuild::PerfectDark_Devkit_33,
+     {0x825CBC59, 0x30303333, 0, 0, 0x82620E08, 0, 0x826284C4, 0x1A4C, 0x0,
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
+    {GoldeneyeGame::GameBuild::PerfectDark_Release_52,
+     {0x825EC0E5, 0x30303532, 0, 0, 0x826419C0, 0, 0x8264909C, 0x1A4C, 0x0,
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
+    {GoldeneyeGame::GameBuild::PerfectDark_Devkit_102,
+     {0x825EC0E5, 0x30313032, 0, 0, 0x82641A80, 0, 0x82649274, 0x1A4C, 0x0,
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
     // TODO: test these!
     /*
     {
       GoldeneyeGame::GameBuild::PerfectDark_Release_104,
-        {0x825EC0D5, 0x30313034, 0, 0, 0x82641A80, 0, 0x82649264, 0x1A4C, 0x0, 0x14C,
-          0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
+        {0x825EC0D5, 0x30313034, 0, 0, 0x82641A80, 0, 0x82649264, 0x1A4C, 0x0,
+    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
     },
     {
       GoldeneyeGame::GameBuild::PerfectDark_Release_107,
-        {0x825FC25D, 0x30313037, 0, 0, 0x8265A200, 0, 0x826619E4, 0x1A4C, 0x0, 0x14C,
-          0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
+        {0x825FC25D, 0x30313037, 0, 0, 0x8265A200, 0, 0x826619E4, 0x1A4C, 0x0,
+    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
     },*/
 };
 
@@ -158,8 +149,8 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (game_addrs.menu_addr) {
     auto menuX_ptr =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(game_addrs.menu_addr);
-    auto menuY_ptr =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(game_addrs.menu_addr + 4);
+    auto menuY_ptr = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        game_addrs.menu_addr + 4);
     if (menuX_ptr && menuY_ptr) {
       float menuX = *menuX_ptr;
       float menuY = *menuY_ptr;
@@ -175,8 +166,8 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   // Read addr of player base
-  auto players_addr =
-      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(game_addrs.player_addr);
+  auto players_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      game_addrs.player_addr);
 
   if (!players_addr) {
     return true;
@@ -197,25 +188,24 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   // Disable camera if watch is being brought up/lowered
   if (game_control_disabled == 0 && game_addrs.player_offset_watch_status) {
-    // non-zero watch_status seems to disable controller inputs, so we'll do the same
+    // non-zero watch_status seems to disable controller inputs, so we'll do the
+    // same
     game_control_disabled =
         *(xe::be<uint32_t>*)(player + game_addrs.player_offset_watch_status);
   }
 
   // Disable auto-aim & lookahead
-  // (only if we detect game_control_active or game_pause_flag values are changing)
+  // (only if we detect game_control_active or game_pause_flag values are
+  // changing)
   if (game_pause_flag != prev_game_pause_flag_ ||
       game_control_disabled != prev_game_control_disabled_) {
-
     if (game_addrs.settings_addr) {
-      auto settings_ptr =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              game_addrs.settings_addr);
+      auto settings_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          game_addrs.settings_addr);
 
       if (*settings_ptr) {
-
-        // GE points to settings struct which gets allocated somewhere random in memory
-        // PD's settings always seem to be in .data section though
+        // GE points to settings struct which gets allocated somewhere random in
+        // memory PD's settings always seem to be in .data section though
         if (game_build_ == GameBuild::GoldenEye_Nov2007_Release ||
             game_build_ == GameBuild::GoldenEye_Nov2007_Team ||
             game_build_ == GameBuild::GoldenEye_Nov2007_Debug) {
@@ -288,7 +278,8 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   // GE007 mousehook hax
-  xe::be<float>* player_cam_x = (xe::be<float>*)(player + game_addrs.player_offset_cam_x);
+  xe::be<float>* player_cam_x =
+      (xe::be<float>*)(player + game_addrs.player_offset_cam_x);
   xe::be<float>* player_cam_y =
       (xe::be<float>*)(player + game_addrs.player_offset_cam_y);
 
@@ -318,7 +309,7 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   // TODO: try and eliminate some of these...
-  float bounds = 1; // screen bounds of gun/crosshair
+  float bounds = 1;  // screen bounds of gun/crosshair
   float dividor = 500.f;
   float gun_multiplier = 1;
   float crosshair_multiplier = 1;
@@ -345,13 +336,10 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     float chX = *player_crosshair_x;
     float chY = *player_crosshair_y;
 
-    if (!cvars::invert_x) 
-    {
+    if (!cvars::invert_x) {
       chX += (((float)input_state.mouse.x_delta) / dividor) *
              (float)cvars::sensitivity;
-    } 
-    else 
-    {
+    } else {
       chX -= (((float)input_state.mouse.x_delta) / dividor) *
              (float)cvars::sensitivity;
     }
@@ -438,22 +426,21 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       float camX = *player_cam_x;
       float camY = *player_cam_y;
 
-      if (!cvars::invert_x)
-      {
+      if (!cvars::invert_x) {
         camX += (((float)input_state.mouse.x_delta) / 10.f) *
                 (float)cvars::sensitivity;
-      }  
-      else
-      {
+      } else {
         camX -= (((float)input_state.mouse.x_delta) / 10.f) *
                 (float)cvars::sensitivity;
       }
 
       // Add 'sway' to gun
       float gun_sway_x = ((((float)input_state.mouse.x_delta) / 16000.f) *
-                         (float)cvars::sensitivity) * bounds;
+                          (float)cvars::sensitivity) *
+                         bounds;
       float gun_sway_y = ((((float)input_state.mouse.y_delta) / 16000.f) *
-                         (float)cvars::sensitivity) * bounds;
+                          (float)cvars::sensitivity) *
+                         bounds;
 
       float gun_sway_x_changed = gX + gun_sway_x;
       float gun_sway_y_changed = gY + gun_sway_y;
@@ -513,9 +500,8 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 // GE modifier reduces LS-movement, to allow for walk speed to be reduced
 // (ie a 'walk' button)
 bool GoldeneyeGame::ModifierKeyHandler(uint32_t user_index,
-  RawInputState& input_state,
-  X_INPUT_STATE* out_state) {
-
+                                       RawInputState& input_state,
+                                       X_INPUT_STATE* out_state) {
   float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
   float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
 
@@ -529,7 +515,8 @@ bool GoldeneyeGame::ModifierKeyHandler(uint32_t user_index,
   out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
   out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
 
-  // Return true to signal that we've handled the modifier, so default modifier won't be used
+  // Return true to signal that we've handled the modifier, so default modifier
+  // won't be used
   return true;
 }
 

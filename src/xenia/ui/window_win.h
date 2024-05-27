@@ -151,7 +151,7 @@ class Win32Window : public Window {
   // Whether the cursor has been hidden after the expiration of the timer, and
   // hasn't been revealed yet.
   bool cursor_currently_auto_hidden_ = false;
-  
+
   RAWINPUT rawinput_data_;
 };
 

@@ -123,13 +123,9 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       return session->GetSessionDetails(data);
     }
     case 0x000B001E: {
-      XSessionMigate* data = reinterpret_cast<XSessionMigate*>(buffer);
+      XELOGI("XSessionMigrateHost");
 
-      XELOGI("XSessionMigrateHost({:08X});", buffer_length);
-      if (data->session_info_ptr == NULL) {
-        XELOGI("XSessionMigrateHost Failed!");
-        return X_E_SUCCESS;
-      }
+      XSessionMigate* data = reinterpret_cast<XSessionMigate*>(buffer);
 
       uint8_t* obj_ptr = memory_->TranslateVirtual<uint8_t*>(data->obj_ptr);
 
@@ -137,6 +133,14 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
           XObject::GetNativeObject<XSession>(kernel_state(), obj_ptr);
       if (!session) {
         return X_STATUS_INVALID_HANDLE;
+      }
+
+      XSESSION_INFO* session_info_ptr =
+          memory_->TranslateVirtual<XSESSION_INFO*>(data->session_info_ptr);
+
+      if (data->session_info_ptr == NULL) {
+        XELOGI("Session Migration Failed");
+        return X_E_FAIL;
       }
 
       return session->MigrateHost(data);
@@ -201,15 +205,15 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       PrettyWriter<rapidjson::StringBuffer> writer(buffer);
       doc.Accept(writer);
 
-      XLiveAPI::memory chunk =
+      std::unique_ptr<HTTPResponseObjectJSON> chunk =
           XLiveAPI::LeaderboardsFind((uint8_t*)buffer.GetString());
 
-      if (chunk.response == nullptr) {
+      if (chunk->RawResponse().response == nullptr) {
         return X_E_SUCCESS;
       }
 
       Document leaderboards;
-      leaderboards.Parse(chunk.response);
+      leaderboards.Parse(chunk->RawResponse().response);
       const Value& leaderboardsArray = leaderboards.GetArray();
 
       // Fixed FM4 and RDR GOTY from crashing.
@@ -232,7 +236,7 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
            leaderboardObjectPtr != leaderboardsArray.End();
            ++leaderboardObjectPtr) {
         leaderboard[leaderboardIndex].ViewId =
-            (*leaderboardObjectPtr)["id"].GetInt();
+            (*leaderboardObjectPtr)["id"].GetUint();
         auto playersArray = (*leaderboardObjectPtr)["players"].GetArray();
         leaderboard[leaderboardIndex].NumRows = playersArray.Size();
         leaderboard[leaderboardIndex].TotalViewRows = playersArray.Size();
@@ -473,13 +477,37 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       // get high score table?
 
       XELOGI("XSessionStart");
-      return X_STATUS_SUCCESS;
+
+      const auto data = reinterpret_cast<XSessionStart*>(buffer);
+
+      uint8_t* obj_ptr = memory_->TranslateVirtual<uint8_t*>(data->obj_ptr);
+
+      auto session =
+          XObject::GetNativeObject<XSession>(kernel_state(), obj_ptr);
+
+      if (!session) {
+        return X_STATUS_INVALID_HANDLE;
+      }
+
+      return session->StartSession(data->flags);
     }
     case 0x000B0015: {
       // send high scores?
 
       XELOGI("XSessionEnd");
-      return X_STATUS_SUCCESS;
+
+      const auto data = reinterpret_cast<XSessionEnd*>(buffer);
+
+      uint8_t* obj_ptr = memory_->TranslateVirtual<uint8_t*>(data->obj_ptr);
+
+      auto session =
+          XObject::GetNativeObject<XSession>(kernel_state(), obj_ptr);
+
+      if (!session) {
+        return X_STATUS_INVALID_HANDLE;
+      }
+
+      return session->EndSession();
     }
     case 0x000B0025: {
       XELOGI("XSessionWriteStats");
@@ -497,6 +525,8 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
       return session->WriteStats(data);
     }
     case 0x000B001B: {
+      XELOGI("XSessionSearchID");
+
       XSessionSearchID* data = reinterpret_cast<XSessionSearchID*>(buffer);
 
       return XSession::GetSessionByID(memory_, data);
@@ -511,7 +541,19 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
     }
     case 0x000B001F: {
       XELOGI("XSessionModifySkill unimplemented");
-      return X_E_SUCCESS;
+
+      XSessionModifySkill* data =
+          reinterpret_cast<XSessionModifySkill*>(buffer);
+
+      uint8_t* obj_ptr = memory_->TranslateVirtual<uint8_t*>(data->obj_ptr);
+
+      auto session =
+          XObject::GetNativeObject<XSession>(kernel_state(), obj_ptr);
+      if (!session) {
+        return X_STATUS_INVALID_HANDLE;
+      }
+
+      return session->ModifySkill(data);
     }
     case 0x000B0019: {
       XELOGI("XSessionGetInvitationData unimplemented");

@@ -286,7 +286,7 @@ static dword_result_t XamShowMessageBoxUi(
   }
 
   auto title_id = kernel_state()->title_id();
-  
+
   X_RESULT result;
   if (cvars::headless || title_id == 0x584109C2) {
     uint32_t active_btn = active_button;

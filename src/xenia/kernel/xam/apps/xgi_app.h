@@ -25,7 +25,7 @@ class XgiApp : public App {
   X_HRESULT DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
                                 uint32_t buffer_length) override;
 
-private:
+ private:
   X_HRESULT SessionSearch(uint8_t* buffer_ptr, bool extended = false);
   X_HRESULT SessionSearchByID(uint8_t* buffer_ptr);
 };

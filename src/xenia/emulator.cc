@@ -14,6 +14,10 @@
 
 #include "config.h"
 #include "third_party/fmt/include/fmt/format.h"
+#include "third_party/tabulate/single_include/tabulate/tabulate.hpp"
+#include "third_party/zarchive/include/zarchive/zarchivecommon.h"
+#include "third_party/zarchive/include/zarchive/zarchivewriter.h"
+#include "third_party/zarchive/src/sha_256.h"
 #include "xenia/apu/audio_system.h"
 #include "xenia/base/assert.h"
 #include "xenia/base/byte_stream.h"
@@ -35,8 +39,8 @@
 #include "xenia/gpu/graphics_system.h"
 #include "xenia/hid/input_driver.h"
 #include "xenia/hid/input_system.h"
-#include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/XLiveAPI.h"
+#include "xenia/kernel/kernel_state.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/gameinfo_utils.h"
 #include "xenia/kernel/util/xdbf_utils.h"
@@ -54,8 +58,8 @@
 #include "xenia/vfs/devices/disc_zarchive_device.h"
 #include "xenia/vfs/devices/host_path_device.h"
 #include "xenia/vfs/devices/null_device.h"
-#include "xenia/vfs/virtual_file_system.h"
 #include "xenia/vfs/devices/xcontent_container_device.h"
+#include "xenia/vfs/virtual_file_system.h"
 
 #if XE_ARCH_AMD64
 #include "xenia/cpu/backend/x64/x64_backend.h"
@@ -71,11 +75,13 @@ DEFINE_string(
     "or the module specified by the game. Leave blank to launch the default "
     "module.",
     "General");
-	
+
 DEFINE_bool(ge_remove_blur, false,
-            "(GoldenEye) Removes low-res blur when in classic-graphics mode", "MouseHook");
+            "(GoldenEye) Removes low-res blur when in classic-graphics mode",
+            "MouseHook");
 DEFINE_bool(ge_debug_menu, false,
-            "(GoldenEye) Enables the debug menu, accessible with LB/1", "MouseHook");
+            "(GoldenEye) Enables the debug menu, accessible with LB/1",
+            "MouseHook");
 
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
@@ -122,6 +128,7 @@ Emulator::Emulator(const std::filesystem::path& command_line,
       kernel_state_(),
       main_thread_(),
       title_id_(std::nullopt),
+      title_xlast_(),
       paused_(false),
       restoring_(false),
       restore_fence_() {
@@ -300,7 +307,6 @@ X_STATUS Emulator::Setup(
     }
   }
 
-
   // Initialize emulator fallback exception handling last.
   ExceptionHandler::Install(Emulator::ExceptionCallbackThunk, this);
 
@@ -320,32 +326,35 @@ X_STATUS Emulator::TerminateTitle() {
   return X_STATUS_SUCCESS;
 }
 
-std::string Emulator::CanonicalizeFileExtension(
-    const std::filesystem::path& path) {
-  return xe::utf8::lower_ascii(xe::path_to_utf8(path.extension()));
-}
-
-const std::unique_ptr<vfs::Device> Emulator::CreateVfsDeviceBasedOnPath(
+const std::unique_ptr<vfs::Device> Emulator::CreateVfsDevice(
     const std::filesystem::path& path, const std::string_view mount_path) {
-  if (!path.has_extension()) {
-    return vfs::XContentContainerDevice::CreateContentDevice(mount_path, path);
+  // Must check if the type has changed e.g. XamSwapDisc
+  switch (GetFileSignature(path)) {
+    case FileSignatureType::XEX1:
+    case FileSignatureType::XEX2:
+    case FileSignatureType::ELF: {
+      auto parent_path = path.parent_path();
+      return std::make_unique<vfs::HostPathDevice>(
+          mount_path, parent_path, !cvars::allow_game_relative_writes);
+    } break;
+    case FileSignatureType::LIVE:
+    case FileSignatureType::CON:
+    case FileSignatureType::PIRS: {
+      return vfs::XContentContainerDevice::CreateContentDevice(mount_path,
+                                                               path);
+    } break;
+    case FileSignatureType::XISO: {
+      return std::make_unique<vfs::DiscImageDevice>(mount_path, path);
+    } break;
+    case FileSignatureType::ZAR: {
+      return std::make_unique<vfs::DiscZarchiveDevice>(mount_path, path);
+    } break;
+    case FileSignatureType::EXE:
+    case FileSignatureType::Unknown:
+    default:
+      return nullptr;
+      break;
   }
-  auto extension = CanonicalizeFileExtension(path);
-  if (extension == ".xex" || extension == ".elf" || extension == ".exe") {
-    auto parent_path = path.parent_path();
-    return std::make_unique<vfs::HostPathDevice>(
-        mount_path, parent_path, !cvars::allow_game_relative_writes);
-  } else if (extension == ".zar") {
-    return std::make_unique<vfs::DiscZarchiveDevice>(mount_path, path);
-  }
-  else if (extension == ".7z" || extension == ".zip" || extension == ".rar" ||
-             extension == ".tar" || extension == ".gz") {
-    xe::ShowSimpleMessageBox(
-        xe::SimpleMessageBoxType::Error,
-        fmt::format("Unsupported format!"
-            "Xenia does not support running software in an archived format."));
-  }
-  return std::make_unique<vfs::DiscImageDevice>(mount_path, path);
 }
 
 uint64_t Emulator::GetPersistentEmulatorFlags() {
@@ -392,51 +401,132 @@ void Emulator::SetPersistentEmulatorFlags(uint64_t new_flags) {
 
 X_STATUS Emulator::MountPath(const std::filesystem::path& path,
                              const std::string_view mount_path) {
-  auto device = CreateVfsDeviceBasedOnPath(path, mount_path);
-  if (!device->Initialize()) {
-    xe::FatalError(
+  auto device = CreateVfsDevice(path, mount_path);
+  if (!device || !device->Initialize()) {
+    XELOGE(
         "Unable to mount the selected file, it is an unsupported format or "
         "corrupted.");
     return X_STATUS_NO_SUCH_FILE;
   }
   if (!file_system_->RegisterDevice(std::move(device))) {
-    xe::FatalError(fmt::format("Unable to register the input file to {}.",
-                               xe::path_to_utf8(mount_path)));
+    XELOGE("Unable to register the input file to {}.",
+           xe::path_to_utf8(mount_path));
     return X_STATUS_NO_SUCH_FILE;
   }
 
-  file_system_->UnregisterSymbolicLink("d:");
-  file_system_->UnregisterSymbolicLink("game:");
+  file_system_->UnregisterSymbolicLink(kDefaultPartitionSymbolicLink);
+  file_system_->UnregisterSymbolicLink(kDefaultGameSymbolicLink);
   file_system_->UnregisterSymbolicLink("plugins:");
 
   // Create symlinks to the device.
-  file_system_->RegisterSymbolicLink("game:", mount_path);
-  file_system_->RegisterSymbolicLink("d:", mount_path);
+  file_system_->RegisterSymbolicLink(kDefaultGameSymbolicLink, mount_path);
+  file_system_->RegisterSymbolicLink(kDefaultPartitionSymbolicLink, mount_path);
 
   return X_STATUS_SUCCESS;
 }
 
+Emulator::FileSignatureType Emulator::GetFileSignature(
+    const std::filesystem::path& path) {
+  FILE* file = xe::filesystem::OpenFile(path, "rb");
+
+  if (!file) {
+    return FileSignatureType::Unknown;
+  }
+
+  const uint64_t file_size = std::filesystem::file_size(path);
+  const int64_t header_size = 4;
+
+  if (file_size < header_size) {
+    return FileSignatureType::Unknown;
+  }
+
+  char file_magic[header_size];
+  fread_s(file_magic, sizeof(file_magic), 1, header_size, file);
+
+  fourcc_t magic_value =
+      make_fourcc(file_magic[0], file_magic[1], file_magic[2], file_magic[3]);
+
+  fclose(file);
+
+  switch (magic_value) {
+    case xe::cpu::kXEX1Signature:
+      return FileSignatureType::XEX1;
+    case xe::cpu::kXEX2Signature:
+      return FileSignatureType::XEX2;
+    case xe::vfs::kCONSignature:
+      return FileSignatureType::CON;
+    case xe::vfs::kLIVESignature:
+      return FileSignatureType::LIVE;
+    case xe::vfs::kPIRSSignature:
+      return FileSignatureType::PIRS;
+    case xe::vfs::kXSFSignature:
+      return FileSignatureType::XISO;
+    case xe::cpu::kElfSignature:
+      return FileSignatureType::ELF;
+    default:
+      break;
+  }
+
+  magic_value = make_fourcc(file_magic[0], file_magic[1], 0, 0);
+
+  if (xe::kernel::kEXESignature == magic_value) {
+    return FileSignatureType::EXE;
+  }
+
+  file = xe::filesystem::OpenFile(path, "rb");
+  xe::filesystem::Seek(file, -header_size, SEEK_END);
+  fread_s(file_magic, sizeof(file_magic), 1, header_size, file);
+  fclose(file);
+
+  magic_value =
+      make_fourcc(file_magic[0], file_magic[1], file_magic[2], file_magic[3]);
+
+  if (xe::vfs::kZarMagic == magic_value) {
+    return FileSignatureType::ZAR;
+  }
+
+  // Check if XISO
+  std::unique_ptr<vfs::Device> device =
+      std::make_unique<vfs::DiscImageDevice>("", path);
+
+  XELOGI("Checking for XISO");
+
+  if (device->Initialize()) {
+    return FileSignatureType::XISO;
+  }
+
+  return FileSignatureType::Unknown;
+}
+
 X_STATUS Emulator::LaunchPath(const std::filesystem::path& path) {
-  // Launch based on file type.
-  // This is a silly guess based on file extension.
-  if (!path.has_extension()) {
-    // Likely an STFS container.
-    MountPath(path, "\\Device\\Cdrom0");
-    return LaunchStfsContainer(path);
-  };
-  auto extension = xe::utf8::lower_ascii(xe::path_to_utf8(path.extension()));
-  if (extension == ".xex" || extension == ".elf" || extension == ".exe") {
-    // Treat as a naked xex file.
-    MountPath(path, "\\Device\\Harddisk0\\Partition1");
-    return LaunchXexFile(path);
-  } else if (extension == ".zar") {
-    // Assume a disc image.
-    MountPath(path, "\\Device\\Cdrom0");
-    return LaunchDiscArchive(path);
-  } else {
-    // Assume a disc image.
-    MountPath(path, "\\Device\\Cdrom0");
-    return LaunchDiscImage(path);
+  X_STATUS mount_result = X_STATUS_SUCCESS;
+
+  switch (GetFileSignature(path)) {
+    case FileSignatureType::XEX1:
+    case FileSignatureType::XEX2:
+    case FileSignatureType::ELF: {
+      mount_result = MountPath(path, "\\Device\\Harddisk0\\Partition1");
+      return mount_result ? mount_result : LaunchXexFile(path);
+    } break;
+    case FileSignatureType::LIVE:
+    case FileSignatureType::CON:
+    case FileSignatureType::PIRS: {
+      mount_result = MountPath(path, "\\Device\\Cdrom0");
+      return mount_result ? mount_result : LaunchStfsContainer(path);
+    } break;
+    case FileSignatureType::XISO: {
+      mount_result = MountPath(path, "\\Device\\Cdrom0");
+      return mount_result ? mount_result : LaunchDiscImage(path);
+    } break;
+    case FileSignatureType::ZAR: {
+      mount_result = MountPath(path, "\\Device\\Cdrom0");
+      return mount_result ? mount_result : LaunchDiscArchive(path);
+    } break;
+    case FileSignatureType::EXE:
+    case FileSignatureType::Unknown:
+    default:
+      return X_STATUS_NOT_SUPPORTED;
+      break;
   }
 }
 
@@ -452,7 +542,16 @@ X_STATUS Emulator::LaunchXexFile(const std::filesystem::path& path) {
 
   // Launch the game.
   auto fs_path = "game:\\" + xe::path_to_utf8(file_name);
-  return CompleteLaunch(path, fs_path);
+  X_STATUS result = CompleteLaunch(path, fs_path);
+
+  if (XSUCCEEDED(result)) {
+    kernel_state_->deployment_type_ = XDeploymentType::kHardDrive;
+    if (!kernel_state_->is_title_system_type(title_id())) {
+      // Assumption that any loaded game is loaded as a disc.
+      kernel_state_->deployment_type_ = XDeploymentType::kOpticalDisc;
+    }
+  }
+  return result;
 }
 
 X_STATUS Emulator::LaunchDiscImage(const std::filesystem::path& path) {
@@ -462,7 +561,7 @@ X_STATUS Emulator::LaunchDiscImage(const std::filesystem::path& path) {
   if (result == X_STATUS_NOT_FOUND && !cvars::launch_module.empty()) {
     return LaunchDefaultModule(path);
   }
-
+  kernel_state_->deployment_type_ = XDeploymentType::kOpticalDisc;
   return result;
 }
 
@@ -473,7 +572,7 @@ X_STATUS Emulator::LaunchDiscArchive(const std::filesystem::path& path) {
   if (result == X_STATUS_NOT_FOUND && !cvars::launch_module.empty()) {
     return LaunchDefaultModule(path);
   }
-
+  kernel_state_->deployment_type_ = XDeploymentType::kOpticalDisc;
   return result;
 }
 
@@ -484,21 +583,29 @@ X_STATUS Emulator::LaunchStfsContainer(const std::filesystem::path& path) {
   if (result == X_STATUS_NOT_FOUND && !cvars::launch_module.empty()) {
     return LaunchDefaultModule(path);
   }
-
+  kernel_state_->deployment_type_ = XDeploymentType::kGoD;
   return result;
 }
 
 X_STATUS Emulator::LaunchDefaultModule(const std::filesystem::path& path) {
   cvars::launch_module = "";
   std::string module_path = FindLaunchModule();
+  X_STATUS result = CompleteLaunch(path, module_path);
 
-  return CompleteLaunch(path, module_path);
+  if (XSUCCEEDED(result)) {
+    kernel_state_->deployment_type_ = XDeploymentType::kHardDrive;
+    if (!kernel_state_->is_title_system_type(title_id())) {
+      // Assumption that any loaded game is loaded as a disc.
+      kernel_state_->deployment_type_ = XDeploymentType::kOpticalDisc;
+    }
+  }
+  return result;
 }
 
 X_STATUS Emulator::InstallContentPackage(const std::filesystem::path& path) {
   std::unique_ptr<vfs::Device> device =
       vfs::XContentContainerDevice::CreateContentDevice("", path);
-  if (!device->Initialize()) {
+  if (!device || !device->Initialize()) {
     XELOGE("Failed to initialize device");
     return X_STATUS_INVALID_PARAMETER;
   }
@@ -529,6 +636,132 @@ X_STATUS Emulator::InstallContentPackage(const std::filesystem::path& path) {
 
   return vfs::VirtualFileSystem::ExtractContentFiles(device.get(),
                                                      installation_path);
+}
+
+X_STATUS Emulator::ExtractZarchivePackage(
+    const std::filesystem::path& path,
+    const std::filesystem::path& extract_dir) {
+  std::unique_ptr<vfs::Device> device =
+      std::make_unique<vfs::DiscZarchiveDevice>("", path);
+  if (!device->Initialize()) {
+    XELOGE("Failed to initialize device");
+    return X_STATUS_INVALID_PARAMETER;
+  }
+
+  if (std::filesystem::exists(extract_dir)) {
+    // TODO(Gliniak): Popup
+    // Do you want to overwrite already existing data?
+  } else {
+    std::error_code error_code;
+    std::filesystem::create_directories(extract_dir, error_code);
+    if (error_code) {
+      return error_code.value();
+    }
+  }
+
+  return vfs::VirtualFileSystem::ExtractContentFiles(device.get(), extract_dir);
+}
+
+X_STATUS Emulator::CreateZarchivePackage(
+    const std::filesystem::path& inputDirectory,
+    const std::filesystem::path& outputFile) {
+  std::vector<uint8_t> buffer;
+  buffer.resize(64 * 1024);
+
+  std::error_code ec;
+  PackContext packContext;
+  packContext.outputFilePath = outputFile;
+
+  ZArchiveWriter zWriter(
+      [](int32_t partIndex, void* ctx) {
+        PackContext* packContext = reinterpret_cast<PackContext*>(ctx);
+        packContext->currentOutputFile =
+            std::ofstream(packContext->outputFilePath, std::ios::binary);
+
+        if (!packContext->currentOutputFile.is_open()) {
+          XELOGI("Failed to create output file: {}\n",
+                 packContext->outputFilePath.string());
+          packContext->hasError = true;
+        }
+      },
+      [](const void* data, size_t length, void* ctx) {
+        PackContext* packContext = reinterpret_cast<PackContext*>(ctx);
+        packContext->currentOutputFile.write(
+            reinterpret_cast<const char*>(data), length);
+      },
+      &packContext);
+
+  if (packContext.hasError) {
+    return X_STATUS_UNSUCCESSFUL;
+  }
+
+  for (auto const& dirEntry :
+       std::filesystem::recursive_directory_iterator(inputDirectory)) {
+    std::filesystem::path pathEntry =
+        std::filesystem::relative(dirEntry.path(), inputDirectory, ec);
+
+    if (ec) {
+      XELOGI("Failed to get relative path {}\n", pathEntry.string());
+      return X_STATUS_UNSUCCESSFUL;
+    }
+
+    if (dirEntry.is_directory()) {
+      if (!zWriter.MakeDir(pathEntry.generic_string().c_str(), false)) {
+        XELOGI("Failed to create directory {}\n", pathEntry.string());
+        return X_STATUS_UNSUCCESSFUL;
+      }
+    } else if (dirEntry.is_regular_file()) {
+      // Don't pack itself to prevent infinite packing.
+      if (dirEntry == outputFile) {
+        continue;
+      }
+
+      XELOGI("Adding file: {}\n", pathEntry.string());
+
+      if (!zWriter.StartNewFile(pathEntry.generic_string().c_str())) {
+        XELOGI("Failed to create archive file {}\n", pathEntry.string());
+        return X_STATUS_UNSUCCESSFUL;
+      }
+
+      std::filesystem::path file_to_pack_path = inputDirectory / pathEntry;
+      FILE* file = xe::filesystem::OpenFile(file_to_pack_path, "rb");
+
+      if (!file) {
+        XELOGI("Failed to open input file {}\n", pathEntry.string());
+        return X_STATUS_UNSUCCESSFUL;
+      }
+
+      const uint64_t file_size = std::filesystem::file_size(file_to_pack_path);
+      uint64_t total_bytes_read = 0;
+
+      while (total_bytes_read < file_size) {
+        uint64_t bytes_read =
+            fread_s(buffer.data(), buffer.size(), 1, buffer.size(), file);
+
+        total_bytes_read += bytes_read;
+
+        zWriter.AppendData(buffer.data(), bytes_read);
+      }
+
+      fclose(file);
+    }
+
+    if (packContext.hasError) {
+      return X_STATUS_UNSUCCESSFUL;
+    }
+  }
+
+  zWriter.Finalize();
+
+  return X_STATUS_SUCCESS;
+}
+
+void Emulator::DumpXLast() {
+  if (title_xlast_) {
+    const std::string title_ver =
+        title_version().empty() ? "" : " - " + title_version();
+    title_xlast_->Dump(fmt::format("{:08X}{}", title_id(), title_ver));
+  }
 }
 
 void Emulator::Pause() {
@@ -769,9 +1002,12 @@ bool Emulator::ExceptionCallback(Exception* ex) {
   std::string crash_msg;
   crash_msg.append("==== CRASH DUMP ====\n");
   crash_msg.append(fmt::format("Thread ID (Host: 0x{:08X} / Guest: 0x{:08X})\n",
-         current_thread->thread()->system_id(), current_thread->thread_id()));
-  crash_msg.append(fmt::format("Thread Handle: 0x{:08X}\n", current_thread->handle()));
-  crash_msg.append(fmt::format("PC: 0x{:08X}\n",
+                               current_thread->thread()->system_id(),
+                               current_thread->thread_id()));
+  crash_msg.append(
+      fmt::format("Thread Handle: 0x{:08X}\n", current_thread->handle()));
+  crash_msg.append(
+      fmt::format("PC: 0x{:08X}\n",
                   guest_function->MapMachineCodeToGuestAddress(ex->pc())));
   crash_msg.append("Registers:\n");
   for (int i = 0; i < 32; i++) {
@@ -867,6 +1103,32 @@ void Emulator::RemoveGameConfigLoadCallback(GameConfigLoadCallback* callback) {
 
 std::string Emulator::FindLaunchModule() {
   std::string path("game:\\");
+
+  auto xam = kernel_state()->GetKernelModule<kernel::xam::XamModule>("xam.xex");
+
+  if (!xam->loader_data().launch_path.empty()) {
+    std::string symbolic_link_path;
+    if (kernel_state_->file_system()->FindSymbolicLink(kDefaultGameSymbolicLink,
+                                                       symbolic_link_path)) {
+      std::filesystem::path file_path = symbolic_link_path;
+      // Remove previous symbolic links.
+      // Some titles can provide root within specific directory.
+      kernel_state_->file_system()->UnregisterSymbolicLink(
+          kDefaultPartitionSymbolicLink);
+      kernel_state_->file_system()->UnregisterSymbolicLink(
+          kDefaultGameSymbolicLink);
+
+      file_path /= std::filesystem::path(xam->loader_data().launch_path);
+
+      kernel_state_->file_system()->RegisterSymbolicLink(
+          kDefaultPartitionSymbolicLink,
+          xe::path_to_utf8(file_path.parent_path()));
+      kernel_state_->file_system()->RegisterSymbolicLink(
+          kDefaultGameSymbolicLink, xe::path_to_utf8(file_path.parent_path()));
+
+      return xe::path_to_utf8(file_path);
+    }
+  }
 
   if (!cvars::launch_module.empty()) {
     return path + cvars::launch_module;
@@ -973,9 +1235,9 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     XELOGE("Failed to initialize user module {}", xe::path_to_utf8(path));
     return result;
   }
-  
+
   executable_path_ = path;
-  
+
   // Grab the current title ID.
   xex2_opt_execution_info* info = nullptr;
   uint32_t workspace_address = 0;
@@ -997,25 +1259,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       title_version_ = format_version(title_version);
     }
   }
-
-  if (xam) {
-    const std::filesystem::path launch_data_dir = "launch_data";
-    const std::filesystem::path file_path =
-        launch_data_dir /
-        fmt::format("{:08X}_launch_data.bin", title_id_.value());
-
-    auto file = xe::filesystem::OpenFile(file_path, "rb");
-    if (file) {
-      XELOGI("Found launch_data for {}", title_name_);
-      const uint64_t file_size = std::filesystem::file_size(file_path);
-      xam->loader_data().launch_data_present = true;
-      xam->loader_data().launch_data.resize(file_size);
-      fread(xam->loader_data().launch_data.data(), file_size, 1, file);
-
-      fclose(file);
-    }
-  }
-
 
   // Try and load the resource database (xex only).
   if (module->title_id()) {
@@ -1041,178 +1284,203 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       XELOGI("Title name: {}", title_name_);
 
       // Show achievments data
-      XELOGI("-------------------- ACHIEVEMENTS --------------------");
+      tabulate::Table table;
+      table.format().multi_byte_characters(true);
+      table.add_row({"ID", "Title", "Description", "Gamerscore"});
+
       const std::vector<kernel::util::XdbfAchievementTableEntry>
           achievement_list = db.GetAchievements();
       for (const kernel::util::XdbfAchievementTableEntry& entry :
            achievement_list) {
-        std::string label = db.GetStringTableEntry(language, entry.label_id);
-        std::string desc =
-            db.GetStringTableEntry(language, entry.description_id);
+        std::string label = string_util::remove_eol(string_util::trim(
+            db.GetStringTableEntry(language, entry.label_id)));
+        std::string desc = string_util::remove_eol(string_util::trim(
+            db.GetStringTableEntry(language, entry.description_id)));
 
-        XELOGI("{} - {} - {} - {}", entry.id, label, desc, entry.gamerscore);
+        table.add_row({fmt::format("{}", entry.id), label, desc,
+                       fmt::format("{}", entry.gamerscore)});
       }
-      XELOGI("----------------- END OF ACHIEVEMENTS ----------------");
+      XELOGI("-------------------- ACHIEVEMENTS --------------------\n{}",
+             table.str());
 
-      XELOGI("-------------------- PROPERTIES --------------------");
       const std::vector<kernel::util::XdbfPropertyTableEntry> properties_list =
           db.GetProperties();
 
+      table = tabulate::Table();
+      table.format().multi_byte_characters(true);
+      table.add_row({"ID", "Name", "Data Size"});
+
       for (const kernel::util::XdbfPropertyTableEntry& entry :
            properties_list) {
-        std::string label = db.GetStringTableEntry(language, entry.string_id);
-        XELOGI("{:08X} - {} - {}", entry.id, label, entry.data_size);
+        std::string label = string_util::remove_eol(string_util::trim(
+            db.GetStringTableEntry(language, entry.string_id)));
+        table.add_row({fmt::format("{:08X}", entry.id), label,
+                       fmt::format("{}", entry.data_size)});
       }
-      XELOGI("----------------- END OF PROPERTIES ----------------");
+      XELOGI("-------------------- PROPERTIES --------------------\n{}",
+             table.str());
 
-      XELOGI("-------------------- CONTEXTS --------------------");
       const std::vector<kernel::util::XdbfContextTableEntry> contexts_list =
           db.GetContexts();
 
+      table = tabulate::Table();
+      table.format().multi_byte_characters(true);
+      table.add_row({"ID", "Name", "Default Value", "Max Value"});
+
       for (const kernel::util::XdbfContextTableEntry& entry : contexts_list) {
-        std::string label = db.GetStringTableEntry(language, entry.string_id);
-        XELOGI("{:08X} - {} - {}", entry.id, label, entry.unk2);
+        std::string label = string_util::remove_eol(string_util::trim(
+            db.GetStringTableEntry(language, entry.string_id)));
+        table.add_row({fmt::format("{:08X}", entry.id), label,
+                       fmt::format("{}", entry.default_value),
+                       fmt::format("{}", entry.max_value)});
       }
-      XELOGI("----------------- END OF CONTEXTS ----------------");
+      XELOGI("-------------------- CONTEXTS --------------------\n{}",
+             table.str());
+
+      uint32_t compressed_size, decompressed_size = 0;
+      const uint8_t* xlast_ptr =
+          db.ReadXLast(compressed_size, decompressed_size);
+
+      title_xlast_ = std::make_unique<kernel::util::XLast>(
+          xlast_ptr, compressed_size, decompressed_size);
+
       auto icon_block = db.icon();
       if (icon_block) {
         display_window_->SetIcon(icon_block.buffer, icon_block.size);
       }
     }
   }
-  
+
   auto patch_addr = [module](uint32_t addr, uint32_t value) {
-        auto* patch_ptr =
-            (xe::be<uint32_t>*)module->memory()->TranslateVirtual(addr);
-        auto heap = module->memory()->LookupHeap(addr);
+    auto* patch_ptr =
+        (xe::be<uint32_t>*)module->memory()->TranslateVirtual(addr);
+    auto heap = module->memory()->LookupHeap(addr);
 
-        uint32_t old_protect = 0;
-        heap->Protect(addr, 4, kMemoryProtectRead | kMemoryProtectWrite,
-                      &old_protect);
-        *patch_ptr = value;
-        heap->Protect(addr, 4, old_protect);
-      };
+    uint32_t old_protect = 0;
+    heap->Protect(addr, 4, kMemoryProtectRead | kMemoryProtectWrite,
+                  &old_protect);
+    *patch_ptr = value;
+    heap->Protect(addr, 4, old_protect);
+  };
 
-      if (module->title_id() == 0x584109C2) {
-        // Prevent game from writing RS thumbstick to crosshair/gun position
-        // Multiple PD revisions so we'll need to search the code...
+  if (module->title_id() == 0x584109C2) {
+    // Prevent game from writing RS thumbstick to crosshair/gun position
+    // Multiple PD revisions so we'll need to search the code...
 
-        std::vector<uint32_t> search_insns = {
-            0xD17F16A8,  // stfs      f11, 0x16A8(r31)
-            0xD19F16A4,  // stfs      f12, 0x16A4(r31)
-            0xD19F1690,  // stfs      f12, 0x1690(r31)
-            0xD15F1694,  // stfs      f10, 0x1694(r31)
-            0xD0FF0CFC,  // stfs      f7, 0xCFC(r31)
-            0xD0BF0D00   // stfs      f5, 0xD00(r31)
-        };
+    std::vector<uint32_t> search_insns = {
+        0xD17F16A8,  // stfs      f11, 0x16A8(r31)
+        0xD19F16A4,  // stfs      f12, 0x16A4(r31)
+        0xD19F1690,  // stfs      f12, 0x1690(r31)
+        0xD15F1694,  // stfs      f10, 0x1694(r31)
+        0xD0FF0CFC,  // stfs      f7, 0xCFC(r31)
+        0xD0BF0D00   // stfs      f5, 0xD00(r31)
+    };
 
-        int patched = 0;
+    int patched = 0;
 
-        auto* xex = module->xex_module();
-        auto* check_addr =
-            (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
-                xex->base_address());
-        auto* end_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
-            xex->base_address() + xex->image_size());
+    auto* xex = module->xex_module();
+    auto* check_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+        xex->base_address());
+    auto* end_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+        xex->base_address() + xex->image_size());
 
-        while (end_addr > check_addr) {
-          auto value = *check_addr;
+    while (end_addr > check_addr) {
+      auto value = *check_addr;
 
-          for (auto test : search_insns) {
-            if (test == value) {
-              uint32_t addr = module->memory()->HostToGuestVirtual(check_addr);
-              patch_addr(addr, 0x60000000);
-              patched++;
-              break;
-            }
-          }
-
-          check_addr++;
+      for (auto test : search_insns) {
+        if (test == value) {
+          uint32_t addr = module->memory()->HostToGuestVirtual(check_addr);
+          patch_addr(addr, 0x60000000);
+          patched++;
+          break;
         }
       }
 
-      if (module->title_id() == 0x584108A9) {
-        struct GEPatchOffsets {
-          uint32_t check_addr;
-          uint32_t check_value;
-
-          uint32_t crosshair_addr1;
-          uint32_t crosshair_patch1;
-          uint32_t crosshair_addr2;
-          uint32_t crosshair_patch2;
-
-          uint32_t returnarcade_addr1;
-          uint32_t returnarcade_patch1;
-          uint32_t returnarcade_addr2;
-          uint32_t returnarcade_patch2;
-          uint32_t returnarcade_addr3;
-          uint32_t returnarcade_patch3;
-
-          uint32_t blur_addr;
-          uint32_t debug_addr;
-        };
-
-        std::vector<GEPatchOffsets> supported_builds = {
-            // Nov 2007 Release build
-            {0x8200336C, 0x676f6c64, 0x820A45D0, 0x4800003C, 0x820A46D4,
-             0x4800003C, 0x820F7750, 0x2F1E0007, 0x820F7D04, 0x2F1A0007,
-             0x820F7780, 0x2B0A0003, 0x82188E70, 0x82189F28},
-
-            // Nov 2007 Team build
-            {0x82003398, 0x676f6c64, 0x820C85B0, 0x480000B0, 0x820C88B8,
-             0x480000B0, 0x8213ABE8, 0x2F0B0007, 0x8213AF0C, 0x2F0B0007,
-             0x8213ACB4, 0x2B0B0004, 0x8221DF34, 0},
-
-            // Nov 2007 Debug build
-            {0x82005540, 0x676f6c64, 0x822A2BFC, 0x480000B0, 0x822A2F04,
-             0x480000B0, 0x82344D04, 0x2F0B0007, 0x82345030, 0x2F0B0007,
-             0x82344DD0, 0x2B0B0004, 0x824AB510, 0},
-        };
-
-        for (auto& build : supported_builds) {
-          auto* test_addr =
-              (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
-                  build.check_addr);
-          if (*test_addr != build.check_value) {
-            continue;
-          }
-
-          // Prevent game from overwriting crosshair/gun positions
-          if (build.crosshair_addr1) {
-            patch_addr(build.crosshair_addr1, build.crosshair_patch1);
-          }
-          if (build.crosshair_addr2) {
-            patch_addr(build.crosshair_addr2, build.crosshair_patch2);
-          }
-
-          // Hide "return to arcade" menu option
-          if (build.returnarcade_addr1) {
-            patch_addr(build.returnarcade_addr1, build.returnarcade_patch1);
-          }
-          if (build.returnarcade_addr2) {
-            patch_addr(build.returnarcade_addr2, build.returnarcade_patch2);
-          }
-          // Prevent "return to arcade" code from being executed
-          if (build.returnarcade_addr3) {
-            patch_addr(build.returnarcade_addr3, build.returnarcade_patch3);
-          }
-
-          if (cvars::ge_remove_blur && build.blur_addr) {
-            // Patch out N64 blur
-            // Source:
-            // https://github.com/xenia-canary/game-patches/blob/main/patches/584108A9.patch
-
-            patch_addr(build.blur_addr, 0x60000000);
-          }
-
-          if (cvars::ge_debug_menu && build.debug_addr) {
-            // Enable debug menu
-            patch_addr(build.debug_addr, 0x2B0B0000);
-          }
-
-          break;
-        }
+      check_addr++;
     }
+  }
+
+  if (module->title_id() == 0x584108A9) {
+    struct GEPatchOffsets {
+      uint32_t check_addr;
+      uint32_t check_value;
+
+      uint32_t crosshair_addr1;
+      uint32_t crosshair_patch1;
+      uint32_t crosshair_addr2;
+      uint32_t crosshair_patch2;
+
+      uint32_t returnarcade_addr1;
+      uint32_t returnarcade_patch1;
+      uint32_t returnarcade_addr2;
+      uint32_t returnarcade_patch2;
+      uint32_t returnarcade_addr3;
+      uint32_t returnarcade_patch3;
+
+      uint32_t blur_addr;
+      uint32_t debug_addr;
+    };
+
+    std::vector<GEPatchOffsets> supported_builds = {
+        // Nov 2007 Release build
+        {0x8200336C, 0x676f6c64, 0x820A45D0, 0x4800003C, 0x820A46D4, 0x4800003C,
+         0x820F7750, 0x2F1E0007, 0x820F7D04, 0x2F1A0007, 0x820F7780, 0x2B0A0003,
+         0x82188E70, 0x82189F28},
+
+        // Nov 2007 Team build
+        {0x82003398, 0x676f6c64, 0x820C85B0, 0x480000B0, 0x820C88B8, 0x480000B0,
+         0x8213ABE8, 0x2F0B0007, 0x8213AF0C, 0x2F0B0007, 0x8213ACB4, 0x2B0B0004,
+         0x8221DF34, 0},
+
+        // Nov 2007 Debug build
+        {0x82005540, 0x676f6c64, 0x822A2BFC, 0x480000B0, 0x822A2F04, 0x480000B0,
+         0x82344D04, 0x2F0B0007, 0x82345030, 0x2F0B0007, 0x82344DD0, 0x2B0B0004,
+         0x824AB510, 0},
+    };
+
+    for (auto& build : supported_builds) {
+      auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+          build.check_addr);
+      if (*test_addr != build.check_value) {
+        continue;
+      }
+
+      // Prevent game from overwriting crosshair/gun positions
+      if (build.crosshair_addr1) {
+        patch_addr(build.crosshair_addr1, build.crosshair_patch1);
+      }
+      if (build.crosshair_addr2) {
+        patch_addr(build.crosshair_addr2, build.crosshair_patch2);
+      }
+
+      // Hide "return to arcade" menu option
+      if (build.returnarcade_addr1) {
+        patch_addr(build.returnarcade_addr1, build.returnarcade_patch1);
+      }
+      if (build.returnarcade_addr2) {
+        patch_addr(build.returnarcade_addr2, build.returnarcade_patch2);
+      }
+      // Prevent "return to arcade" code from being executed
+      if (build.returnarcade_addr3) {
+        patch_addr(build.returnarcade_addr3, build.returnarcade_patch3);
+      }
+
+      if (cvars::ge_remove_blur && build.blur_addr) {
+        // Patch out N64 blur
+        // Source:
+        // https://github.com/xenia-canary/game-patches/blob/main/patches/584108A9.patch
+
+        patch_addr(build.blur_addr, 0x60000000);
+      }
+
+      if (cvars::ge_debug_menu && build.debug_addr) {
+        // Enable debug menu
+        patch_addr(build.debug_addr, 0x2B0B0000);
+      }
+
+      break;
+    }
+  }
 
   // Initializing the shader storage in a blocking way so the user doesn't
   // miss the initial seconds - for instance, sound from an intro video may

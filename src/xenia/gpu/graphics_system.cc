@@ -25,11 +25,11 @@
 #include "xenia/base/threading.h"
 #include "xenia/gpu/command_processor.h"
 #include "xenia/gpu/gpu_flags.h"
+#include "xenia/kernel/XLiveAPI.h"
+#include "xenia/kernel/kernel_state.h"
 #include "xenia/ui/graphics_provider.h"
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
-#include "xenia/kernel/XLiveAPI.h"
-#include "xenia/kernel/kernel_state.h"
 DEFINE_bool(
     store_shaders, true,
     "Store shaders persistently and load them when loading games to avoid "
@@ -51,7 +51,7 @@ __declspec(dllexport) uint32_t AmdPowerXpressRequestHighPerformance = 1;
 }  // extern "C"
 #endif  // XE_PLATFORM_WIN32
 
-GraphicsSystem::GraphicsSystem() : vsync_worker_running_(false) {
+GraphicsSystem::GraphicsSystem() : frame_limiter_worker_running_(false) {
   register_file_ = reinterpret_cast<RegisterFile*>(memory::AllocFixed(
       nullptr, sizeof(RegisterFile), memory::AllocationType::kReserveCommit,
       memory::PageAccess::kReadWrite));
@@ -101,50 +101,79 @@ X_STATUS GraphicsSystem::Setup(cpu::Processor* processor,
       reinterpret_cast<cpu::MMIOReadCallback>(ReadRegisterThunk),
       reinterpret_cast<cpu::MMIOWriteCallback>(WriteRegisterThunk));
 
-  // 60hz vsync timer.
-  vsync_worker_running_ = true;
-  vsync_worker_thread_ = kernel::object_ref<kernel::XHostThread>(
-      new kernel::XHostThread(kernel_state_, 128 * 1024, 0, [this]() {
-        const double vsync_duration_d =
-            cvars::vsync
-                ? std::max<double>(
-                      5.0, 1000.0 / static_cast<double>(cvars::vsync_fps))
-                : 1.0;
-        uint64_t last_frame_time = Clock::QueryGuestTickCount();
-        // Sleep for 90% of the vblank duration, spin for 10%
-        const double duration_scalar = 0.90;
+  // Frame limiter thread.
+  frame_limiter_worker_running_ = true;
+  frame_limiter_worker_thread_ =
+      kernel::object_ref<kernel::XHostThread>(new kernel::XHostThread(
+          kernel_state_, 128 * 1024, 0,
+          [this]() {
+            uint64_t normalized_framerate_limit =
+                std::max<uint64_t>(0, cvars::framerate_limit);
 
-        while (vsync_worker_running_) {
-          const uint64_t current_time = Clock::QueryGuestTickCount();
-          const uint64_t tick_freq = Clock::guest_tick_frequency();
-          const uint64_t time_delta = current_time - last_frame_time;
-          const double elapsed_d = static_cast<double>(time_delta) /
-                                   (static_cast<double>(tick_freq) / 1000.0);
-          if (elapsed_d >= vsync_duration_d) {
-            last_frame_time = current_time;
+            // If VSYNC is enabled, but frames are not limited,
+            // lock framerate at default value of 60
+            if (normalized_framerate_limit == 0 && cvars::vsync)
+              normalized_framerate_limit = 60;
 
-            // TODO(disjtqz): should recalculate the remaining time to a vblank
-            // after MarkVblank, no idea how long the guest code normally takes
-            MarkVblank();
-            if (cvars::vsync) {
-              const uint64_t estimated_nanoseconds = static_cast<uint64_t>(
-                  (vsync_duration_d * 1000000.0) *
-                  duration_scalar);  // 1000 microseconds = 1 ms
+            const double vsync_duration_d =
+                cvars::vsync
+                    ? std::max<double>(5.0,
+                                       1000.0 / static_cast<double>(
+                                                    normalized_framerate_limit))
+                    : 1.0;
+            uint64_t last_frame_time = Clock::QueryGuestTickCount();
+            // Sleep for 90% of the vblank duration, spin for 10%
+            const double duration_scalar = 0.90;
 
-              threading::NanoSleep(estimated_nanoseconds);
+            while (frame_limiter_worker_running_) {
+              if (cvars::vsync) {
+                const uint64_t current_time = Clock::QueryGuestTickCount();
+                const uint64_t tick_freq = Clock::guest_tick_frequency();
+                const uint64_t time_delta = current_time - last_frame_time;
+                const double elapsed_d =
+                    static_cast<double>(time_delta) /
+                    (static_cast<double>(tick_freq) / 1000.0);
+                if (elapsed_d >= vsync_duration_d) {
+                  last_frame_time = current_time;
+
+                  // TODO(disjtqz): should recalculate the remaining time to a
+                  // vblank after MarkVblank, no idea how long the guest code
+                  // normally takes
+                  MarkVblank();
+                  if (cvars::vsync) {
+                    const uint64_t estimated_nanoseconds =
+                        static_cast<uint64_t>(
+                            (vsync_duration_d * 1000000.0) *
+                            duration_scalar);  // 1000 microseconds = 1 ms
+
+                    threading::NanoSleep(estimated_nanoseconds);
+                  }
+                }
+              }
+
+              if (!cvars::vsync) {
+                MarkVblank();
+                if (normalized_framerate_limit > 0) {
+                  // framerate_limit is over 0, vsync disabled
+                  //  - No VSYNC + limited frames defined by user
+                  uint64_t framerate_limited_sleep_time =
+                      1000000000 / normalized_framerate_limit;
+                  xe::threading::NanoSleep(framerate_limited_sleep_time);
+                } else {
+                  // framerate_limit is 0, vsync disabled
+                  //  - No VSYNC + unlimited frames
+                  xe::threading::Sleep(std::chrono::milliseconds(1));
+                }
+              }
             }
-          }
-          if (!cvars::vsync) {
-            xe::threading::Sleep(std::chrono::milliseconds(1));
-          }
-        }
-        return 0;
-      }, kernel_state->GetIdleProcess()));
+            return 0;
+          },
+          kernel_state->GetIdleProcess()));
   // As we run vblank interrupts the debugger must be able to suspend us.
-  vsync_worker_thread_->set_can_debugger_suspend(true);
-  vsync_worker_thread_->set_name("GPU VSync");
-  vsync_worker_thread_->Create();
-  vsync_worker_thread_->thread()->set_priority(
+  frame_limiter_worker_thread_->set_can_debugger_suspend(true);
+  frame_limiter_worker_thread_->set_name("GPU Frame limiter");
+  frame_limiter_worker_thread_->Create();
+  frame_limiter_worker_thread_->thread()->set_priority(
       threading::ThreadPriority::kLowest);
   if (cvars::trace_gpu_stream) {
     BeginTracing();
@@ -160,10 +189,10 @@ void GraphicsSystem::Shutdown() {
     command_processor_.reset();
   }
 
-  if (vsync_worker_thread_) {
-    vsync_worker_running_ = false;
-    vsync_worker_thread_->Wait(0, 0, 0, nullptr);
-    vsync_worker_thread_.reset();
+  if (frame_limiter_worker_thread_) {
+    frame_limiter_worker_running_ = false;
+    frame_limiter_worker_thread_->Wait(0, 0, 0, nullptr);
+    frame_limiter_worker_thread_.reset();
   }
 
   if (presenter_) {
@@ -269,7 +298,8 @@ void GraphicsSystem::SetInterruptCallback(uint32_t callback,
 }
 
 void GraphicsSystem::DispatchInterruptCallback(uint32_t source, uint32_t cpu) {
-  kernel_state()->EmulateCPInterruptDPC(interrupt_callback_,interrupt_callback_data_, source, cpu);
+  kernel_state()->EmulateCPInterruptDPC(interrupt_callback_,
+                                        interrupt_callback_data_, source, cpu);
 }
 
 void GraphicsSystem::MarkVblank() {

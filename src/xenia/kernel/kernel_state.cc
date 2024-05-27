@@ -34,6 +34,13 @@
 
 DEFINE_bool(apply_title_update, true, "Apply title updates.", "Kernel");
 
+DEFINE_uint32(max_signed_profiles, 4,
+              "Limits how many profiles can be assigned. Possible values: 1-4",
+              "Kernel");
+
+DEFINE_uint32(kernel_build_version, 1888, "Define current kernel version",
+              "Kernel");
+
 namespace xe {
 namespace kernel {
 
@@ -62,6 +69,7 @@ KernelState::KernelState(Emulator* emulator)
   user_profiles_.emplace(0, std::make_unique<xam::UserProfile>(0));
 
   InitializeKernelGuestGlobals();
+  kernel_version_ = KernelVersion(cvars::kernel_build_version);
 
   auto content_root = emulator_->content_root();
   if (!content_root.empty()) {
@@ -119,6 +127,18 @@ uint32_t KernelState::title_id() const {
   }
 
   return 0;
+}
+
+bool KernelState::is_title_system_type(uint32_t title_id) {
+  if (!title_id) {
+    return true;
+  }
+
+  if ((title_id & 0xFF000000) == 0x58000000u) {
+    return (title_id & 0xFF0000) != 0x410000;  // if 'X' but not 'XA' (XBLA)
+  }
+
+  return (title_id >> 16) == 0xFFFE;
 }
 
 util::XdbfGameData KernelState::title_xdbf() const {
@@ -308,12 +328,11 @@ object_ref<UserModule> KernelState::GetExecutableModule() {
   return executable_module_;
 }
 
-bool KernelState::has_executable_module() 
-{
-    if (executable_module_) {
-      return true;
-    }
-    return false;
+bool KernelState::has_executable_module() {
+  if (executable_module_) {
+    return true;
+  }
+  return false;
 }
 
 void KernelState::SetExecutableModule(object_ref<UserModule> module) {
@@ -1101,7 +1120,7 @@ void KernelState::EmulateCPInterruptDPC(uint32_t interrupt_callback,
 void KernelState::UpdateUsedUserProfiles() {
   const uint8_t used_slots_bitmask = GetConnectedUsers();
 
-  for (uint32_t i = 1; i < 4; i++) {
+  for (uint32_t i = 1; i < cvars::max_signed_profiles; i++) {
     bool is_used = used_slots_bitmask & (1 << i);
 
     if (IsUserSignedIn(i) && !is_used) {
@@ -1324,7 +1343,7 @@ void KernelState::InitializeKernelGuestGlobals() {
   block->ObSymbolicLinkObjectType.delete_proc =
       kernel_trampoline_group_.NewLongtermTrampoline(DeleteSymlink);
 
-#define offsetof32(s, m) static_cast<uint32_t>( offsetof(s, m) )
+#define offsetof32(s, m) static_cast<uint32_t>(offsetof(s, m))
 
   host_object_type_enum_to_guest_object_type_ptr_ = {
       {XObject::Type::Event,

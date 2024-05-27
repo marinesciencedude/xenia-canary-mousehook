@@ -22,11 +22,19 @@
 namespace xe {
 namespace kernel {
 
+const uint32_t LOOPBACK = 0x7F000001;
+
+struct response_data {
+  char* response;
+  size_t size;
+  uint64_t http_code;
+};
+
 enum HTTP_STATUS_CODE {
   HTTP_OK = 200,
   HTTP_CREATED = 201,
   HTTP_NO_CONTENT = 204,
-  
+
   HTTP_BAD_REQUEST = 400,
   HTTP_UNAUTHORIZED = 401,
   HTTP_NOT_FOUND = 404,
@@ -59,6 +67,8 @@ class MacAddress {
 
 const std::string ip_to_string(in_addr addr);
 const std::string ip_to_string(sockaddr_in sockaddr);
+const sockaddr_in ip_to_sockaddr(std::string ip_str);
+const in_addr ip_to_in_addr(std::string ip_str);
 
 }  // namespace kernel
 }  // namespace xe
