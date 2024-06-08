@@ -912,11 +912,7 @@ static dword_result_t XamShowMessageBoxUi(
   auto title_id = kernel_state()->title_id();
   
   X_RESULT result;
-  if (cvars::headless || title_id == 0x584109C2) {
-    uint32_t active_btn = active_button;
-    if (title_id == 0x584109C2 && active_btn == 0) {
-      active_btn = 1;
-    }
+  if (cvars::headless) {
     // Auto-pick the focused button.
     auto run = [result_ptr, active_btn]() -> X_RESULT {
       result_ptr->ButtonPressed = static_cast<uint32_t>(active_btn);
