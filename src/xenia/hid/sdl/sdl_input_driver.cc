@@ -397,7 +397,7 @@ X_RESULT SDLInputDriver::GetKeystroke(uint32_t users, uint32_t flags,
         if (!(butts_changed & fbutton)) {
           continue;
         }
-        ui::VirtualKey vk = kVkLookup.at(last.repeat_butt_idx);
+        ui::VirtualKey vk = kVkLookup.at(i);
         if (vk == ui::VirtualKey::kNone) {
           continue;
         }
@@ -635,9 +635,9 @@ void SDLInputDriver::OnControllerDeviceButtonChanged(const SDL_Event& event) {
     if (xbutton == X_INPUT_GAMEPAD_GUIDE && !cvars::guide_button) {
       return;
     }
-    xbuttons |= (uint16_t)xbutton;
+    xbuttons |= xbutton;
   } else {
-    xbuttons &= ~(uint16_t)xbutton;
+    xbuttons &= ~xbutton;
   }
   controller.state.gamepad.buttons = xbuttons;
   controller.state_changed = true;
