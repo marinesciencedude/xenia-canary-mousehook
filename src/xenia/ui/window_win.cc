@@ -207,8 +207,13 @@ bool Win32Window::OpenImpl() {
   // Enable file dragging from external sources
   DragAcceptFiles(hwnd_, true);
 
-  // Enable raw input for keyboard
+  // Enable raw input for mouse & keyboard
   RAWINPUTDEVICE device;
+  device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
+  device.usUsage = 0x02;      // HID_USAGE_GENERIC_MOUSE
+  device.dwFlags = 0;
+  device.hwndTarget = 0;
+  RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE));
   device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
   device.usUsage = 0x06;      // HID_USAGE_GENERIC_KEYBOARD
   device.dwFlags = 0;
@@ -339,6 +344,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(true);
   } else {
     // Changing the style and the menu may change the size too, don't handle
     // the resize multiple times (also potentially with the listeners changing
@@ -422,6 +429,8 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
+
+    ToggleCursorLock(false);
   }
 }
 
@@ -1044,7 +1053,16 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
         break;
       }
 
-      if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
+      if (rawinput_data_.header.dwType == RIM_TYPEMOUSE) {
+        const auto& mouseData = rawinput_data_.data.mouse;
+
+        auto e = MouseEvent(this, MouseEvent::Button::kNone, mouseData.lLastX,
+                            mouseData.lLastY, mouseData.usButtonFlags,
+                            (int16_t)mouseData.usButtonData);
+        WindowDestructionReceiver destruction_receiver(this);
+        OnRawMouse(e, destruction_receiver);
+        return 0;
+      } else if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
         const auto& keyData = rawinput_data_.data.keyboard;
 
         // Adjust VK code passed to handlers
@@ -1270,6 +1288,10 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_KILLFOCUS: {
+      if (IsFullscreen()) {
+        ToggleCursorLock(false);
+      }
+
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(false, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1278,6 +1300,10 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_SETFOCUS: {
+      if (IsFullscreen()) {
+        ToggleCursorLock(true);
+      }
+
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(true, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1414,6 +1440,24 @@ LRESULT CALLBACK Win32Window::WndProcThunk(HWND hWnd, UINT message,
     }
   }
   return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+void Win32Window::ToggleCursorLock(bool lock) {
+  if (lock) {
+    // Cursor bounds can be lost when focus is lost, reapply them...
+    RECT bounds;
+    GetWindowRect(hwnd(), &bounds);
+
+    // Reduce cursor bounds by 1px on each side, just in case..
+    bounds.top++;
+    bounds.left++;
+    bounds.bottom--;
+    bounds.right--;
+
+    ClipCursor(&bounds);
+  } else {
+    ClipCursor(NULL);
+  }
 }
 
 std::unique_ptr<ui::MenuItem> MenuItem::Create(Type type,
