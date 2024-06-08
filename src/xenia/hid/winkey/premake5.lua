@@ -10,8 +10,7 @@ project("xenia-hid-winkey")
     "xenia-base",
     "xenia-hid",
     "xenia-ui",
-    "xenia-kernel"
   })
   defines({
   })
-  recursive_platform_files()
+  local_platform_files()
