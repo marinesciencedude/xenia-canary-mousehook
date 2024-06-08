@@ -553,10 +553,6 @@ void Window::OnFileDrop(FileDropEvent& e,
 
 void Window::OnKeyDown(KeyEvent& e,
                        WindowDestructionReceiver& destruction_receiver) {
-  on_key_down(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnKeyDown(e);
@@ -570,10 +566,6 @@ void Window::OnKeyDown(KeyEvent& e,
 
 void Window::OnKeyUp(KeyEvent& e,
                      WindowDestructionReceiver& destruction_receiver) {
-  on_key_up(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnKeyUp(e);
@@ -587,10 +579,6 @@ void Window::OnKeyUp(KeyEvent& e,
 
 void Window::OnKeyChar(KeyEvent& e,
                        WindowDestructionReceiver& destruction_receiver) {
-  on_key_char(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnKeyChar(e);
@@ -604,10 +592,6 @@ void Window::OnKeyChar(KeyEvent& e,
 
 void Window::OnMouseDown(MouseEvent& e,
                          WindowDestructionReceiver& destruction_receiver) {
-  on_mouse_down(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnMouseDown(e);
@@ -621,10 +605,6 @@ void Window::OnMouseDown(MouseEvent& e,
 
 void Window::OnMouseMove(MouseEvent& e,
                          WindowDestructionReceiver& destruction_receiver) {
-  on_mouse_move(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnMouseMove(e);
@@ -638,12 +618,7 @@ void Window::OnMouseMove(MouseEvent& e,
 
 void Window::OnMouseUp(MouseEvent& e,
                        WindowDestructionReceiver& destruction_receiver) {
-  on_mouse_up(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
-
       [&e](auto listener) {
         listener->OnMouseUp(e);
         return e.is_handled();
@@ -656,10 +631,6 @@ void Window::OnMouseUp(MouseEvent& e,
 
 void Window::OnMouseWheel(MouseEvent& e,
                           WindowDestructionReceiver& destruction_receiver) {
-  on_mouse_wheel(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
         listener->OnMouseWheel(e);
@@ -671,29 +642,8 @@ void Window::OnMouseWheel(MouseEvent& e,
   }
 }
 
-void Window::OnRawMouse(MouseEvent& e,
-                          WindowDestructionReceiver& destruction_receiver) {
-  on_raw_mouse(e);
-  if (e.is_handled()) {
-    return;
-  }
-    PropagateEventThroughInputListeners(
-      [&e](auto listener) {
-    listener->OnRawMouse(e);
-    return e.is_handled();
-	  },
-      destruction_receiver);
-  if (destruction_receiver.IsWindowDestroyed()) {
-    return;
-  }
-}
-
 void Window::OnRawKeyboard(KeyEvent& e,
                           WindowDestructionReceiver& destruction_receiver) {
-  on_raw_keyboard(e);
-  if (e.is_handled()) {
-    return;
-  }
   PropagateEventThroughInputListeners(
       [&e](auto listener) {
     listener->OnRawKeyboard(e);
