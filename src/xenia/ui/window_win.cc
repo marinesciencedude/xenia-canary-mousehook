@@ -206,14 +206,9 @@ bool Win32Window::OpenImpl() {
 
   // Enable file dragging from external sources
   DragAcceptFiles(hwnd_, true);
-  
-  // Enable raw input for mouse & keyboard
+
+  // Enable raw input for keyboard
   RAWINPUTDEVICE device;
-  device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
-  device.usUsage = 0x02;      // HID_USAGE_GENERIC_MOUSE
-  device.dwFlags = 0;
-  device.hwndTarget = 0;
-  RegisterRawInputDevices(&device, 1, sizeof(RAWINPUTDEVICE));
   device.usUsagePage = 0x01;  // HID_USAGE_PAGE_GENERIC
   device.usUsage = 0x06;      // HID_USAGE_GENERIC_KEYBOARD
   device.dwFlags = 0;
@@ -344,8 +339,6 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
-
-    ToggleCursorLock(true);
   } else {
     // Changing the style and the menu may change the size too, don't handle
     // the resize multiple times (also potentially with the listeners changing
@@ -429,8 +422,6 @@ void Win32Window::ApplyNewFullscreen() {
     if (destruction_receiver.IsWindowDestroyedOrClosed()) {
       return;
     }
-
-    ToggleCursorLock(false);
   }
 }
 
@@ -1032,7 +1023,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       }
       OnAfterClose();
     } break;
-	case WM_INPUT: {
+    case WM_INPUT: {
       HRAWINPUT hRawInput = (HRAWINPUT)lParam;
       UINT dataSize = 0;
 
@@ -1053,130 +1044,121 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
         break;
       }
 
-      if (rawinput_data_.header.dwType == RIM_TYPEMOUSE) {
-        const auto& mouseData = rawinput_data_.data.mouse;
-
-        auto e = MouseEvent(this, MouseEvent::Button::kNone, mouseData.lLastX,
-                            mouseData.lLastY, mouseData.usButtonFlags,
-                            (int16_t)mouseData.usButtonData);
-		WindowDestructionReceiver destruction_receiver(this);
-        OnRawMouse(e, destruction_receiver);
-        return 0;
-      } else if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
+      if (rawinput_data_.header.dwType == RIM_TYPEKEYBOARD) {
         const auto& keyData = rawinput_data_.data.keyboard;
 
         // Adjust VK code passed to handlers
         // Based on
         // https://blog.molecular-matters.com/2011/09/05/properly-handling-keyboard-input/
-        ui::VirtualKey vkey = (ui::VirtualKey)keyData.VKey;
+        ui::VirtualKey vkey = static_cast<ui::VirtualKey>(keyData.VKey);
         bool isE0 = (keyData.Flags & RI_KEY_E0) != 0;
 
         // discard "fake keys" which are part of an escaped sequence
-        if (vkey == (ui::VirtualKey)255) {
+        if (vkey == static_cast<ui::VirtualKey>(255)) {
           return 0;
-        } else if (vkey == ui::VirtualKey::kShift) {
-          // correct left-hand / right-hand SHIFT
-          vkey = (ui::VirtualKey)MapVirtualKey(keyData.MakeCode,
-                                               MAPVK_VSC_TO_VK_EX);
-        } else {
-          switch (vkey) {
-            // right-hand CONTROL and ALT have their e0 bit set
-            case ui::VirtualKey::kControl:
-              vkey =
-                  isE0 ? ui::VirtualKey::kRControl : ui::VirtualKey::kLControl;
-              break;
+        }
 
-            case ui::VirtualKey::kMenu:
-              vkey = isE0 ? ui::VirtualKey::kRMenu : ui::VirtualKey::kLMenu;
-              break;
+        switch (vkey) {
+            // correct left-hand / right-hand SHIFT
+          case ui::VirtualKey::kShift:
+            vkey = static_cast<ui::VirtualKey>(
+                MapVirtualKey(keyData.MakeCode, MAPVK_VSC_TO_VK_EX));
+            break;
 
-            case ui::VirtualKey::kReturn:
-              if (isE0) {
-                vkey = ui::VirtualKey::kSeparator;
-              }
-              break;
+          // right-hand CONTROL and ALT have their e0 bit set
+          case ui::VirtualKey::kControl:
+            vkey = isE0 ? ui::VirtualKey::kRControl : ui::VirtualKey::kLControl;
+            break;
 
-            // the standard INSERT, DELETE, HOME, END, PRIOR and NEXT keys will
-            // always have their e0 bit set, but the corresponding keys on the
-            // NUMPAD will not.
-            case ui::VirtualKey::kInsert:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad0;
-              }
-              break;
+          case ui::VirtualKey::kMenu:
+            vkey = isE0 ? ui::VirtualKey::kRMenu : ui::VirtualKey::kLMenu;
+            break;
 
-            case ui::VirtualKey::kDelete:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kDecimal;
-              }
-              break;
+          case ui::VirtualKey::kReturn:
+            if (isE0) {
+              vkey = ui::VirtualKey::kSeparator;
+            }
+            break;
 
-            case ui::VirtualKey::kHome:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad7;
-              }
-              break;
+          // the standard INSERT, DELETE, HOME, END, PRIOR and NEXT keys will
+          // always have their e0 bit set, but the corresponding keys on the
+          // NUMPAD will not.
+          case ui::VirtualKey::kInsert:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad0;
+            }
+            break;
 
-            case ui::VirtualKey::kEnd:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad1;
-              }
-              break;
+          case ui::VirtualKey::kDelete:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kDecimal;
+            }
+            break;
 
-            case ui::VirtualKey::kPrior:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad9;
-              }
-              break;
+          case ui::VirtualKey::kHome:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad7;
+            }
+            break;
 
-            case ui::VirtualKey::kNext:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad3;
-              }
-              break;
+          case ui::VirtualKey::kEnd:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad1;
+            }
+            break;
 
-            // the standard arrow keys will always have their e0 bit set, but
-            // the corresponding keys on the NUMPAD will not.
-            case ui::VirtualKey::kLeft:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad4;
-              }
-              break;
+          case ui::VirtualKey::kPrior:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad9;
+            }
+            break;
 
-            case ui::VirtualKey::kRight:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad6;
-              }
-              break;
+          case ui::VirtualKey::kNext:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad3;
+            }
+            break;
 
-            case ui::VirtualKey::kUp:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad8;
-              }
-              break;
+          // the standard arrow keys will always have their e0 bit set, but
+          // the corresponding keys on the NUMPAD will not.
+          case ui::VirtualKey::kLeft:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad4;
+            }
+            break;
 
-            case ui::VirtualKey::kDown:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad2;
-              }
-              break;
+          case ui::VirtualKey::kRight:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad6;
+            }
+            break;
 
-            // NUMPAD 5 doesn't have its e0 bit set
-            case ui::VirtualKey::kClear:
-              if (!isE0) {
-                vkey = ui::VirtualKey::kNumpad5;
-              }
-              break;
-          }
+          case ui::VirtualKey::kUp:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad8;
+            }
+            break;
+
+          case ui::VirtualKey::kDown:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad2;
+            }
+            break;
+
+          // NUMPAD 5 doesn't have its e0 bit set
+          case ui::VirtualKey::kClear:
+            if (!isE0) {
+              vkey = ui::VirtualKey::kNumpad5;
+            }
+            break;
         }
 
         auto e = KeyEvent(this, vkey, 0, !(keyData.Flags & RI_KEY_BREAK), false,
                           false, false, false);
-		WindowDestructionReceiver destruction_receiver(this);
+        WindowDestructionReceiver destruction_receiver(this);
         OnRawKeyboard(e, destruction_receiver);
         return 0;
       }
-
     } break;
     case WM_DROPFILES: {
       HDROP drop_handle = reinterpret_cast<HDROP>(wParam);
@@ -1288,10 +1270,6 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_KILLFOCUS: {
-      if (IsFullscreen()) {
-        ToggleCursorLock(false);
-      }
-
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(false, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1300,10 +1278,6 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
     } break;
 
     case WM_SETFOCUS: {
-      if (IsFullscreen()) {
-        ToggleCursorLock(true);
-      }
-	  
       WindowDestructionReceiver destruction_receiver(this);
       OnFocusUpdate(true, destruction_receiver);
       if (destruction_receiver.IsWindowDestroyedOrClosed()) {
@@ -1357,6 +1331,7 @@ LRESULT Win32Window::WndProc(HWND hWnd, UINT message, WPARAM wParam,
       }
       return 0;
     } break;
+
     case WM_TABLET_QUERYSYSTEMGESTURESTATUS:
       return
           // disables press and hold (right-click) gesture
@@ -1439,24 +1414,6 @@ LRESULT CALLBACK Win32Window::WndProcThunk(HWND hWnd, UINT message,
     }
   }
   return DefWindowProc(hWnd, message, wParam, lParam);
-}
-
-void Win32Window::ToggleCursorLock(bool lock) {
-  if (lock) {
-    // Cursor bounds can be lost when focus is lost, reapply them...
-    RECT bounds;
-    GetWindowRect(hwnd(), &bounds);
-
-    // Reduce cursor bounds by 1px on each side, just in case..
-    bounds.top++;
-    bounds.left++;
-    bounds.bottom--;
-    bounds.right--;
-
-    ClipCursor(&bounds);
-  } else {
-    ClipCursor(NULL);
-  }
 }
 
 std::unique_ptr<ui::MenuItem> MenuItem::Create(Type type,

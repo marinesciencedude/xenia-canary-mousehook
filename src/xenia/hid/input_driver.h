@@ -46,6 +46,8 @@ class InputDriver {
     is_active_callback_ = is_active_callback;
   }
 
+  uint32_t title_id = 0;
+
  protected:
   explicit InputDriver(xe::ui::Window* window, size_t window_z_order)
       : window_(window), window_z_order_(window_z_order) {}
