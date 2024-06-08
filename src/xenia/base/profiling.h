@@ -20,7 +20,7 @@
 #include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window_listener.h"
 
-#if XE_PLATFORM_WIN32
+#if XE_PLATFORM_WIN32 && 0
 #define XE_OPTION_PROFILING 1
 #define XE_OPTION_PROFILING_UI 1
 #else
@@ -204,13 +204,13 @@ class Profiler {
 #if XE_OPTION_PROFILING
   class ProfilerWindowInputListener final : public ui::WindowInputListener {
    public:
-    static void OnKeyDown(ui::KeyEvent& e);
-    static void OnKeyUp(ui::KeyEvent& e);
+    void OnKeyDown(ui::KeyEvent& e) override;
+    void OnKeyUp(ui::KeyEvent& e) override;
 #if XE_OPTION_PROFILING_UI
-    static void OnMouseDown(ui::MouseEvent& e);
-    static void OnMouseMove(ui::MouseEvent& e);
-    static void OnMouseUp(ui::MouseEvent& e);
-    static void OnMouseWheel(ui::MouseEvent& e);
+    void OnMouseDown(ui::MouseEvent& e) override;
+    void OnMouseMove(ui::MouseEvent& e) override;
+    void OnMouseUp(ui::MouseEvent& e) override;
+    void OnMouseWheel(ui::MouseEvent& e) override;
 #endif  // XE_OPTION_PROFILING_UI
   };
   // For now, no need for OnDpiChanged in a WindowListener because redrawing is
