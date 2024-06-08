@@ -13,4 +13,4 @@ project("xenia-hid-winkey")
   })
   defines({
   })
-  local_platform_files()
+  recursive_platform_files()
