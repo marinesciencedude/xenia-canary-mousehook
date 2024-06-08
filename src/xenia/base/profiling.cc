@@ -271,46 +271,6 @@ void Profiler::SetUserIO(size_t z_order, ui::Window* window,
     }
 #endif  // XE_OPTION_PROFILING_UI
   }
-
-   // Pass through mouse events.
-  window_->on_mouse_down.AddListener([](ui::MouseEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnMouseDown(e);
-      e.set_handled(true);
-    }
-  });
-  window_->on_mouse_up.AddListener([](ui::MouseEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnMouseUp(e);
-      e.set_handled(true);
-    }
-  });
-  window_->on_mouse_move.AddListener([](ui::MouseEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnMouseMove(e);
-      e.set_handled(true);
-    }
-  });
-  window_->on_mouse_wheel.AddListener([](ui::MouseEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnMouseWheel(e);
-      e.set_handled(true);
-    }
-  });
-
-  // Watch for toggle/mode keys and such.
-  window_->on_key_down.AddListener([](ui::KeyEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnKeyDown(e);
-      e.set_handled(true);
-    }
-  });
-  window_->on_key_up.AddListener([](ui::KeyEvent& e) {
-    if (Profiler::is_visible()) {
-      Profiler::ProfilerWindowInputListener::OnKeyUp(e);
-      e.set_handled(true);
-    }
-  });
 }
 
 void Profiler::Flip() {

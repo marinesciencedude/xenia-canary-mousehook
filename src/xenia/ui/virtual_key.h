@@ -357,6 +357,8 @@ enum class VirtualKey : uint16_t {
   kXInputPadRThumbDownLeft = 0x5837,
   // Undocumented therefore kNone however using 0x5838 for now.
   kXInputPadGuide = 0x5838,
+
+  kModifier = 0x5841
 };
 
 }  // namespace ui
