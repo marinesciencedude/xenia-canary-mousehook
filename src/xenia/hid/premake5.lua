@@ -23,11 +23,8 @@ project("xenia-hid-demo")
     "fmt",
     "imgui",
     "xenia-base",
-    "xenia-core",
-    "xenia-helper-sdl",
     "xenia-hid",
     "xenia-hid-nop",
-    "xenia-hid-sdl",
     "xenia-ui",
     "xenia-ui-vulkan",
   })
