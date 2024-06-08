@@ -224,6 +224,13 @@ X_INPUT_VIBRATION InputSystem::ModifyVibrationLevel(
   modified_vibration.right_motor_speed = 0;
   return modified_vibration;
 }
+
+void InputSystem::UpdateTitleId(uint32_t title_id) {
+  for (auto& driver : drivers_) {
+    driver->title_id = title_id;
+  }
+}
+
 std::unique_lock<xe_unlikely_mutex> InputSystem::lock() {
   return std::unique_lock<xe_unlikely_mutex>{lock_};
 }
