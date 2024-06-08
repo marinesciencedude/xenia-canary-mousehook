@@ -599,9 +599,12 @@ class Window {
 
   void OnTouchEvent(TouchEvent& e,
                     WindowDestructionReceiver& destruction_receiver);
-  
+
   void OnRawKeyboard(KeyEvent& e,
-                    WindowDestructionReceiver& destruction_receiver);
+                     WindowDestructionReceiver& destruction_receiver);
+  void OnRawMouse(MouseEvent& e,
+                  WindowDestructionReceiver& destruction_receiver);
+
  private:
   struct ListenerIterationContext {
     explicit ListenerIterationContext(ListenerIterationContext* outer_context,
