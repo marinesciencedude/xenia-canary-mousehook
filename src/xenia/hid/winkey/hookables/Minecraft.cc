@@ -61,9 +61,11 @@ struct GameBuildAddrs {
 };
 
 //compiler cannot be trusted to std::map structs properly
-struct GameBuildAddrs supported_builds[4] = {
+struct GameBuildAddrs supported_builds[6] = {
     {NULL,  "",   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}, 
     {0x705AFD60, "1.0", 0x88, 0x8C, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL}, 
+    {0x705AFD60, "1.0.2", 0x88, 0x8C, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL},
+    {0x705AFD60, "1.0.4", 0x88, 0x8C, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL},
     { //TU68
         0x7018E75C, "1.0.73", 0x80, 0x84, 
         0x40AD7444, 0x40ED0140, 
