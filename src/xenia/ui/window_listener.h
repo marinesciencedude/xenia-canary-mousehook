@@ -49,7 +49,6 @@ class WindowInputListener {
   virtual void OnMouseUp(MouseEvent& e) {}
   virtual void OnMouseWheel(MouseEvent& e) {}
   
-  virtual void OnRawMouse(MouseEvent& e) {}
   virtual void OnRawKeyboard(KeyEvent& e) {}
 
   virtual void OnTouchEvent(TouchEvent& e) {}
