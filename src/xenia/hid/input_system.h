@@ -53,6 +53,8 @@ class InputSystem {
     return connected_slots;
   }
 
+  void UpdateTitleId(uint32_t title_id);
+
   std::unique_lock<xe_unlikely_mutex> lock();
 
  private:
