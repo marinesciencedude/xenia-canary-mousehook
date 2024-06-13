@@ -13,7 +13,7 @@
 #include "xenia/kernel/xbdm/xbdm_private.h"
 #include "xenia/kernel/xthread.h"
 #include "xenia/xbox.h"
-//chrispy: no idea what a real valid value is for this
+// chrispy: no idea what a real valid value is for this
 static constexpr const char DmXboxName[] = "Xbox360Name";
 
 namespace xe {
