@@ -10,8 +10,8 @@
 #ifndef XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 #define XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 
-#include "xenia/xbox.h"
 #include "xenia/hid/input.h"
+#include "xenia/xbox.h"
 
 namespace xe {
 namespace hid {
