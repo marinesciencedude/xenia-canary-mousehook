@@ -40,8 +40,10 @@ struct GameBuildAddrs {
 };
 
 std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
-    {Crackdown2Game::GameBuild::Crackdown2_TU0, {0x836C6520, "1.0", 0x7EC, 0x7E8}},
-    {Crackdown2Game::GameBuild::Crackdown2_TU5, {0x83800F88, "1.0.5", 0x7EC, 0x7E8}}};
+    {Crackdown2Game::GameBuild::Crackdown2_TU0,
+     {0x836C6520, "1.0", 0x7EC, 0x7E8}},
+    {Crackdown2Game::GameBuild::Crackdown2_TU5,
+     {0x83800F88, "1.0.5", 0x7EC, 0x7E8}}};
 
 Crackdown2Game::~Crackdown2Game() = default;
 
@@ -116,13 +118,10 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_y = RadianstoDegree(*radian_y);
 
   // X-axis = 0 to 360
-  if (!cvars::invert_x)
-  {
+  if (!cvars::invert_x) {
     degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
     *radian_x = DegreetoRadians(degree_x);
-  }
-  else
-  {
+  } else {
     degree_x -= (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
     *radian_x = DegreetoRadians(degree_x);
   }
