@@ -17,6 +17,9 @@
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 #include "xenia/ui/virtual_key.h"
 
+#define VK_BIND_MWHEELUP 0x0E
+#define VK_BIND_MWHEELDOWN 0x0F
+
 namespace xe {
 namespace hid {
 namespace winkey {
