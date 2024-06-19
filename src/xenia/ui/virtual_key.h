@@ -45,6 +45,9 @@ enum class VirtualKey : uint16_t {
   kClear = 0x0C,
   kReturn = 0x0D,  // Enter.
 
+  kMWheelUp = 0x0E,  // Hope these are truly unassigned and unused.
+  kMWheelDown = 0x0F,
+
   kShift = 0x10,
   kControl = 0x11,  // Ctrl.
   kMenu = 0x12,     // Alt.
