@@ -67,6 +67,12 @@ struct XUSER_STATS_SPEC {
   xe::be<uint16_t> rgwColumnIds[0x40];
 };
 
+struct XUSER_STATS_RESET {
+  xe::be<uint32_t> user_index;
+  xe::be<uint32_t> view_id;
+  xe::be<uint32_t> xoverlapped_ptr;
+};
+
 XgiApp::XgiApp(KernelState* kernel_state) : App(kernel_state, 0xFB) {}
 
 // http://mb.mirage.org/bugzilla/xliveless/main.c
@@ -587,6 +593,12 @@ X_HRESULT XgiApp::DispatchMessageSync(uint32_t message, uint32_t buffer_ptr,
     }
     case 0x000B0071: {
       XELOGD("XGI 0x000B0071, unimplemented");
+      return X_E_SUCCESS;
+    }
+    case 0x000B0020: {
+      XELOGI("XUserResetStatsView");
+      XUSER_STATS_RESET* data = reinterpret_cast<XUSER_STATS_RESET*>(buffer);
+
       return X_E_SUCCESS;
     }
   }
