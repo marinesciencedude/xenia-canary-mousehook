@@ -442,17 +442,27 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
   if (window()->HasFocus() && is_active()) {
     {
       while (!mouse_events_.empty()) {
-        auto& mouse = mouse_events_.front();
-        state.mouse.x_delta += mouse.x_delta;
-        state.mouse.y_delta += mouse.y_delta;
-        state.mouse.wheel_delta += mouse.wheel_delta;
-        mouse_events_.pop();
+        MouseEvent* mouse = &mouse_events_.front();
+
+        if (mouse != nullptr) {
+          state.mouse.x_delta += mouse->x_delta;
+          state.mouse.y_delta += mouse->y_delta;
+          state.mouse.wheel_delta += mouse->wheel_delta;
+          mouse_events_.pop();
+        }
       }
     }
 
     for (int i = 0; i < sizeof(key_states_); i++) {
       if (key_states_[i]) {
-        const auto& binds = key_binds_.at(title_id);
+        std::map<ui::VirtualKey, ui::VirtualKey> binds;
+
+        if (key_binds_.find(title_id) == key_binds_.end()) {
+          binds = key_binds_.at(0);
+        } else {
+          binds = key_binds_.at(title_id);
+        }
+
         const auto vk_key = static_cast<ui::VirtualKey>(i);
 
         if (!binds.count(vk_key)) {
