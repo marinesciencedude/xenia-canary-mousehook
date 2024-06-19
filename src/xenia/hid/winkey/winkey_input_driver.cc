@@ -122,8 +122,8 @@ static const std::map<std::string, ui::VirtualKey> kKeyMap = {
     {"mouse3", ui::VirtualKey::kMButton},
     {"mouse4", ui::VirtualKey::kXButton1},
     {"mouse5", ui::VirtualKey::kXButton2},
-    /* {"mwheelup", VK_BIND_MWHEELUP},
-    {"mwheeldown", VK_BIND_MWHEELDOWN},*/
+    {"mwheelup", ui::VirtualKey::kMWheelUp},
+    {"mwheeldown", ui::VirtualKey::kMWheelDown},
 
     {"control", ui::VirtualKey::kLControl},
     {"ctrl", ui::VirtualKey::kLControl},
@@ -750,6 +750,17 @@ void WinKeyInputDriver::OnRawMouse(ui::MouseEvent& evt) {
     }
     if (mouse.buttons & RI_MOUSE_BUTTON_5_UP) {
       key_states_[VK_XBUTTON2] = false;
+    }
+    if (mouse.wheel_delta != 0) {
+      if (mouse.wheel_delta > 0) {
+        key_states_[VK_BIND_MWHEELUP] = true;
+      } else {
+        key_states_[VK_BIND_MWHEELDOWN] = true;
+      }
+    }
+    if (mouse.wheel_delta == 0) {
+      key_states_[VK_BIND_MWHEELUP] = false;
+      key_states_[VK_BIND_MWHEELDOWN] = false;
     }
   }
 }
