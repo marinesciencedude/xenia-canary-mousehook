@@ -229,6 +229,11 @@ struct XSessionLeave {
   xe::be<uint32_t> unused;
 };
 
+struct SEARCH_RESULTS {
+  XSESSION_SEARCHRESULT_HEADER header;
+  XSESSION_SEARCHRESULT* results_ptr;
+};
+
 // TODO(Gliniak): Put it in more reasonable location.
 struct XUSER_DATA {
   uint8_t type;
