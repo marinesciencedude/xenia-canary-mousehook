@@ -752,10 +752,19 @@ void WinKeyInputDriver::OnRawMouse(ui::MouseEvent& evt) {
       key_states_[VK_XBUTTON2] = false;
     }
     if (mouse.wheel_delta != 0) {
-      if (mouse.wheel_delta > 0) {
-        key_states_[VK_BIND_MWHEELUP] = true;
-      } else {
-        key_states_[VK_BIND_MWHEELDOWN] = true;
+      if (!cvars::swap_wheel) {
+        if (mouse.wheel_delta > 0) {
+          key_states_[VK_BIND_MWHEELUP] = true;
+        } else {
+          key_states_[VK_BIND_MWHEELDOWN] = true;
+        }
+      }
+      else {
+        if (mouse.wheel_delta > 0) {
+          key_states_[VK_BIND_MWHEELDOWN] = true;
+        } else {
+          key_states_[VK_BIND_MWHEELUP] = true;
+        }
       }
     }
     if (mouse.wheel_delta == 0) {
