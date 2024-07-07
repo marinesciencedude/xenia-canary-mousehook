@@ -45,6 +45,7 @@ This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) a
 | Left 4 Dead | TU0, GOTY |
 | Portal 2 |  TU0 |
 | Team Fortress 2 | TU0 |
+| Postal III | |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
 | Perfect Dark XBLA | b33, b52 (TU0) & b102 |
 | Halo 3 | TU0/TU3 & 08172 'delta' |
@@ -52,6 +53,7 @@ This is also a fork of [emoose's Xenia build](https://github.com/emoose/xenia) a
 | Halo Reach | TU0/TU1 |
 | Halo 4 | TU0/TU8 |
 | Crackdown 2 | TU0/TU5 |
+| Saints Row 2 | TU3 |
 
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
