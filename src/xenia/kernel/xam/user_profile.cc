@@ -59,6 +59,8 @@ UserProfile::UserProfile(uint8_t index) {
   //  name_ = "User_" + std::to_string(index);
   //}
 
+  index_ = index;
+
   switch (index) {
     case 0: {
       // If XUID is empty generate another one.
