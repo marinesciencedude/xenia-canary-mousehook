@@ -197,6 +197,7 @@ class UserProfile {
   bool IsXUIDValid() { return IsXUIDOffline() != IsXUIDOnline(); }
 
   uint64_t xuid() const { return xuid_; }
+  uint32_t index() const { return index_; }
   std::string name() const { return name_; }
   uint32_t signin_state() const {
     if (cvars::offline_mode) {
@@ -216,6 +217,7 @@ class UserProfile {
 
  private:
   uint64_t xuid_;
+  uint32_t index_;
   std::string name_;
   std::vector<std::unique_ptr<UserSetting>> setting_list_;
   std::unordered_map<uint32_t, UserSetting*> settings_;
