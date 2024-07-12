@@ -13,6 +13,7 @@
 #include "xenia/base/platform_win.h"
 #include "xenia/base/system.h"
 #include "xenia/hid/hid_flags.h"
+#include "xenia/hid/input.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
@@ -72,43 +73,40 @@ bool __inline IsKeyDown(ui::VirtualKey virtual_key) {
   return IsKeyDown(static_cast<uint8_t>(virtual_key));
 }
 
-// Lookup the value of xinput string
-static const std::map<std::string, ui::VirtualKey> kXInputButtons = {
-    {"up", ui::VirtualKey::kXInputPadDpadUp},
-    {"down", ui::VirtualKey::kXInputPadDpadDown},
-    {"left", ui::VirtualKey::kXInputPadDpadLeft},
-    {"right", ui::VirtualKey::kXInputPadDpadRight},
+static const std::unordered_map<std::string, uint32_t> kXInputButtons = {
+    {"up", XINPUT_BIND_UP},
+    {"down", XINPUT_BIND_DOWN},
+    {"left", XINPUT_BIND_LEFT},
+    {"right", XINPUT_BIND_RIGHT},
 
-    {"start", ui::VirtualKey::kXInputPadStart},
-    {"back", ui::VirtualKey::kXInputPadBack},
-    {"guide", ui::VirtualKey::kXInputPadGuide},
+    {"start", XINPUT_BIND_START},
+    {"back", XINPUT_BIND_BACK},
 
-    {"ls", ui::VirtualKey::kXInputPadLThumbPress},
-    {"rs", ui::VirtualKey::kXInputPadRThumbPress},
+    {"ls", XINPUT_BIND_LS},
+    {"rs", XINPUT_BIND_RS},
 
-    {"lb", ui::VirtualKey::kXInputPadLShoulder},
-    {"rb", ui::VirtualKey::kXInputPadRShoulder},
+    {"lb", XINPUT_BIND_LB},
+    {"rb", XINPUT_BIND_RB},
 
-    {"a", ui::VirtualKey::kXInputPadA},
-    {"b", ui::VirtualKey::kXInputPadB},
-    {"x", ui::VirtualKey::kXInputPadX},
-    {"y", ui::VirtualKey::kXInputPadY},
+    {"a", XINPUT_BIND_A},
+    {"b", XINPUT_BIND_B},
+    {"x", XINPUT_BIND_X},
+    {"y", XINPUT_BIND_Y},
 
-    {"lt", ui::VirtualKey::kXInputPadLTrigger},
-    {"rt", ui::VirtualKey::kXInputPadRTrigger},
+    {"lt", XINPUT_BIND_LEFT_TRIGGER},
+    {"rt", XINPUT_BIND_RIGHT_TRIGGER},
 
-    {"ls-up", ui::VirtualKey::kXInputPadLThumbUp},
-    {"ls-down", ui::VirtualKey::kXInputPadLThumbDown},
-    {"ls-left", ui::VirtualKey::kXInputPadLThumbLeft},
-    {"ls-right", ui::VirtualKey::kXInputPadLThumbRight},
+    {"ls-up", XINPUT_BIND_LS_UP},
+    {"ls-down", XINPUT_BIND_LS_DOWN},
+    {"ls-left", XINPUT_BIND_LS_LEFT},
+    {"ls-right", XINPUT_BIND_LS_RIGHT},
 
-    {"rs-up", ui::VirtualKey::kXInputPadRThumbUp},
-    {"rs-down", ui::VirtualKey::kXInputPadRThumbDown},
-    {"rs-left", ui::VirtualKey::kXInputPadRThumbLeft},
-    {"rs-right", ui::VirtualKey::kXInputPadRThumbRight},
+    {"rs-up", XINPUT_BIND_RS_UP},
+    {"rs-down", XINPUT_BIND_RS_DOWN},
+    {"rs-left", XINPUT_BIND_RS_LEFT},
+    {"rs-right", XINPUT_BIND_RS_RIGHT},
 
-    {"modifier", ui::VirtualKey::kModifier}};
-
+    {"modifier", XINPUT_BIND_MODIFIER}};
 // Lookup the value of key string
 static const std::map<std::string, ui::VirtualKey> kKeyMap = {
     {"lclick", ui::VirtualKey::kLButton},
@@ -256,20 +254,20 @@ void WinKeyInputDriver::ParseKeyBinding(ui::VirtualKey output_key,
   }
 }
 
-ui::VirtualKey WinKeyInputDriver::ParseButtonCombination(const char* combo) {
+int WinKeyInputDriver::ParseButtonCombination(const char* combo) {
   size_t len = strlen(combo);
 
-  uint16_t retval = 0;
+  int retval = 0;
   std::string cur_token;
 
-  // Parse combo tokens into buttons bitfield (tokens separated by any
+  // Parse combo tokens into buttons bitfield (tokens seperated by any
   // non-alphabetical char, eg. +)
   for (size_t i = 0; i < len; i++) {
     char c = combo[i];
 
     if (!isalpha(c) && c != '-') {
       if (cur_token.length() && kXInputButtons.count(cur_token))
-        retval |= static_cast<uint16_t>(kXInputButtons.at(cur_token));
+        retval |= kXInputButtons.at(cur_token);
 
       cur_token.clear();
       continue;
@@ -278,9 +276,9 @@ ui::VirtualKey WinKeyInputDriver::ParseButtonCombination(const char* combo) {
   }
 
   if (cur_token.length() && kXInputButtons.count(cur_token))
-    retval |= static_cast<uint16_t>(kXInputButtons.at(cur_token));
+    retval |= kXInputButtons.at(cur_token);
 
-  return static_cast<ui::VirtualKey>(retval);
+  return retval;
 }
 
 void WinKeyInputDriver::ParseCustomKeyBinding(
@@ -298,7 +296,7 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
   std::string cur_section = "default";
   uint32_t title_id = 0;
 
-  std::map<ui::VirtualKey, ui::VirtualKey> cur_binds;
+  std::map<ui::VirtualKey, uint32_t> cur_binds;
 
   std::string line;
   while (std::getline(binds, line)) {
@@ -455,7 +453,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
 
     for (int i = 0; i < sizeof(key_states_); i++) {
       if (key_states_[i]) {
-        std::map<ui::VirtualKey, ui::VirtualKey> binds;
+        std::map<ui::VirtualKey, uint32_t> binds;
 
         if (key_binds_.find(title_id) == key_binds_.end()) {
           binds = key_binds_.at(0);
@@ -469,88 +467,46 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
           break;
         }
 
-        const auto key_binding = binds.at(vk_key);
+        const auto binding = binds.at(vk_key);
 
-        // use if instead for binding combinations?
-        switch (key_binding) {
-          case ui::VirtualKey::kXInputPadA:
-            buttons |= X_INPUT_GAMEPAD_A;
-            break;
-          case ui::VirtualKey::kXInputPadY:
-            buttons |= X_INPUT_GAMEPAD_Y;
-            break;
-          case ui::VirtualKey::kXInputPadB:
-            buttons |= X_INPUT_GAMEPAD_B;
-            break;
-          case ui::VirtualKey::kXInputPadX:
-            buttons |= X_INPUT_GAMEPAD_X;
-            break;
-          case ui::VirtualKey::kXInputPadGuide:
-            buttons |= X_INPUT_GAMEPAD_GUIDE;
-            break;
-          case ui::VirtualKey::kXInputPadDpadLeft:
-            buttons |= X_INPUT_GAMEPAD_DPAD_LEFT;
-            break;
-          case ui::VirtualKey::kXInputPadDpadRight:
-            buttons |= X_INPUT_GAMEPAD_DPAD_RIGHT;
-            break;
-          case ui::VirtualKey::kXInputPadDpadDown:
-            buttons |= X_INPUT_GAMEPAD_DPAD_DOWN;
-            break;
-          case ui::VirtualKey::kXInputPadDpadUp:
-            buttons |= X_INPUT_GAMEPAD_DPAD_UP;
-            break;
-          case ui::VirtualKey::kXInputPadRThumbPress:
-            buttons |= X_INPUT_GAMEPAD_RIGHT_THUMB;
-            break;
-          case ui::VirtualKey::kXInputPadLThumbPress:
-            buttons |= X_INPUT_GAMEPAD_LEFT_THUMB;
-            break;
-          case ui::VirtualKey::kXInputPadBack:
-            buttons |= X_INPUT_GAMEPAD_BACK;
-            break;
-          case ui::VirtualKey::kXInputPadStart:
-            buttons |= X_INPUT_GAMEPAD_START;
-            break;
-          case ui::VirtualKey::kXInputPadLShoulder:
-            buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER;
-            break;
-          case ui::VirtualKey::kXInputPadRShoulder:
-            buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
-            break;
-          case ui::VirtualKey::kXInputPadLTrigger:
-            left_trigger = 0xFF;
-            break;
-          case ui::VirtualKey::kXInputPadRTrigger:
-            right_trigger = 0xFF;
-            break;
-          case ui::VirtualKey::kXInputPadLThumbLeft:
-            thumb_lx += SHRT_MIN;
-            break;
-          case ui::VirtualKey::kXInputPadLThumbRight:
-            thumb_lx += SHRT_MAX;
-            break;
-          case ui::VirtualKey::kXInputPadLThumbDown:
-            thumb_ly += SHRT_MIN;
-            break;
-          case ui::VirtualKey::kXInputPadLThumbUp:
-            thumb_ly += SHRT_MAX;
-            break;
-          case ui::VirtualKey::kXInputPadRThumbUp:
-            thumb_ry += SHRT_MAX;
-            break;
-          case ui::VirtualKey::kXInputPadRThumbDown:
-            thumb_ry += SHRT_MIN;
-            break;
-          case ui::VirtualKey::kXInputPadRThumbRight:
-            thumb_rx += SHRT_MAX;
-            break;
-          case ui::VirtualKey::kXInputPadRThumbLeft:
-            thumb_rx += SHRT_MIN;
-            break;
-          case ui::VirtualKey::kModifier:
-            modifier_pressed = true;
-            break;
+        buttons |= (binding & XINPUT_BUTTONS_MASK);
+
+        if (binding & XINPUT_BIND_LEFT_TRIGGER) {
+          left_trigger = 0xFF;
+        }
+
+        if (binding & XINPUT_BIND_RIGHT_TRIGGER) {
+          right_trigger = 0xFF;
+        }
+
+        if (binding & XINPUT_BIND_LS_UP) {
+          thumb_ly = SHRT_MAX;
+        }
+        if (binding & XINPUT_BIND_LS_DOWN) {
+          thumb_ly = SHRT_MIN;
+        }
+        if (binding & XINPUT_BIND_LS_LEFT) {
+          thumb_lx = SHRT_MIN;
+        }
+        if (binding & XINPUT_BIND_LS_RIGHT) {
+          thumb_lx = SHRT_MAX;
+        }
+
+        if (binding & XINPUT_BIND_RS_UP) {
+          thumb_ry = SHRT_MAX;
+        }
+        if (binding & XINPUT_BIND_RS_DOWN) {
+          thumb_ry = SHRT_MIN;
+        }
+        if (binding & XINPUT_BIND_RS_LEFT) {
+          thumb_rx = SHRT_MIN;
+        }
+        if (binding & XINPUT_BIND_RS_RIGHT) {
+          thumb_rx = SHRT_MAX;
+        }
+
+        if (binding & XINPUT_BIND_MODIFIER) {
+          modifier_pressed = true;
         }
       }
     }
