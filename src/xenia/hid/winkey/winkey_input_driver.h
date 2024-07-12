@@ -13,12 +13,49 @@
 #include <queue>
 
 #include "xenia/base/mutex.h"
+#include "xenia/hid/input.h"
 #include "xenia/hid/input_driver.h"
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 #include "xenia/ui/virtual_key.h"
 
 #define VK_BIND_MWHEELUP 0x0E
 #define VK_BIND_MWHEELDOWN 0x0F
+
+#define XINPUT_BUTTONS_MASK 0xFFFF
+
+#define XINPUT_BIND_UP X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_UP
+#define XINPUT_BIND_DOWN X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_DOWN
+#define XINPUT_BIND_LEFT X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_LEFT
+#define XINPUT_BIND_RIGHT X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_RIGHT
+
+#define XINPUT_BIND_START X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_START
+#define XINPUT_BIND_BACK X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_BACK
+
+#define XINPUT_BIND_LS X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_LEFT_THUMB
+#define XINPUT_BIND_RS X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_RIGHT_THUMB
+
+#define XINPUT_BIND_LB X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_LEFT_SHOULDER
+#define XINPUT_BIND_RB X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_RIGHT_SHOULDER
+
+#define XINPUT_BIND_A X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_A
+#define XINPUT_BIND_B X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_B
+#define XINPUT_BIND_X X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_X
+#define XINPUT_BIND_Y X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_Y
+
+#define XINPUT_BIND_LEFT_TRIGGER (1 << 16)
+#define XINPUT_BIND_RIGHT_TRIGGER (1 << 17)
+
+#define XINPUT_BIND_LS_UP (1 << 18)
+#define XINPUT_BIND_LS_DOWN (1 << 19)
+#define XINPUT_BIND_LS_LEFT (1 << 20)
+#define XINPUT_BIND_LS_RIGHT (1 << 21)
+
+#define XINPUT_BIND_RS_UP (1 << 22)
+#define XINPUT_BIND_RS_DOWN (1 << 23)
+#define XINPUT_BIND_RS_LEFT (1 << 24)
+#define XINPUT_BIND_RS_RIGHT (1 << 25)
+
+#define XINPUT_BIND_MODIFIER (1 << 26)
 
 namespace xe {
 namespace hid {
@@ -71,7 +108,7 @@ class WinKeyInputDriver final : public InputDriver {
                        const std::string_view description,
                        const std::string_view binding);
 
-  ui::VirtualKey ParseButtonCombination(const char* combo);
+  int ParseButtonCombination(const char* combo);
 
   void ParseCustomKeyBinding(const std::string_view bindings_file);
 
@@ -90,7 +127,7 @@ class WinKeyInputDriver final : public InputDriver {
   std::queue<MouseEvent> mouse_events_;
 
   uint8_t key_states_[256] = {};
-  std::map<uint32_t, std::map<ui::VirtualKey, ui::VirtualKey>> key_binds_;
+  std::map<uint32_t, std::map<ui::VirtualKey, uint32_t>> key_binds_;
 
   uint32_t packet_number_ = 1;
 
