@@ -29,7 +29,9 @@ class SourceEngine : public HookableGame {
     PortalSA,
     Portal2,
     Portal2_TU1,
-    Postal3
+    Postal3,
+    BloodyGoodTime,
+    DarkMessiah
   };
 
   SourceEngine();
