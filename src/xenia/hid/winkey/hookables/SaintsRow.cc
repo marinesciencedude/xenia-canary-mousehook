@@ -39,10 +39,9 @@ struct GameBuildAddrs {
 };
 
 std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRowGame::GameBuild::Unknown, 
-    {NULL, "", NULL}},
-    {SaintsRowGame::GameBuild::SaintsRow2_TU3, 
-    {0x82B7A570, "8.0.3", 0x82B7A590}}};
+    {SaintsRowGame::GameBuild::Unknown, {NULL, "", NULL}},
+    {SaintsRowGame::GameBuild::SaintsRow2_TU3,
+     {0x82B7A570, "8.0.3", 0x82B7A590}}};
 
 SaintsRowGame::~SaintsRowGame() = default;
 
@@ -73,7 +72,7 @@ float SaintsRowGame::RadianstoDegree(float radians) {
 }
 
 bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                             X_INPUT_STATE* out_state) {
+                            X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -93,11 +92,11 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  xe::be<float>* radian_x =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(supported_builds[game_build_].x_address);
+  xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].x_address);
 
-  xe::be<float>* radian_y =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(supported_builds[game_build_].y_address);
+  xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].y_address);
 
   if (!radian_x || *radian_x == NULL) {
     // Not in game
@@ -128,8 +127,8 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 }
 
 bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
-                                        RawInputState& input_state,
-                                        X_INPUT_STATE* out_state) {
+                                       RawInputState& input_state,
+                                       X_INPUT_STATE* out_state) {
   return false;
 }
 }  // namespace winkey
