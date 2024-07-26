@@ -44,6 +44,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Left 4 Dead | TU0, GOTY |
 | Portal 2 |  TU0 |
 | Team Fortress 2 | TU0 |
+| Bloody Good Time |
 | Postal III | |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
 | Perfect Dark XBLA | b33, b52 (TU0) & b102 |
@@ -53,6 +54,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Halo 4 | TU0/TU8 |
 | Crackdown 2 | TU0/TU5 |
 | Saints Row 2 | TU3 |
+| Dark Messiah of Might and Magic | Singleplayer & Multiplayer |
 
 ---
 
