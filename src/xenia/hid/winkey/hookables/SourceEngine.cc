@@ -34,6 +34,8 @@ const uint32_t kTitleIdL4D2 = 0x454108D4;
 const uint32_t kTitleIdOrangeBox = 0x4541080F;
 const uint32_t kTitleIdPortalSA = 0x58410960;
 const uint32_t kTitleIdPortal2 = 0x45410912;
+const uint32_t kTitleIdBloodyGoodTime = 0x584109B3;
+const uint32_t kTitleIdDarkMessiah = 0x55530804;
 
 namespace xe {
 namespace hid {
@@ -75,13 +77,22 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
     {SourceEngine::GameBuild::Portal2_TU1,
      {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}},
     {SourceEngine::GameBuild::Postal3,
-     {kTitleIdOrangeBox, "1.0.1.16", NULL, 0x86438700}}};
+     {kTitleIdOrangeBox, "1.0.1.16", NULL, 0x86438700}},
+    {SourceEngine::GameBuild::BloodyGoodTime,
+     {kTitleIdBloodyGoodTime, "3.0", NULL, 0x8644A6B0}},
+    {
+        SourceEngine::GameBuild::DarkMessiah,
+        {kTitleIdDarkMessiah, "5.0", 0x856FC050, 0x856E2490}
+        // default.xex, DMMulti_m.xex
+    },
+};
 
 bool SourceEngine::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
   if (title_id != kTitleIdCSGO && title_id != kTitleIdL4D1 &&
       title_id != kTitleIdL4D2 && title_id != kTitleIdOrangeBox &&
-      title_id != kTitleIdPortalSA && title_id != kTitleIdPortal2)
+      title_id != kTitleIdPortalSA && title_id != kTitleIdPortal2 &&
+      title_id != kTitleIdBloodyGoodTime && title_id != kTitleIdDarkMessiah)
     return false;
 
   const std::string current_version =
@@ -120,6 +131,17 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   if (!current_thread) {
     return false;
+  }
+
+  // Swap execute_addr if singleplayer, and set execute_addr to null
+  if (game_build_ == GameBuild::DarkMessiah) {
+    if (kernel_state()->GetModule("default.xex") &&
+        supported_builds[game_build_].execute_addr) {
+      supported_builds[game_build_].angle_offset =
+          supported_builds[game_build_].execute_addr;
+    }
+
+    supported_builds[game_build_].execute_addr = 0;
   }
 
   uint32_t player_ptr;
