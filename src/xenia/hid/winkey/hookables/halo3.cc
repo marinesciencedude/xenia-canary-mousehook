@@ -171,6 +171,8 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
+std::string Halo3Game::ChooseBinds() { return "Default"; }
+
 bool Halo3Game::ModifierKeyHandler(uint32_t user_index,
                                    RawInputState& input_state,
                                    X_INPUT_STATE* out_state) {
