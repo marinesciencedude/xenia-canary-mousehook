@@ -212,6 +212,8 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
+std::string SourceEngine::ChooseBinds() { return "Default"; }
+
 // probably making a mistake using a template, ah well
 template <typename T>
 int sgn(T val) {
