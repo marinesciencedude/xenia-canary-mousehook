@@ -126,6 +126,8 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
+std::string SaintsRowGame::ChooseBinds() { return "Default"; }
+
 bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
                                        RawInputState& input_state,
                                        X_INPUT_STATE* out_state) {
