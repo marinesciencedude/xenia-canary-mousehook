@@ -127,7 +127,8 @@ class WinKeyInputDriver final : public InputDriver {
   std::queue<MouseEvent> mouse_events_;
 
   uint8_t key_states_[256] = {};
-  std::map<uint32_t, std::map<ui::VirtualKey, uint32_t>> key_binds_;
+  std::map<uint32_t, std::map<std::string, std::map<ui::VirtualKey, uint32_t>>>
+      key_binds_;
 
   uint32_t packet_number_ = 1;
 
