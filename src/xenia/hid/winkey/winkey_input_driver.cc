@@ -296,8 +296,11 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
 
   std::string cur_section = "default";
   uint32_t title_id = 0;
+  uint32_t prev_title_id = 0;
+  std::string cur_type = "Default";
 
   std::map<ui::VirtualKey, uint32_t> cur_binds;
+  std::map<std::string, std::map<ui::VirtualKey, uint32_t>> cur_title_binds;
 
   std::string line;
   while (std::getline(binds, line)) {
@@ -313,7 +316,7 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
         line[line.length() - 1] == ']') {
       // New section
       if (cur_binds.size() > 0) {
-        key_binds_.emplace(title_id, cur_binds);
+        cur_title_binds.emplace(cur_type, cur_binds);
         cur_binds.clear();
       }
 
@@ -324,6 +327,21 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
       }
 
       title_id = std::stoul(cur_section, nullptr, 16);
+
+      if (prev_title_id != title_id) {
+        key_binds_.emplace(prev_title_id, cur_title_binds);
+        cur_title_binds.clear();
+        prev_title_id = title_id;
+      }
+
+      cur_section = line.substr(sep + 2, line.length() - 2);
+      auto divider = cur_section.find_first_of('-');
+      if (divider > 0) {
+        cur_type = cur_section.substr(0, divider - 1);
+      } else {
+        cur_type =
+            "Default";  // backwards compatibility with old section headers
+      }
 
       continue;
     }
@@ -358,11 +376,6 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
     // Parse value
     auto const value = ParseButtonCombination(val_str.c_str());
     cur_binds.emplace(key, value);
-  }
-
-  if (cur_binds.size() > 0) {
-    key_binds_.emplace(title_id, cur_binds);
-    cur_binds.clear();
   }
 }
 
@@ -458,9 +471,18 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         std::map<ui::VirtualKey, uint32_t> binds;
 
         if (key_binds_.find(title_id) == key_binds_.end()) {
-          binds = key_binds_.at(0);
+          binds = key_binds_.at(0).at("Default");
         } else {
-          binds = key_binds_.at(title_id);
+          if (key_binds_.at(title_id).size() > 1) {
+            for (auto& game : hookable_games_) {
+              if (game->IsGameSupported()) {
+                binds = key_binds_.at(title_id).at(game->ChooseBinds());
+                break;
+              }
+            }
+          } else {
+            binds = key_binds_.at(title_id).at("Default");
+          }
         }
 
         const auto vk_key = static_cast<ui::VirtualKey>(i);
