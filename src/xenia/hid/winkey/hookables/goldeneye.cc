@@ -495,6 +495,31 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
+std::string GoldeneyeGame::ChooseBinds() {
+  auto& game_addrs = supported_builds[game_build_];
+  auto players_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      game_addrs.player_addr);
+
+  if (!players_addr) {
+    return "Default";
+  }
+
+  auto* player = kernel_memory()->TranslateVirtual(players_addr);
+  uint32_t game_control_disabled = 0;
+
+  if (game_addrs.player_offset_watch_status) {
+    game_control_disabled =
+        *(xe::be<uint32_t>*)(player + game_addrs.player_offset_watch_status);
+    if (game_control_disabled) {
+      return "Watch";
+    } else {
+      return "Default";
+    }
+  } else {
+    return "Default";
+  }
+}
+
 // GE modifier reduces LS-movement, to allow for walk speed to be reduced
 // (ie a 'walk' button)
 bool GoldeneyeGame::ModifierKeyHandler(uint32_t user_index,
