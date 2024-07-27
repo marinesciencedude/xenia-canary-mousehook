@@ -138,6 +138,8 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
+std::string Crackdown2Game::ChooseBinds() { return "Default"; }
+
 bool Crackdown2Game::ModifierKeyHandler(uint32_t user_index,
                                         RawInputState& input_state,
                                         X_INPUT_STATE* out_state) {
