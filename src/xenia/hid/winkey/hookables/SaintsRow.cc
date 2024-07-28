@@ -81,11 +81,6 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  // Don't constantly write if there is no mouse movement.
-  if (input_state.mouse.x_delta == 0 || input_state.mouse.y_delta == 0) {
-    return false;
-  }
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
