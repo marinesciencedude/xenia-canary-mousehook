@@ -32,7 +32,7 @@ DEFINE_bool(swap_wheel, false,
             "MouseHook");
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_bool(disable_autoaim, true,
-            "Disable autoaim in games that support it (currently GE & PD)",
+            "Disable autoaim in games that support it (currently GE,PD and SR)",
             "MouseHook");
 DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
               "MouseHook");
