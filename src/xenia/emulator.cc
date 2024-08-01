@@ -82,7 +82,8 @@ DEFINE_bool(ge_debug_menu, false,
             "(GoldenEye) Enables the debug menu, accessible with LB/1",
             "MouseHook");
 DEFINE_bool(sr2_better_drive_cam, true,
-            "(Saints Row 2) unties X rotation from vehicles when auto-centering disabled akin to GTA IV.",
+            "(Saints Row 2) unties X rotation from vehicles when "
+            "auto-centering disabled akin to GTA IV.",
             "MouseHook");
 
 DEFINE_bool(sr2_better_handbrake_cam, true,
@@ -91,7 +92,9 @@ DEFINE_bool(sr2_better_handbrake_cam, true,
             "MouseHook");
 
 DEFINE_double(right_stick_hold_time_workaround, 33,
-              "For games that move the right stick alongside the mouse, this declares how long to hold in that direction when mouse movement is detected. (Currently Saints Row 2)",
+              "For games that move the right stick alongside the mouse, this "
+              "declares how long to hold in that direction when mouse movement "
+              "is detected. (Currently Saints Row 2)",
               "MouseHook");
 
 DEFINE_bool(allow_game_relative_writes, false,
@@ -1475,7 +1478,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     }
   }
 
-   if (module->title_id() == 0x545107FC) {
+  if (module->title_id() == 0x545107FC) {
     struct SR2PatchOffsets {
       uint32_t check_addr;
       uint32_t check_value;
@@ -1486,7 +1489,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t multiplierwrite_addr3;
       uint32_t multiplierwrite_addr4;
 
-      uint32_t zero_patch1; // Not Exactly zero but 0.001f otherwise it'll break interiors - Clippy95
+      uint32_t zero_patch1;  // Not Exactly zero but 0.001f otherwise it'll
+                             // break interiors - Clippy95
       uint32_t sensYwrite_addr1;
       uint32_t sensYwrite_addr2;
       uint32_t sensYwrite_addr3;
@@ -1500,7 +1504,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t sensXwrite_addr3;
       uint32_t sensXwrite_addr4;
       uint32_t sensXwrite_addr5;
-      uint32_t sensXwrite_addr6; 
+      uint32_t sensXwrite_addr6;
       uint32_t sensXwrite_addr7;
 
       uint32_t sensYvalue_addr1;
@@ -1512,10 +1516,10 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t multiplierread_addr4;
       uint32_t multiplierread_addr5;
 
-      uint32_t sensYwrite_addr8; 
+      uint32_t sensYwrite_addr8;
       uint32_t sensXwrite_addr8;
-      uint32_t Vehicle_RotationXWrite_addr1; 
-      uint32_t Vehicle_RotationXWrite_addr2; // Handbrake.
+      uint32_t Vehicle_RotationXWrite_addr1;
+      uint32_t Vehicle_RotationXWrite_addr2;  // Handbrake.
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
     };
 
@@ -1529,7 +1533,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
          0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0},
     };
 
-for (auto& build : supported_builds) {
+    for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
           build.check_addr);
       if (*test_addr != build.check_value) {
@@ -1570,7 +1574,8 @@ for (auto& build : supported_builds) {
         patch_addr(build.Vehicle_RotationXWrite_addr1, build.beNOP);
       }
 
-      if (cvars::sr2_better_handbrake_cam && build.Vehicle_RotationXWrite_addr2) {
+      if (cvars::sr2_better_handbrake_cam &&
+          build.Vehicle_RotationXWrite_addr2) {
         patch_addr(build.Vehicle_RotationXWrite_addr2, build.beNOP);
       }
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
