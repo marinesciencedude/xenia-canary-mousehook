@@ -134,6 +134,7 @@ static const std::map<std::string, ui::VirtualKey> kKeyMap = {
     {"rctrl", ui::VirtualKey::kRControl},
     {"altgr", ui::VirtualKey::kRMenu},
     {"ralt", ui::VirtualKey::kRMenu},
+    {"capslock", ui::VirtualKey::kCapital},
 
     {"lshift", ui::VirtualKey::kLShift},
     {"shift", ui::VirtualKey::kLShift},
