@@ -83,7 +83,7 @@ DEFINE_bool(ge_debug_menu, false,
             "MouseHook");
 DEFINE_bool(sr2_better_drive_cam, true,
             "(Saints Row 2) unties X rotation from vehicles when "
-            "auto-centering disabled akin to GTA IV.",
+            "auto-centering is disabled akin to GTA IV.",
             "MouseHook");
 
 DEFINE_bool(sr2_better_handbrake_cam, true,
