@@ -54,7 +54,7 @@ SourceEngine::~SourceEngine() = default;
 
 struct GameBuildAddrs {
   uint32_t title_id;
-  std::string title_version;
+  const char* title_version;
   uint32_t execute_addr;
   uint32_t angle_offset;
 };
