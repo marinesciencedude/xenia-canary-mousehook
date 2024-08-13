@@ -82,6 +82,21 @@ DEFINE_bool(ge_remove_blur, false,
 DEFINE_bool(ge_debug_menu, false,
             "(GoldenEye) Enables the debug menu, accessible with LB/1",
             "MouseHook");
+DEFINE_bool(sr2_better_drive_cam, true,
+            "(Saints Row 2) unties X rotation from vehicles when "
+            "auto-centering is disabled akin to GTA IV.",
+            "MouseHook");
+
+DEFINE_bool(sr2_better_handbrake_cam, true,
+            "(Saints Row 2) unties X rotation from vehicles when "
+            "handbraking akin to SR1.",
+            "MouseHook");
+
+DEFINE_double(right_stick_hold_time_workaround, 33,
+              "For games that move the right stick alongside the mouse, this "
+              "declares how long to hold in that direction when mouse movement "
+              "is detected. (Currently Saints Row 2)",
+              "MouseHook");
 
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
@@ -92,6 +107,7 @@ DEFINE_bool(allow_game_relative_writes, false,
 DECLARE_int32(user_language);
 
 DECLARE_bool(allow_plugins);
+DECLARE_bool(disable_autoaim);
 
 namespace xe {
 using namespace xe::literals;
@@ -1623,6 +1639,114 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       if (cvars::ge_debug_menu && build.debug_addr) {
         // Enable debug menu
         patch_addr(build.debug_addr, 0x2B0B0000);
+      }
+
+      break;
+    }
+  }
+
+  if (module->title_id() == 0x545107FC) {
+    struct SR2PatchOffsets {
+      uint32_t check_addr;
+      uint32_t check_value;
+
+      uint32_t beNOP;
+      uint32_t multiplierwrite_addr1;
+      uint32_t multiplierwrite_addr2;
+      uint32_t multiplierwrite_addr3;
+      uint32_t multiplierwrite_addr4;
+
+      uint32_t zero_patch1;  // Not Exactly zero but 0.001f otherwise it'll
+                             // break interiors - Clippy95
+      uint32_t sensYwrite_addr1;
+      uint32_t sensYwrite_addr2;
+      uint32_t sensYwrite_addr3;
+      uint32_t sensYwrite_addr4;
+      uint32_t sensYwrite_addr5;
+      uint32_t sensYwrite_addr6;
+      uint32_t sensYwrite_addr7;
+
+      uint32_t sensXwrite_addr1;
+      uint32_t sensXwrite_addr2;
+      uint32_t sensXwrite_addr3;
+      uint32_t sensXwrite_addr4;
+      uint32_t sensXwrite_addr5;
+      uint32_t sensXwrite_addr6;
+      uint32_t sensXwrite_addr7;
+
+      uint32_t sensYvalue_addr1;
+      uint32_t sensXvalue_addr2;
+
+      uint32_t multiplierread_addr1;
+      uint32_t multiplierread_addr2;
+      uint32_t multiplierread_addr3;
+      uint32_t multiplierread_addr4;
+      uint32_t multiplierread_addr5;
+
+      uint32_t sensYwrite_addr8;
+      uint32_t sensXwrite_addr8;
+      uint32_t Vehicle_RotationXWrite_addr1;
+      uint32_t Vehicle_RotationXWrite_addr2;  // Handbrake.
+      uint32_t aim_assist_xbtl;  // File declares aim_assist values.
+    };
+
+    std::vector<SR2PatchOffsets> supported_builds = {
+        // TU3 Release build
+        {0x82014390, 0x3d088889, 0x60000000, 0x8219f5b8, 0x8219f5cc, 0x8219f61c,
+         0x8219f5f4, 0x38d1b717, 0x824788fc, 0x824e7f58, 0x824e6ac8, 0x82478090,
+         0x8247832c, 0x821a4b84, 0x824e6a68, 0x824e7f50, 0x824e6b8c, 0x82478934,
+         0x824e6b2c, 0x82478330, 0x82478094, 0x821a4b88, 0x82B7A5AC, 0x82B7A5A8,
+         0x82B77C04, 0x82B77C08, 0x82B77C0C, 0x82B77C08, 0x82B77C10, 0x821A4D20,
+         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0},
+    };
+
+    for (auto& build : supported_builds) {
+      auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+          build.check_addr);
+      if (*test_addr != build.check_value) {
+        continue;
+      }
+
+      // Write beNOP to each write address
+      patch_addr(build.multiplierwrite_addr1, build.beNOP);
+      patch_addr(build.multiplierwrite_addr2, build.beNOP);
+      patch_addr(build.multiplierwrite_addr3, build.beNOP);
+      patch_addr(build.multiplierwrite_addr4, build.beNOP);
+      patch_addr(build.sensYwrite_addr1, build.beNOP);
+      patch_addr(build.sensYwrite_addr2, build.beNOP);
+      patch_addr(build.sensYwrite_addr3, build.beNOP);
+      patch_addr(build.sensYwrite_addr4, build.beNOP);
+      patch_addr(build.sensYwrite_addr5, build.beNOP);
+      patch_addr(build.sensYwrite_addr6, build.beNOP);
+      patch_addr(build.sensYwrite_addr7, build.beNOP);
+      patch_addr(build.sensYwrite_addr8, build.beNOP);
+      patch_addr(build.sensXwrite_addr1, build.beNOP);
+      patch_addr(build.sensXwrite_addr2, build.beNOP);
+      patch_addr(build.sensXwrite_addr3, build.beNOP);
+      patch_addr(build.sensXwrite_addr4, build.beNOP);
+      patch_addr(build.sensXwrite_addr5, build.beNOP);
+      patch_addr(build.sensXwrite_addr6, build.beNOP);
+      patch_addr(build.sensXwrite_addr7, build.beNOP);
+      patch_addr(build.sensXwrite_addr8, build.beNOP);
+
+      // Write zero_patch1 to each read and sens value address
+      patch_addr(build.multiplierread_addr1, build.zero_patch1);
+      patch_addr(build.multiplierread_addr2, build.zero_patch1);
+      patch_addr(build.multiplierread_addr3, build.zero_patch1);
+      patch_addr(build.multiplierread_addr4, build.zero_patch1);
+      patch_addr(build.multiplierread_addr5, build.zero_patch1);
+      patch_addr(build.sensYvalue_addr1, build.zero_patch1);
+      patch_addr(build.sensXvalue_addr2, build.zero_patch1);
+      if (cvars::sr2_better_drive_cam && build.Vehicle_RotationXWrite_addr1) {
+        patch_addr(build.Vehicle_RotationXWrite_addr1, build.beNOP);
+      }
+
+      if (cvars::sr2_better_handbrake_cam &&
+          build.Vehicle_RotationXWrite_addr2) {
+        patch_addr(build.Vehicle_RotationXWrite_addr2, build.beNOP);
+      }
+      if (cvars::disable_autoaim && build.aim_assist_xbtl) {
+        patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
 
       break;
