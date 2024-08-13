@@ -33,17 +33,17 @@ namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  const char* title_version;
   uint32_t base_address;
-  std::string title_version;
   uint32_t x_offset;
   uint32_t y_offset;
 };
 
 std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
     {Crackdown2Game::GameBuild::Crackdown2_TU0,
-     {0x836C6520, "1.0", 0x7EC, 0x7E8}},
+     {"1.0", 0x836C6520, 0x7EC, 0x7E8}},
     {Crackdown2Game::GameBuild::Crackdown2_TU5,
-     {0x83800F88, "1.0.5", 0x7EC, 0x7E8}}};
+     {"1.0.5", 0x83800F88, 0x7EC, 0x7E8}}};
 
 Crackdown2Game::~Crackdown2Game() = default;
 
