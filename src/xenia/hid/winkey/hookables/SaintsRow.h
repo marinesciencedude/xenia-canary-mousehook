@@ -10,6 +10,7 @@
 #ifndef XENIA_HID_WINKEY_SaintsRow_H_
 #define XENIA_HID_WINKEY_SaintsRow_H_
 
+#include <chrono>  // Include for chrono timing
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
 namespace xe {
@@ -37,6 +38,11 @@ class SaintsRowGame : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+
+  // Timer variables to hold the state for a while // this is probably not ideal
+  // -Clippy95
+  std::chrono::steady_clock::time_point last_movement_time_x_;
+  std::chrono::steady_clock::time_point last_movement_time_y_;
 };
 
 }  // namespace winkey
