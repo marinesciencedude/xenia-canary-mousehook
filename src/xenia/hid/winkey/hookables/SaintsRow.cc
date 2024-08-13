@@ -26,6 +26,8 @@ using namespace xe::kernel;
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
+DECLARE_bool(disable_autoaim);
+DECLARE_double(right_stick_hold_time_workaround);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
 
@@ -33,15 +35,22 @@ namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  const char* title_version;
   uint32_t x_address;
-  std::string title_version;
   uint32_t y_address;
+  uint32_t player_status_address;
+  uint32_t pressB_status_address;
+  uint32_t menu_status_address;
+  uint32_t sniper_status_1_address;
+  uint32_t sniper_status_2_address;
 };
 
 std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRowGame::GameBuild::Unknown, {NULL, "", NULL}},
+    {SaintsRowGame::GameBuild::Unknown,
+     {"", NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
     {SaintsRowGame::GameBuild::SaintsRow2_TU3,
-     {0x82B7A570, "8.0.3", 0x82B7A590}}};
+     {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA0,
+      0x82BCBA78, 0x82BCBA79}}};
 
 SaintsRowGame::~SaintsRowGame() = default;
 
@@ -78,6 +87,59 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   if (supported_builds.count(game_build_) == 0) {
+    return false;
+  }
+
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - last_movement_time_x_)
+                       .count();
+  auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - last_movement_time_y_)
+                       .count();
+
+  // Declare static variables for last deltas
+  static int last_x_delta = 0;
+  static int last_y_delta = 0;
+
+  const long long hold_time =
+      static_cast<long long>(cvars::right_stick_hold_time_workaround);
+  // Check for mouse movement and set thumbstick values
+  if (input_state.mouse.x_delta != 0) {
+    if (input_state.mouse.x_delta > 0) {
+      out_state->gamepad.thumb_rx = SHRT_MAX;
+    } else {
+      out_state->gamepad.thumb_rx = SHRT_MIN;
+    }
+    last_movement_time_x_ = now;
+    last_x_delta = input_state.mouse.x_delta;
+  } else if (elapsed_x < hold_time) {  // hold time
+    if (last_x_delta > 0) {
+      out_state->gamepad.thumb_rx = SHRT_MAX;
+    } else {
+      out_state->gamepad.thumb_rx = SHRT_MIN;
+    }
+  }
+
+  if (input_state.mouse.y_delta != 0) {
+    if (input_state.mouse.y_delta > 0) {
+      out_state->gamepad.thumb_ry = SHRT_MAX;
+    } else {
+      out_state->gamepad.thumb_ry = SHRT_MIN;
+    }
+    last_movement_time_y_ = now;
+    last_y_delta = input_state.mouse.y_delta;
+  } else if (elapsed_y < hold_time) {  // hold time
+    if (last_y_delta > 0) {
+      out_state->gamepad.thumb_ry = SHRT_MIN;
+    } else {
+      out_state->gamepad.thumb_ry = SHRT_MAX;
+    }
+  }
+
+  // Return true if either X or Y delta is non-zero or if within the hold time
+  if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
+      elapsed_x >= hold_time && elapsed_y >= hold_time) {
     return false;
   }
 
@@ -121,12 +183,79 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
-std::string SaintsRowGame::ChooseBinds() { return "Default"; }
+std::string SaintsRowGame::ChooseBinds() {
+  // Highest priority:
+  auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].pressB_status_address);
+
+  auto* menu_status = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].menu_status_address);
+
+  if (wheel_status && *wheel_status != 0 &&
+      *menu_status == 2) {  // Need to check menu_status otherwise pressing B in
+                            // some menus will cause you to get stuck if
+                            // WheelOpen binds difer from Menu.
+    return "WheelOpen";
+  }
+
+  // Check the menu status next
+
+  if (menu_status && *menu_status != 2) {
+    return "Menu";
+  }
+
+  // Check the player status next
+  auto* player_status = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].player_status_address);
+  if (player_status) {
+    switch (*player_status) {
+      case 3:
+      case 5:
+        return "Vehicle";
+      case 6:
+        return "Helicopter";
+      case 8:
+        return "Aircraft";
+      default:
+        break;
+    }
+  }
+
+  // Check the sniper status last
+  auto* sniper_status_1 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].sniper_status_1_address);
+  auto* sniper_status_2 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].sniper_status_2_address);
+  if (sniper_status_1 && sniper_status_2 && *sniper_status_2 < 20 &&
+      *sniper_status_1 != 255) {
+    return "Sniper";
+  }
+
+  return "Default";
+}
 
 bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
                                        RawInputState& input_state,
                                        X_INPUT_STATE* out_state) {
-  return false;
+  float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
+  float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
+
+  if (thumb_lx != 0 ||
+      thumb_ly !=
+          0) {  // Required otherwise stick is pushed to the right by default.
+    // Work out angle from the current stick values
+    float angle = atan2f(thumb_ly, thumb_lx);
+
+    // Sticks get set to SHRT_MAX if key pressed, use half of that
+    float distance = (float)SHRT_MAX;
+    distance /= 2;
+
+    out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
+    out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
+  }
+  // Return true to signal that we've handled the modifier, so default modifier
+  // won't be used
+  return true;
 }
 }  // namespace winkey
 }  // namespace hid
