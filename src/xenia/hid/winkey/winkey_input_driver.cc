@@ -32,7 +32,7 @@ DEFINE_bool(swap_wheel, false,
             "MouseHook");
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_bool(disable_autoaim, true,
-            "Disable autoaim in games that support it (currently GE & PD)",
+            "Disable autoaim in games that support it (currently GE,PD and SR)",
             "MouseHook");
 DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
               "MouseHook");
@@ -134,6 +134,7 @@ static const std::map<std::string, ui::VirtualKey> kKeyMap = {
     {"rctrl", ui::VirtualKey::kRControl},
     {"altgr", ui::VirtualKey::kRMenu},
     {"ralt", ui::VirtualKey::kRMenu},
+    {"capslock", ui::VirtualKey::kCapital},
 
     {"lshift", ui::VirtualKey::kLShift},
     {"shift", ui::VirtualKey::kLShift},
