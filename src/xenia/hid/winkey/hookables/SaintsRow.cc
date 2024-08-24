@@ -164,7 +164,7 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].sniper_status_address);
 
-  float divisor = (*sniper_status == 0) ? 50.f : 10.f;
+  float divisor = (*sniper_status == 0) ? 50.f : 4.f;
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
