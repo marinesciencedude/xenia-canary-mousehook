@@ -41,16 +41,14 @@ struct GameBuildAddrs {
   uint32_t player_status_address;
   uint32_t pressB_status_address;
   uint32_t menu_status_address;
-  uint32_t sniper_status_1_address;
-  uint32_t sniper_status_2_address;
+  uint32_t sniper_status_address;
 };
 
 std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRowGame::GameBuild::Unknown,
-     {"", NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+    {SaintsRowGame::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
     {SaintsRowGame::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA0,
-      0x82BCBA78, 0x82BCBA79}}};
+      0x82BCBA78}}};
 
 SaintsRowGame::~SaintsRowGame() = default;
 
@@ -163,19 +161,28 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_x = RadianstoDegree(*radian_x);
   float degree_y = RadianstoDegree(*radian_y);
 
+  auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].sniper_status_address);
+
+  float divisor = (*sniper_status == 0) ? 50.f : 10.f;
+
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    degree_x += (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    degree_x +=
+        (input_state.mouse.x_delta / divisor) * (float)cvars::sensitivity;
   } else {
-    degree_x -= (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    degree_x -=
+        (input_state.mouse.x_delta / divisor) * (float)cvars::sensitivity;
   }
 
   *radian_x = DegreetoRadians(degree_x);
 
   if (!cvars::invert_y) {
-    degree_y += (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    degree_y +=
+        (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
   } else {
-    degree_y -= (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    degree_y -=
+        (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
   }
 
   *radian_y = DegreetoRadians(degree_y);
@@ -219,16 +226,6 @@ std::string SaintsRowGame::ChooseBinds() {
       default:
         break;
     }
-  }
-
-  // Check the sniper status last
-  auto* sniper_status_1 = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].sniper_status_1_address);
-  auto* sniper_status_2 = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].sniper_status_2_address);
-  if (sniper_status_1 && sniper_status_2 && *sniper_status_2 < 20 &&
-      *sniper_status_1 != 255) {
-    return "Sniper";
   }
 
   return "Default";
