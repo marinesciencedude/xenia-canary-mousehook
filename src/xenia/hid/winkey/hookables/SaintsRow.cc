@@ -42,13 +42,14 @@ struct GameBuildAddrs {
   uint32_t pressB_status_address;
   uint32_t menu_status_address;
   uint32_t sniper_status_address;
+  uint32_t currentFOV_address;
 };
 
 std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRowGame::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
     {SaintsRowGame::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA0,
-      0x82BCBA78}}};
+      0x82BCBA78, 0x82B7A4BC}}};
 
 SaintsRowGame::~SaintsRowGame() = default;
 
@@ -164,7 +165,15 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].sniper_status_address);
 
-  float divisor = (*sniper_status == 0) ? 50.f : 4.f;
+  float divisor;
+  if (*sniper_status == 0) {
+    xe::be<float>* currentFOV =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].currentFOV_address);
+    divisor = (58.f / *currentFOV) * 10.0f;
+  } else {
+    divisor = 5.5f;
+  }
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
