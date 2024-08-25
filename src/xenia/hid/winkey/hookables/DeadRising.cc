@@ -79,11 +79,7 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  //if (supported_builds.count(game_build_) == 0) {
-  //  return false;
- // }
 
-  // Don't constantly write if there is no mouse movement.
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -97,11 +93,10 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].y_address);
 
-/* if (!radian_x || *radian_x == NULL) {
+ if (!radian_x || *radian_x == NULL) {
     // Not in game
     return false;
   }
-  */
   float degree_x = RadianstoDegree(*radian_x);
   float degree_y = RadianstoDegree(*radian_y);
 
