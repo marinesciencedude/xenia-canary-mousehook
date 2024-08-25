@@ -46,7 +46,6 @@ std::map<DeadRisingGame::GameBuild, GameBuildAddrs> supported_builds{
     {DeadRisingGame::GameBuild::DeadRising2_CaseWest,
      {kTitleIdDR2CW, 0xA94DF458, 0xA94DF45C}}};
 
-
 DeadRisingGame::~DeadRisingGame() = default;
 
 bool DeadRisingGame::IsGameSupported() {
@@ -74,12 +73,10 @@ float DeadRisingGame::RadianstoDegree(float radians) {
 }
 
 bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                            X_INPUT_STATE* out_state) {
+                             X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
-
-
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -93,7 +90,7 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].y_address);
 
- if (!radian_x || *radian_x == NULL) {
+  if (!radian_x || *radian_x == NULL) {
     // Not in game
     return false;
   }
@@ -123,8 +120,8 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 std::string DeadRisingGame::ChooseBinds() { return "Default"; }
 
 bool DeadRisingGame::ModifierKeyHandler(uint32_t user_index,
-                                       RawInputState& input_state,
-                                       X_INPUT_STATE* out_state) {
+                                        RawInputState& input_state,
+                                        X_INPUT_STATE* out_state) {
   return false;
 }
 }  // namespace winkey
