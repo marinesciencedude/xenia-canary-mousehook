@@ -23,6 +23,7 @@
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
+#include "xenia/hid/winkey/hookables/CallOfDuty.h"
 
 DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
 DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");
@@ -396,6 +397,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
   hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
