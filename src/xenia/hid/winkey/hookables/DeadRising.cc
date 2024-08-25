@@ -28,24 +28,40 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
 const uint32_t kTitleIdDR2CZ = 0x58410A8D;
+const uint32_t kTitleIdDR2CW = 0x58410B00;
 
 namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  uint32_t title_id;
   uint32_t x_address;
   uint32_t y_address;
 };
 
 std::map<DeadRisingGame::GameBuild, GameBuildAddrs> supported_builds{
-    {DeadRisingGame::GameBuild::Unknown, {NULL, NULL}},
+    {DeadRisingGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {DeadRisingGame::GameBuild::DeadRising2_CaseZero,
-     {0x8273BAFC, 0xEA4D238C}}};
+     {kTitleIdDR2CZ, 0xAA4D2388, 0xAA4D238C}},
+    {DeadRisingGame::GameBuild::DeadRising2_CaseWest,
+     {kTitleIdDR2CW, 0xA94DF458, 0xA94DF45C}}};
+
 
 DeadRisingGame::~DeadRisingGame() = default;
 
 bool DeadRisingGame::IsGameSupported() {
-
+  auto title_id = kernel_state()->title_id();
+  if (title_id != kTitleIdDR2CZ && title_id != kTitleIdDR2CW) {
+    return false;
+  }
+  const std::string current_version =
+      kernel_state()->emulator()->title_version();
+  for (auto& build : supported_builds) {
+    if (title_id == build.second.title_id) {
+      game_build_ = build.first;
+      return true;
+    }
+  }
   return true;
 }
 
@@ -91,9 +107,9 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    degree_x += (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
-  } else {
     degree_x -= (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+  } else {
+    degree_x += (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
   }
 
   *radian_x = DegreetoRadians(degree_x);

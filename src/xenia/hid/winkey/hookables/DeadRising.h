@@ -18,7 +18,7 @@ namespace winkey {
 
 class DeadRisingGame : public HookableGame {
  public:
-  enum class GameBuild { Unknown, DeadRising2_CaseZero };
+  enum class GameBuild { Unknown, DeadRising2_CaseZero, DeadRising2_CaseWest };
 
   ~DeadRisingGame() override;
 
