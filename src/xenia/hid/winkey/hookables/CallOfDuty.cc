@@ -27,8 +27,8 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
-const uint32_t kTitleIdCOD4Alpha253SP = 0x415607E6;
-const uint32_t kTitleIdCOD3SP = 0x415607E1;
+const uint32_t kTitleIdCOD4 = 0x415607E6;
+const uint32_t kTitleIdCOD3 = 0x415607E1;
 
 namespace xe {
 namespace hid {
@@ -44,17 +44,18 @@ struct GameBuildAddrs {
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
-     {0x8204EB24, 0x63675F66, kTitleIdCOD4Alpha253SP, 0x8261246C, 0x82612468}},
+     {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468}},
+    {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253MP,
+     {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4}},
     {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
-     {0x82078F00, 0x63675F66, kTitleIdCOD3SP, 0x82A58F68, 0x82A58F64}}};
-
+     {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
 bool CallOfDutyGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
 
-  if (title_id != kTitleIdCOD4Alpha253SP && title_id != kTitleIdCOD3SP) {
+  if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3) {
     return false;
   }
 
@@ -71,23 +72,15 @@ bool CallOfDutyGame::IsGameSupported() {
   return false;
 }
 
-float CallOfDutyGame::DegreetoRadians(float degree) {
-  return (float)(degree * (M_PI / 180));
-}
-
-float CallOfDutyGame::RadianstoDegree(float radians) {
-  return (float)(radians * (180 / M_PI));
-}
-
 bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                            X_INPUT_STATE* out_state) {
+                             X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
 
-  //if (supported_builds.count(game_build_) == 0) {
-  //  return false;
- // }
+  // if (supported_builds.count(game_build_) == 0) {
+  //   return false;
+  // }
 
   // Don't constantly write if there is no mouse movement.
 
@@ -113,16 +106,20 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    new_degree_x -= (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    new_degree_x -=
+        (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
   } else {
-    new_degree_x += (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    new_degree_x +=
+        (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
   }
   *degree_x = new_degree_x;
 
   if (!cvars::invert_y) {
-    new_degree_y += (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    new_degree_y +=
+        (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
   } else {
-    new_degree_y -= (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    new_degree_y -=
+        (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
   }
   *degree_y = new_degree_y;
 
@@ -132,8 +129,8 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 std::string CallOfDutyGame::ChooseBinds() { return "Default"; }
 
 bool CallOfDutyGame::ModifierKeyHandler(uint32_t user_index,
-                                       RawInputState& input_state,
-                                       X_INPUT_STATE* out_state) {
+                                        RawInputState& input_state,
+                                        X_INPUT_STATE* out_state) {
   return false;
 }
 }  // namespace winkey
