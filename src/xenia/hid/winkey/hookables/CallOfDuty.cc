@@ -28,12 +28,14 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
 const uint32_t kTitleIdCOD4Alpha253SP = 0x415607E6;
-const uint32_t kTitleIdDR2CW = 0x58410B00;
+const uint32_t kTitleIdCOD3SP = 0x415607E1;
 
 namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  uint32_t check_addr;
+  uint32_t check_value;
   uint32_t title_id;
   uint32_t x_address;
   uint32_t y_address;
@@ -42,24 +44,30 @@ struct GameBuildAddrs {
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
-     {kTitleIdCOD4Alpha253SP, 0x8261246C, 0x82612468}}};
+     {0x8204EB24, 0x63675F66, kTitleIdCOD4Alpha253SP, 0x8261246C, 0x82612468}},
+    {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
+     {0x82078F00, 0x63675F66, kTitleIdCOD3SP, 0x82A58F68, 0x82A58F64}}};
 
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
 bool CallOfDutyGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
-  if (title_id != kTitleIdCOD4Alpha253SP) {
+
+  if (title_id != kTitleIdCOD4Alpha253SP && title_id != kTitleIdCOD3SP) {
     return false;
   }
-  const std::string current_version =
-      kernel_state()->emulator()->title_version();
+
   for (auto& build : supported_builds) {
-    if (title_id == build.second.title_id) {
+    auto* build_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+        build.second.check_addr);
+
+    if (*build_ptr == build.second.check_value) {
       game_build_ = build.first;
       return true;
     }
   }
+
   return false;
 }
 
