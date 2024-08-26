@@ -18,12 +18,12 @@
 #include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 
+#include "xenia/hid/winkey/hookables/CallOfDuty.h"
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
-#include "xenia/hid/winkey/hookables/CallOfDuty.h"
 
 DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
 DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");

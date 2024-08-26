@@ -22,6 +22,13 @@ class CallOfDutyGame : public HookableGame {
     Unknown,
     CallOfDuty4_Alpha_253SP,
     CallOfDuty4_Alpha_253MP,
+    CallOfDuty4_Alpha_270SP,
+    CallOfDuty4_Alpha_270MP,
+    CallOfDuty4_Alpha_290SP,
+    CallOfDuty4_Alpha_290MP,
+    CallOfDuty4_Alpha_328SP,
+    CallOfDuty4_Alpha_328MP,
+    CallOfDutyMW2_Alpha_482SP,
     CallOfDuty3_SP,
     New_Moon_PatchedXEX
   };
@@ -29,7 +36,6 @@ class CallOfDutyGame : public HookableGame {
   ~CallOfDutyGame() override;
 
   bool IsGameSupported();
-
 
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
