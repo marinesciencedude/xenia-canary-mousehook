@@ -27,6 +27,7 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
+const uint32_t kTitleIdCODBO2 = 0x415608C3;
 const uint32_t kTitleIdCOD4 = 0x415607E6;
 const uint32_t kTitleIdCOD3 = 0x415607E1;
 
@@ -35,7 +36,7 @@ namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
   uint32_t check_addr;
-  uint32_t check_value;
+  uint32_t check_value; //cg_fo
   uint32_t title_id;
   uint32_t x_address;
   uint32_t y_address;
@@ -48,14 +49,16 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253MP,
      {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4}},
     {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
-     {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64}}};
+     {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64}},
+    {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
+     {0x82004860, 0x63675F66, kTitleIdCODBO2, 0xBAAE49E8, 0xBAAE49E4}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
 bool CallOfDutyGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
 
-  if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3) {
+  if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3 && title_id !=kTitleIdCODBO2) {
     return false;
   }
 

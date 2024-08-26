@@ -22,15 +22,14 @@ class CallOfDutyGame : public HookableGame {
     Unknown,
     CallOfDuty4_Alpha_253SP,
     CallOfDuty4_Alpha_253MP,
-    CallOfDuty3_SP
+    CallOfDuty3_SP,
+    New_Moon_PatchedXEX
   };
 
   ~CallOfDutyGame() override;
 
   bool IsGameSupported();
 
-  float RadianstoDegree(float radians);
-  float DegreetoRadians(float degree);
 
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
