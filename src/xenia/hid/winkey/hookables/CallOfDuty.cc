@@ -79,8 +79,8 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
      {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64,
       0x825CE5F8,NULL}},
     {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
-     {0x82004860, 0x63675F66, kTitleIdCODBO2, 0xBAAE49E8, 0xBAAE49E4,
-      0xBAAE4954, 0x829FA9C8, 0x2C38}}};
+     {0x82004860, 0x63675F66, kTitleIdCODBO2, NULL, NULL, 0x82866DAC,
+      0x829FA9C8, 0x2C38}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
