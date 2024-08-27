@@ -42,43 +42,45 @@ struct GameBuildAddrs {
   uint32_t x_address;
   uint32_t y_address;
   uint32_t fovscale_address;
+  uint32_t base_address;  // Static addresses in older cods, needs pointers in newer cods?
+  uint32_t x_offset;
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
      {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468,
-      0x82612458}},
+      0x82612458,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253MP,
      {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4,
-      0x8254EE50}},
+      0x8254EE50,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270SP,
      {0x8204E7FC, 0x63675F66, kTitleIdCOD4, 0x8262E168, 0x8262E164,
-      0x82612458}},
+      0x82612458,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270MP,
      {0x8205617C, 0x63675F66, kTitleIdCOD4, 0x82B9F664, 0x82B9F660,
-      0x82558944}},
+      0x82558944,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290SP,
      {0x8203ABE8, 0x63675F66, kTitleIdCOD4, 0x8247C808, 0x8247C804,
-      0x82348900}},
+      0x82348900,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290MP,
      {0x82042588, 0x63675F66, kTitleIdCOD4, 0x82A7F57C, 0x82A7F578,
-      0x823A1F04}},
+      0x823A1F04,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328SP,
      {0x82009C80, 0x63675F66, kTitleIdCOD4, 0x826A8640, 0x826A863C,
-      0x82567E8C}},
+      0x82567E8C,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328MP,
      {0x8200BB2C, 0x63675F66, kTitleIdCOD4, 0xB384B650, 0xB384B64C,
-      0x826027D0}},
+      0x826027D0,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_Alpha_482SP,
      {0x82007560, 0x63675F66, kTitleIdCODMW2, 0x82627D08, 0x82627D04,
-      0x824609CC}},
+      0x824609CC,NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
      {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64,
-      0x825CE5F8}},
+      0x825CE5F8,NULL}},
     {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
      {0x82004860, 0x63675F66, kTitleIdCODBO2, 0xBAAE49E8, 0xBAAE49E4,
-      0xBAAE4954}}};
+      0xBAAE4954, 0x829FA9C8, 0x2C38}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -121,11 +123,26 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  xe::be<float>* degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].x_address);
+ xe::be<float>* degree_x;
+  xe::be<float>* degree_y;
 
-  xe::be<float>* degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].y_address);
+  if (supported_builds[game_build_].base_address != NULL) {
+    // Calculate based on base address
+    uint32_t base_address =
+        *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].base_address);
+    int32_t offset = supported_builds[game_build_].x_offset;
+    degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
+                                                                 offset);
+    degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
+                                                                 offset - 4);
+  } else {
+    // Use pre-defined addresses for other builds
+    degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].x_address);
+    degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].y_address);
+  }
   xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].fovscale_address);
 
@@ -138,8 +155,8 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   */
 
-  if (calc_fovscale < 0.1f) {  // Required check otherwise mouse stops working.
-    calc_fovscale = 0.1f;
+  if (calc_fovscale == 0) {  // Required check otherwise mouse stops working.
+    calc_fovscale = 1.f;
   }
   const float a =
       0.1f;  // Quadratic scaling to make fovscale effect sens stronger
