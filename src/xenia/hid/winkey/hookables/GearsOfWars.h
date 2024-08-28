@@ -18,7 +18,15 @@ namespace winkey {
 
 class GearsOfWarsGame : public HookableGame {
  public:
-  enum class GameBuild { Unknown, GearsOfWars2_TU6 };
+  enum class GameBuild {
+    Unknown,
+    GearsOfWars2_TU6,
+    GearsOfWars1_TU0,
+    GearsOfWars3_TU0,
+    GearsOfWars3_TU6,
+    GearsOfWarsJudgment_TU0,
+    GearsOfWarsJudgment_TU4
+  };
 
   ~GearsOfWarsGame() override;
 
