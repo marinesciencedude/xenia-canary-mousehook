@@ -47,6 +47,12 @@ struct GameBuildAddrs {
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
+    {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_SP,
+     {0x82044468, 0x63675F66, kTitleIdCOD4, 0x824F6BDC, 0x824f6bd8, 0x824F6BC8,
+      NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_MP,
+     {0x82BAD56C, 0x63675F66, kTitleIdCOD4, 0xB1EE9BB0, 0xB1EE9BAC, 0x823B53A8,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
      {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468,
       0x82612458,NULL}},
@@ -159,14 +165,14 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     calc_fovscale = 1.f;
   }
   const float a =
-      0.1f;  // Quadratic scaling to make fovscale effect sens stronger
+      0.85f;  // Quadratic scaling to make fovscale effect sens stronger
   if (calc_fovscale != 1.f) {
     calc_fovscale =
         (1 - a) * (calc_fovscale * calc_fovscale) + a * calc_fovscale;
   }
 
   float divsor;
-  divsor = 7.5f / calc_fovscale;
+  divsor = 12.f / calc_fovscale;
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
