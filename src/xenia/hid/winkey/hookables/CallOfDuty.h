@@ -19,7 +19,7 @@ namespace winkey {
 class CallOfDutyGame : public HookableGame {
  public:
   enum class GameBuild {
-    Unknown,
+    Unknown = 0,
     CallOfDuty4_Alpha_253SP,
     CallOfDuty4_Alpha_253MP,
     CallOfDuty4_Alpha_270SP,

@@ -47,7 +47,6 @@ struct GameBuildAddrs {
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
-    {CallOfDutyGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
      {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468,
       0x82612458,NULL}},
@@ -95,7 +94,8 @@ bool CallOfDutyGame::IsGameSupported() {
   for (auto& build : supported_builds) {
     auto* build_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         build.second.cg_fov_address);
-
+    //printf("Processing build: %d\n", static_cast<int>(build.first));
+    //printf("ADDRESS IS THIS: 0x%08X\n", build.second.cg_fov_address);
     if (*build_ptr == build.second.cg_fov) {
       game_build_ = build.first;
       return true;
