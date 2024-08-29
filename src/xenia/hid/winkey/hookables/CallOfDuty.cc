@@ -42,7 +42,8 @@ struct GameBuildAddrs {
   uint32_t x_address;
   uint32_t y_address;
   uint32_t fovscale_address;
-  uint32_t base_address;  // Static addresses in older cods, needs pointers in newer cods?
+  uint32_t base_address;  // Static addresses in older cods, needs pointers in
+                          // newer cods?
   uint32_t x_offset;
 };
 
@@ -54,35 +55,35 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
      {0x82BAD56C, 0x63675F66, kTitleIdCOD4, 0xB1EE9BB0, 0xB1EE9BAC, 0x823B53A8,
       NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
-     {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468,
-      0x82612458,NULL}},
+     {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468, 0x82612458,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253MP,
-     {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4,
-      0x8254EE50,NULL}},
+     {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4, 0x8254EE50,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270SP,
-     {0x8204E7FC, 0x63675F66, kTitleIdCOD4, 0x8262E168, 0x8262E164,
-      0x82612458,NULL}},
+     {0x8204E7FC, 0x63675F66, kTitleIdCOD4, 0x8262E168, 0x8262E164, 0x82612458,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270MP,
-     {0x8205617C, 0x63675F66, kTitleIdCOD4, 0x82B9F664, 0x82B9F660,
-      0x82558944,NULL}},
+     {0x8205617C, 0x63675F66, kTitleIdCOD4, 0x82B9F664, 0x82B9F660, 0x82558944,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290SP,
-     {0x8203ABE8, 0x63675F66, kTitleIdCOD4, 0x8247C808, 0x8247C804,
-      0x82348900,NULL}},
+     {0x8203ABE8, 0x63675F66, kTitleIdCOD4, 0x8247C808, 0x8247C804, 0x82348900,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290MP,
-     {0x82042588, 0x63675F66, kTitleIdCOD4, 0x82A7F57C, 0x82A7F578,
-      0x823A1F04,NULL}},
+     {0x82042588, 0x63675F66, kTitleIdCOD4, 0x82A7F57C, 0x82A7F578, 0x823A1F04,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328SP,
-     {0x82009C80, 0x63675F66, kTitleIdCOD4, 0x826A8640, 0x826A863C,
-      0x82567E8C,NULL}},
+     {0x82009C80, 0x63675F66, kTitleIdCOD4, 0x826A8640, 0x826A863C, 0x82567E8C,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328MP,
-     {0x8200BB2C, 0x63675F66, kTitleIdCOD4, 0xB384B650, 0xB384B64C,
-      0x826027D0,NULL}},
+     {0x8200BB2C, 0x63675F66, kTitleIdCOD4, 0xB384B650, 0xB384B64C, 0x826027D0,
+      NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_Alpha_482SP,
      {0x82007560, 0x63675F66, kTitleIdCODMW2, 0x82627D08, 0x82627D04,
-      0x824609CC,NULL}},
+      0x824609CC, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
-     {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64,
-      0x825CE5F8,NULL}},
+     {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64, 0x825CE5F8,
+      NULL}},
     {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
      {0x82004860, 0x63675F66, kTitleIdCODBO2, NULL, NULL, 0x82866DAC,
       0x829FA9C8, 0x2C38}}};
@@ -100,8 +101,8 @@ bool CallOfDutyGame::IsGameSupported() {
   for (auto& build : supported_builds) {
     auto* build_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         build.second.cg_fov_address);
-    //printf("Processing build: %d\n", static_cast<int>(build.first));
-    //printf("ADDRESS IS THIS: 0x%08X\n", build.second.cg_fov_address);
+    // printf("Processing build: %d\n", static_cast<int>(build.first));
+    // printf("ADDRESS IS THIS: 0x%08X\n", build.second.cg_fov_address);
     if (*build_ptr == build.second.cg_fov) {
       game_build_ = build.first;
       return true;
@@ -129,7 +130,7 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
- xe::be<float>* degree_x;
+  xe::be<float>* degree_x;
   xe::be<float>* degree_y;
 
   if (supported_builds[game_build_].base_address != NULL) {
