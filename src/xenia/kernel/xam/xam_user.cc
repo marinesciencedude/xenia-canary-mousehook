@@ -612,6 +612,20 @@ dword_result_t XamShowSigninUI_entry(dword_t users_needed, dword_t unk_mask) {
 }
 DECLARE_XAM_EXPORT1(XamShowSigninUI, kUserProfiles, kStub);
 
+dword_result_t XamUserGetIndexFromXUID_entry(qword_t xuid, dword_t flags,
+                                             pointer_t<uint32_t> index) {
+  auto const profile = kernel_state()->xam_state()->GetUserProfile(xuid);
+
+  if (!profile) {
+    return X_ERROR_NO_SUCH_USER;
+  }
+
+  *index = profile->index();
+
+  return X_ERROR_SUCCESS;
+}
+DECLARE_XAM_EXPORT1(XamUserGetIndexFromXUID, kUserProfiles, kImplemented);
+
 dword_result_t XamUserCreateAchievementEnumerator_entry(
     dword_t title_id, dword_t user_index, dword_t xuid, dword_t flags,
     dword_t offset, dword_t count, lpdword_t buffer_size_ptr,
