@@ -48,6 +48,8 @@ class CallOfDutyGame : public HookableGame {
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
 
+  bool Dvar_GetBool(std::string dvar, uint32_t dvar_address);
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
 };

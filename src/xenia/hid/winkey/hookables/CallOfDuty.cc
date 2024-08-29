@@ -45,51 +45,52 @@ struct GameBuildAddrs {
   uint32_t fovscale_address;
   uint32_t base_address;  // Static addresses in older cods, needs pointers in
                           // newer cods?
+  uint32_t Dvar_GetBool_address;
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_SP,
      {0x82044468, 0x63675F66, kTitleIdCOD4, 0x824F6BDC, 0x824f6bd8, 0x824F6BC8,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_MP,
      {0x82BAD56C, 0x63675F66, kTitleIdCOD4, 0xB1EE9BB0, 0xB1EE9BAC, 0x823B53A8,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
      {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468, 0x82612458,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253MP,
      {0x82055EF4, 0x63675F66, kTitleIdCOD4, 0x82B859B8, 0x82B859B4, 0x8254EE50,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270SP,
      {0x8204E7FC, 0x63675F66, kTitleIdCOD4, 0x8262E168, 0x8262E164, 0x82612458,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_270MP,
      {0x8205617C, 0x63675F66, kTitleIdCOD4, 0x82B9F664, 0x82B9F660, 0x82558944,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290SP,
      {0x8203ABE8, 0x63675F66, kTitleIdCOD4, 0x8247C808, 0x8247C804, 0x82348900,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_290MP,
      {0x82042588, 0x63675F66, kTitleIdCOD4, 0x82A7F57C, 0x82A7F578, 0x823A1F04,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328SP,
      {0x82009C80, 0x63675F66, kTitleIdCOD4, 0x826A8640, 0x826A863C, 0x82567E8C,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_328MP,
      {0x8200BB2C, 0x63675F66, kTitleIdCOD4, 0xB384B650, 0xB384B64C, 0x826027D0,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_Alpha_482SP,
      {0x82007560, 0x63675F66, kTitleIdCODMW2, 0x82627D08, 0x82627D04,
-      0x824609CC, NULL}},
+      0x824609CC, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty3_SP,
      {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64, 0x825CE5F8,
-      NULL}},
+      NULL, NULL}},
     {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
      {0x82004860, 0x63675F66, kTitleIdCODBO2, 0x2C38, NULL, 0x82866DAC,
-      0x829FA9C8}},
+      0x829FA9C8, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW3_TU0_MP,
-     {0x830DB280, 0x63675F66, kTitleIdCODMW3, 0x35F4, NULL, 0x82599598,
-      0x826E0A80}}};
+     {0x8200C558, 0x63675F66, kTitleIdCODMW3, 0x35F4, NULL, 0x82599598,
+      0x826E0A80, 0x823243E0}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -132,6 +133,12 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   if (!current_thread) {
     return false;
+  }
+  if (supported_builds[game_build_].Dvar_GetBool_address != NULL) {
+    if (!Dvar_GetBool("cl_ingame",
+                      supported_builds[game_build_].Dvar_GetBool_address)) {
+      return false;
+    }
   }
 
   xe::be<float>* degree_x;
@@ -208,6 +215,30 @@ bool CallOfDutyGame::ModifierKeyHandler(uint32_t user_index,
                                         RawInputState& input_state,
                                         X_INPUT_STATE* out_state) {
   return false;
+}
+bool CallOfDutyGame::Dvar_GetBool(std::string dvar, uint32_t dvar_address) {
+  XThread* current_thread = XThread::GetCurrentThread();
+
+  if (dvar_address == NULL) {
+    return false;
+  }
+
+  std::string in_game_str = dvar;
+
+  uint32_t command_ptr = kernel_state()->memory()->SystemHeapAlloc(100);
+
+  char* command_addr =
+      kernel_state()->memory()->TranslateVirtual<char*>(command_ptr);
+  strcpy(command_addr, in_game_str.c_str());
+
+  current_thread->thread_state()->context()->r[3] = command_ptr;
+
+  kernel_state()->processor()->Execute(current_thread->thread_state(),
+                                       dvar_address);
+
+  bool state = current_thread->thread_state()->context()->r[3];
+
+  return state;
 }
 }  // namespace winkey
 }  // namespace hid
