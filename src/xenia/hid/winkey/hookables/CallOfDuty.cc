@@ -28,6 +28,7 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
 const uint32_t kTitleIdCODBO2 = 0x415608C3;
+const uint32_t kTitleIdCODMW3 = 0x415608CB;
 const uint32_t kTitleIdCODMW2 = 0x41560817;
 const uint32_t kTitleIdCOD4 = 0x415607E6;
 const uint32_t kTitleIdCOD3 = 0x415607E1;
@@ -44,7 +45,6 @@ struct GameBuildAddrs {
   uint32_t fovscale_address;
   uint32_t base_address;  // Static addresses in older cods, needs pointers in
                           // newer cods?
-  uint32_t x_offset;
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
@@ -85,8 +85,11 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
      {0x82078F00, 0x63675F66, kTitleIdCOD3, 0x82A58F68, 0x82A58F64, 0x825CE5F8,
       NULL}},
     {CallOfDutyGame::GameBuild::New_Moon_PatchedXEX,
-     {0x82004860, 0x63675F66, kTitleIdCODBO2, NULL, NULL, 0x82866DAC,
-      0x829FA9C8, 0x2C38}}};
+     {0x82004860, 0x63675F66, kTitleIdCODBO2, 0x2C38, NULL, 0x82866DAC,
+      0x829FA9C8}},
+    {CallOfDutyGame::GameBuild::CallOfDutyMW3_TU0_MP,
+     {0x830DB280, 0x63675F66, kTitleIdCODMW3, 0x35F4, NULL, 0x82599598,
+      0x826E0A80}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -94,7 +97,8 @@ bool CallOfDutyGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
 
   if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3 &&
-      title_id != kTitleIdCODBO2 && title_id != kTitleIdCODMW2) {
+      title_id != kTitleIdCODBO2 && title_id != kTitleIdCODMW2 &&
+      title_id != kTitleIdCODMW3) {
     return false;
   }
 
@@ -138,11 +142,12 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     uint32_t base_address =
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].base_address);
-    int32_t offset = supported_builds[game_build_].x_offset;
+    int32_t offset = supported_builds[game_build_].x_address;
     degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
                                                                  offset);
     degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
                                                                  offset - 4);
+
   } else {
     // Use pre-defined addresses for other builds
     degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
