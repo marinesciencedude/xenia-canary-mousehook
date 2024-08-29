@@ -49,11 +49,14 @@ struct GameBuildAddrs {
 };
 
 std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
-    {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_SP,
+    {CallOfDutyGame::GameBuild::CallOfDuty4_SP,
      {0x82044468, 0x63675F66, kTitleIdCOD4, 0x824F6BDC, 0x824f6bd8, 0x824F6BC8,
       NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_TU0_MP,
      {0x82BAD56C, 0x63675F66, kTitleIdCOD4, 0xB1EE9BB0, 0xB1EE9BAC, 0x823B53A8,
+      NULL, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDuty4_TU4_MP,
+     {0x82051048, 0x63675F66, kTitleIdCOD4, 0xB1BE7810, 0xB1BE7814, 0x84CD7D44,
       NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDuty4_Alpha_253SP,
      {0x8204EB24, 0x63675F66, kTitleIdCOD4, 0x8261246C, 0x82612468, 0x82612458,

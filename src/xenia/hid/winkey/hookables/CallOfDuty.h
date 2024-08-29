@@ -20,8 +20,9 @@ class CallOfDutyGame : public HookableGame {
  public:
   enum class GameBuild {
     Unknown = 0,
-    CallOfDuty4_TU0_SP,
+    CallOfDuty4_SP,
     CallOfDuty4_TU0_MP,
+    CallOfDuty4_TU4_MP,
     CallOfDuty4_Alpha_253SP,
     CallOfDuty4_Alpha_253MP,
     CallOfDuty4_Alpha_270SP,
