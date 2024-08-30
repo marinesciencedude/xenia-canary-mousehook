@@ -24,6 +24,8 @@ class GearsOfWarsGame : public HookableGame {
     GearsOfWars1_TU0,
     GearsOfWars3_TU0,
     GearsOfWars3_TU6,
+    GearsOfWars3_TU0_XBL,
+    GearsOfWars3_TU6_XBL,
     GearsOfWarsJudgment_TU0,
     GearsOfWarsJudgment_TU4
   };
