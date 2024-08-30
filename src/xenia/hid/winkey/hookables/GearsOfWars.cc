@@ -48,6 +48,8 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::Unknown, {"", NULL, NULL, NULL}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
      {"5.0.6", 0x40874800, 0x66, 0x62, 0x83146F3F}},
+    {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
+     {"6.0", 0x408211C0, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
      {"11.0", 0x43F6F340, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
@@ -61,7 +63,9 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
      {"9.0.4", 0x42943440, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
-     {"1.0", 0x49EAC460, 0xDE, 0xDA, 0x83146F3F}}};
+     {"1.0", 0x49EAC460, 0xDE, 0xDA, 0x83146F3F}},
+    {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
+     {"1.0.5", 0x4A1CBA60, 0xDE, 0xDA, 0x83146F3F}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
