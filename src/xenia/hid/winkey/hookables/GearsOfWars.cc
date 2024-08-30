@@ -55,7 +55,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0_XBL,
      {"9.0", 0x43F6F340, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6_XBL,
-     {"9.0.6", 0x42145D40, 0x66, 0x62, 0x83146F3F}},
+     {"11.0.6", 0x42145D40, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
      {"9.0", 0x448F2840, 0x66, 0x62, 0x83146F3F}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
