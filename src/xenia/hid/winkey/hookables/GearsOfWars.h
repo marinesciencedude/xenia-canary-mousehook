@@ -21,6 +21,8 @@ class GearsOfWarsGame : public HookableGame {
   enum class GameBuild {
     Unknown,
     GearsOfWars2_TU6,
+    GearsOfWars2_TU6_XBL,
+    GearsOfWars2_TU0_XBL,
     GearsOfWars2_TU0,
     GearsOfWars1_TU0,
     GearsOfWars1_TU5,
