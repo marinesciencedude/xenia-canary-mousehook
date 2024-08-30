@@ -24,6 +24,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
@@ -85,6 +86,9 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_Alpha_482SP,
      {0x82007560, 0x63675F66, kTitleIdCODMW2, 0x82627D08, 0x82627D04,
       0x824609CC, NULL, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyMW2_Alpha_482MP,
+     {0x8200FF48, 0x63675F66, kTitleIdCODMW2, 0x335C, NULL, 0x83A25CBC,
+      0x8255DA70, 0x82303b00}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_TU0_SP,
      {0x82020954, 0x63675F66, kTitleIdCODMW2, 0x82648B60, 0x82648B5C,
       0x82470AE0, NULL, NULL}},
@@ -96,7 +100,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       0x829FA9C8, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW3_TU0_MP,
      {0x8200C558, 0x63675F66, kTitleIdCODMW3, 0x35F4, NULL, 0x82599598,
-      0x826E0A80, 0x823243E0}}};
+      0x826E0A80, 0x823243E0}},
+    {CallOfDutyGame::GameBuild::CallOfDutyMW2_TU0_MP,
+     {0x820102D8, 0x63675F66, kTitleIdCODMW2, 0x3358, NULL, 0x83AE320C,
+      0x825A3FAC, NULL}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -184,7 +191,8 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     calc_fovscale = 1.f;
   }
   const float a =
-      0.85f;  // Quadratic scaling to make fovscale effect sens stronger
+      (float)cvars::fov_sensitivity;  // Quadratic scaling to make
+                                      // fovscale effect sens stronger
   if (calc_fovscale != 1.f) {
     calc_fovscale =
         (1 - a) * (calc_fovscale * calc_fovscale) + a * calc_fovscale;

@@ -32,10 +32,12 @@ class CallOfDutyGame : public HookableGame {
     CallOfDuty4_Alpha_328SP,
     CallOfDuty4_Alpha_328MP,
     CallOfDutyMW2_Alpha_482SP,
+    CallOfDutyMW2_Alpha_482MP,
     CallOfDutyMW2_TU0_SP,
     CallOfDuty3_SP,
     New_Moon_PatchedXEX,
-    CallOfDutyMW3_TU0_MP
+    CallOfDutyMW3_TU0_MP,
+    CallOfDutyMW2_TU0_MP
   };
 
   ~CallOfDutyGame() override;
