@@ -125,10 +125,10 @@ bool GearsOfWarsGame::IsGameSupported() {
                 supported_builds[game_build_].LookRightScale_address + 0x4);
 
         // Check if LookRightScale equals 0.1 (big-endian)
-        if (*LookRightScale != 0.1f) {
+        if (*LookRightScale != 0.05f) {
           // If it does not equal 0.1, set LookRightScale and LookUpScale to 0.1
-          *LookRightScale = 0.1f;
-          *LookUpScale = 0.1f;
+          *LookRightScale = 0.05f;
+          *LookUpScale = 0.05f;
         }
       }
 
