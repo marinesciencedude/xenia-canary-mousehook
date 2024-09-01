@@ -27,6 +27,9 @@ using namespace xe::kernel;
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
+DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_bool(use_right_stick_workaround);
+DECLARE_bool(use_right_stick_workaround_gears1and2);
 
 const uint32_t kTitleIdGearsOfWars3 = 0x4D5308AB;
 const uint32_t kTitleIdGearsOfWars2 = 0x4D53082D;
@@ -41,35 +44,35 @@ struct GameBuildAddrs {
   uint32_t camera_base_address;
   uint32_t x_offset;
   uint32_t y_offset;
-  uint32_t menu_status_address;
+  uint32_t LookRightScale_address;
 };
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::Unknown, {"", NULL, NULL, NULL}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
-     {"5.0.6", 0x40874800, 0x66, 0x62, 0x83146F3F}},
+     {"5.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6_XBL,
-     {"6.0.6", 0x40874800, 0x66, 0x62, 0x83146F3F}},
+     {"6.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0_XBL,
-     {"6.0", 0x408211C0, 0x66, 0x62, 0x83146F3F}},
+     {"6.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
-     {"5.0", 0x408211C0, 0x66, 0x62, 0x83146F3F}},
+     {"5.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
-     {"11.0", 0x43F6F340, 0x66, 0x62, 0x83146F3F}},
+     {"11.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
-     {"9.0.6", 0x42145D40, 0x66, 0x62, 0x83146F3F}},
+     {"9.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0_XBL,
-     {"9.0", 0x43F6F340, 0x66, 0x62, 0x83146F3F}},
+     {"9.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6_XBL,
-     {"11.0.6", 0x42145D40, 0x66, 0x62, 0x83146F3F}},
+     {"11.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
-     {"9.0", 0x448F2840, 0x66, 0x62, 0x83146F3F}},
+     {"9.0", 0x448F2840, 0x66, 0x62, 0x41DE7054}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
-     {"9.0.4", 0x42943440, 0x66, 0x62, 0x83146F3F}},
+     {"9.0.4", 0x42943440, 0x66, 0x62, 0x41F2F754}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
-     {"1.0", 0x49EAC460, 0xDE, 0xDA, 0x83146F3F}},
+     {"1.0", 0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
-     {"1.0.5", 0x4A1CBA60, 0xDE, 0xDA, 0x83146F3F}}};
+     {"1.0.5", 0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
@@ -80,13 +83,60 @@ bool GearsOfWarsGame::IsGameSupported() {
       kernel_state()->title_id() != kTitleIdGearsOfWarsJudgment) {
     return false;
   }
-
+  uint32_t title_id = kernel_state()->title_id();
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    // Match the version and title ID to ensure the correct build
+    if (current_version == build.second.title_version &&
+        ((title_id == kTitleIdGearsOfWars3 &&
+          build.first >= GearsOfWarsGame::GameBuild::GearsOfWars3_TU0 &&
+          build.first <= GearsOfWarsGame::GameBuild::GearsOfWars3_TU6_XBL) ||
+         (title_id == kTitleIdGearsOfWarsJudgment &&
+          build.first >= GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0 &&
+          build.first <= GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4) ||
+         (title_id == kTitleIdGearsOfWars2) ||
+         (title_id == kTitleIdGearsOfWars1))) {
       game_build_ = build.first;
+
+      // Check if 15 seconds have passed before proceeding
+      static bool bypass_conditions = false;
+      static auto start_time = std::chrono::steady_clock::now();
+
+      if (!bypass_conditions) {
+        auto current_time = std::chrono::steady_clock::now();
+        auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
+            current_time - start_time);
+
+        if (elapsed_time.count() >= 15) {
+          bypass_conditions = true;
+        }
+      }
+
+      if (bypass_conditions &&
+          supported_builds[game_build_].LookRightScale_address &&
+          ((cvars::use_right_stick_workaround_gears1and2 &&
+            (title_id == kTitleIdGearsOfWars1 ||
+             title_id == kTitleIdGearsOfWars2)) ||
+           (cvars::use_right_stick_workaround &&
+            (title_id == kTitleIdGearsOfWars3 ||
+             title_id == kTitleIdGearsOfWarsJudgment)))) {
+        xe::be<float>* LookRightScale =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                supported_builds[game_build_].LookRightScale_address);
+        xe::be<float>* LookUpScale =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                supported_builds[game_build_].LookRightScale_address + 0x4);
+
+        // Check if LookRightScale equals 0.1 (big-endian)
+        if (*LookRightScale != 0.1f) {
+          // If it does not equal 0.1, set LookRightScale and LookUpScale to 0.1
+          *LookRightScale = 0.1f;
+          *LookUpScale = 0.1f;
+        }
+      }
+
       return true;
     }
   }
@@ -97,7 +147,7 @@ bool GearsOfWarsGame::IsGameSupported() {
 bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                               X_INPUT_STATE* out_state) {
   static bool bypass_conditions =
-      false;  // This will be set to true after 2 minutes
+      false;  // This will be set to true after some time.
   static auto start_time = std::chrono::steady_clock::now();
   if (!IsGameSupported()) {
     return false;
@@ -106,14 +156,73 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
+  uint32_t title_id = kernel_state()->title_id();
+  if (supported_builds[game_build_].LookRightScale_address &&
+      ((cvars::use_right_stick_workaround_gears1and2 &&
+        (title_id == kTitleIdGearsOfWars1 ||
+         title_id == kTitleIdGearsOfWars2)) ||
+       (cvars::use_right_stick_workaround &&
+        (title_id == kTitleIdGearsOfWars3 ||
+         title_id == kTitleIdGearsOfWarsJudgment)))) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_movement_time_x_)
+                         .count();
+    auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_movement_time_y_)
+                         .count();
+
+    // Declare static variables for last deltas
+    static int last_x_delta = 0;
+    static int last_y_delta = 0;
+
+    const long long hold_time =
+        static_cast<long long>(cvars::right_stick_hold_time_workaround);
+    // Check for mouse movement and set thumbstick values
+    if (input_state.mouse.x_delta != 0) {
+      if (input_state.mouse.x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
+      last_movement_time_x_ = now;
+      last_x_delta = input_state.mouse.x_delta;
+    } else if (elapsed_x < hold_time) {  // hold time
+      if (last_x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
+    }
+
+    if (input_state.mouse.y_delta != 0) {
+      if (input_state.mouse.y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      }
+      last_movement_time_y_ = now;
+      last_y_delta = input_state.mouse.y_delta;
+    } else if (elapsed_y < hold_time) {  // hold time
+      if (last_y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      }
+    }
+
+    // Return true if either X or Y delta is non-zero or if within the hold time
+    if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
+        elapsed_x >= hold_time && elapsed_y >= hold_time) {
+      return false;
+    }
+  }
 
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
     return false;
   }
-  auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
   if (!bypass_conditions) {
     auto current_time = std::chrono::steady_clock::now();
     auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
@@ -128,10 +237,11 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (bypass_conditions) {
     xe::be<uint16_t>* degree_x;
     xe::be<uint16_t>* degree_y;
-
+    // printf("Current Build: %d\n", static_cast<int>(game_build_));
     uint32_t base_address =
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].camera_base_address);
+    // printf("BASE ADDRESS: 0x%08X\n", base_address);
     if (base_address &&
         base_address <
             0x0000000050000000) {  // timer isn't enough, check location it's
@@ -139,10 +249,13 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                                    // thanks Marine.
       degree_x = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
           base_address + supported_builds[game_build_].x_offset);
+      // printf("DEGREE_X ADDRESS: 0x%08X\n",
+      //     (base_address + supported_builds[game_build_].x_offset));
 
       degree_y = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
           base_address + supported_builds[game_build_].y_offset);
-
+      // printf("DEGREE_Y ADDRESS: 0x%08X\n",
+      //        (base_address + supported_builds[game_build_].x_offset));
       uint16_t x_delta = static_cast<uint16_t>(
           (input_state.mouse.x_delta * 10) * cvars::sensitivity);
       uint16_t y_delta = static_cast<uint16_t>(
@@ -159,6 +272,23 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
         *degree_y += y_delta;
       }
     }
+    /* if (supported_builds[game_build_].LookRightScale_address) {
+      // Translate LookRightScale_address and LookUpScale_address to
+      // xe::be<float>*
+      xe::be<float>* LookRightScale =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              supported_builds[game_build_].LookRightScale_address);
+      xe::be<float>* LookUpScale =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              supported_builds[game_build_].LookRightScale_address + 0x4);
+
+      // Check if LookRightScale equals 0.1 (big-endian)
+      if (*LookRightScale != 0.1f) {
+        // If it equals 0.1, set LookRightScale and LookUpScale to 0.1
+        *LookRightScale = 0.1f;
+        *LookUpScale = 0.1f;
+      }
+   }*/
   }
   return true;
 }

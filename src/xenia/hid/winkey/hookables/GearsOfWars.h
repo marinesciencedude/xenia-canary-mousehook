@@ -10,6 +10,7 @@
 #ifndef XENIA_HID_WINKEY_GearsOfWars_H_
 #define XENIA_HID_WINKEY_GearsOfWars_H_
 
+#include <chrono>
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
 namespace xe {
@@ -48,6 +49,10 @@ class GearsOfWarsGame : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+  // Timer variables to hold the state for a while // this is probably not ideal
+  // -Clippy95
+  std::chrono::steady_clock::time_point last_movement_time_x_;
+  std::chrono::steady_clock::time_point last_movement_time_y_;
 };
 
 }  // namespace winkey
