@@ -233,7 +233,6 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  // If the conditions are bypassed (after 2 minutes), run the code
   if (bypass_conditions) {
     xe::be<uint16_t>* degree_x;
     xe::be<uint16_t>* degree_y;
@@ -272,23 +271,6 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
         *degree_y += y_delta;
       }
     }
-    /* if (supported_builds[game_build_].LookRightScale_address) {
-      // Translate LookRightScale_address and LookUpScale_address to
-      // xe::be<float>*
-      xe::be<float>* LookRightScale =
-          kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].LookRightScale_address);
-      xe::be<float>* LookUpScale =
-          kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].LookRightScale_address + 0x4);
-
-      // Check if LookRightScale equals 0.1 (big-endian)
-      if (*LookRightScale != 0.1f) {
-        // If it equals 0.1, set LookRightScale and LookUpScale to 0.1
-        *LookRightScale = 0.1f;
-        *LookUpScale = 0.1f;
-      }
-   }*/
   }
   return true;
 }
