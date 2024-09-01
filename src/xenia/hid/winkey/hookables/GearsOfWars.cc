@@ -40,6 +40,7 @@ namespace xe {
 namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
+  uint32_t title_id;
   const char* title_version;
   uint32_t camera_base_address;
   uint32_t x_offset;
@@ -48,31 +49,32 @@ struct GameBuildAddrs {
 };
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
-    {GearsOfWarsGame::GameBuild::Unknown, {"", NULL, NULL, NULL}},
+    {GearsOfWarsGame::GameBuild::Unknown, {NULL, "", NULL, NULL, NULL}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
-     {"5.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
+     {kTitleIdGearsOfWars2, "5.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6_XBL,
-     {"6.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
+     {kTitleIdGearsOfWars2, "6.0.6", 0x40874800, 0x66, 0x62, 0x404E8840}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0_XBL,
-     {"6.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
+     {kTitleIdGearsOfWars2, "6.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
-     {"5.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
+     {kTitleIdGearsOfWars2, "5.0", 0x408211C0, 0x66, 0x62, 0x405294C0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
-     {"11.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
+     {kTitleIdGearsOfWars3, "11.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
-     {"9.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
+     {kTitleIdGearsOfWars3, "9.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0_XBL,
-     {"9.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
+     {kTitleIdGearsOfWars3, "9.0", 0x43F6F340, 0x66, 0x62, 0x404E18F0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6_XBL,
-     {"11.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
+     {kTitleIdGearsOfWars3, "11.0.6", 0x42145D40, 0x66, 0x62, 0x40502254}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
-     {"9.0", 0x448F2840, 0x66, 0x62, 0x41DE7054}},
+     {kTitleIdGearsOfWarsJudgment, "9.0", 0x448F2840, 0x66, 0x62, 0x41DE7054}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
-     {"9.0.4", 0x42943440, 0x66, 0x62, 0x41F2F754}},
+     {kTitleIdGearsOfWarsJudgment, "9.0.4", 0x42943440, 0x66, 0x62,
+      0x41F2F754}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
-     {"1.0", 0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
+     {kTitleIdGearsOfWars1, "1.0", 0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
-     {"1.0.5", 0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}}};
+     {kTitleIdGearsOfWars1, "1.0.5", 0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
@@ -90,14 +92,7 @@ bool GearsOfWarsGame::IsGameSupported() {
   for (auto& build : supported_builds) {
     // Match the version and title ID to ensure the correct build
     if (current_version == build.second.title_version &&
-        ((title_id == kTitleIdGearsOfWars3 &&
-          build.first >= GearsOfWarsGame::GameBuild::GearsOfWars3_TU0 &&
-          build.first <= GearsOfWarsGame::GameBuild::GearsOfWars3_TU6_XBL) ||
-         (title_id == kTitleIdGearsOfWarsJudgment &&
-          build.first >= GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0 &&
-          build.first <= GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4) ||
-         (title_id == kTitleIdGearsOfWars2) ||
-         (title_id == kTitleIdGearsOfWars1))) {
+        title_id == build.second.title_id) {
       game_build_ = build.first;
 
       // Check if 15 seconds have passed before proceeding
