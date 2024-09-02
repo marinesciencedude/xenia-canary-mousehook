@@ -1851,7 +1851,8 @@ void EmulatorWindow::GamepadHotKeys() {
     while (true) {
       auto input_lock = input_sys->lock();
 
-      for (uint32_t user_index = 0; user_index < MAX_USERS; ++user_index) {
+      for (uint32_t user_index = 0; user_index < X_USER_MAX_USERS;
+           ++user_index) {
         X_RESULT result = input_sys->GetState(user_index, &state);
 
         // Release the lock before processing the hotkey
