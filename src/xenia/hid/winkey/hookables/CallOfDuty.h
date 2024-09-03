@@ -38,8 +38,10 @@ class CallOfDutyGame : public HookableGame {
     New_Moon_PatchedXEX,
     CallOfDutyMW3_TU0_MP,
     CallOfDutyMW2_TU0_MP,
-    CallOfDutyNX1_PATCHED_SP,
-    CallOfDutyNX1_nx1mp_demo
+    CallOfDutyNX1_Nightly_SP_maps,
+    CallOfDutyNX1_nx1sp,
+    CallOfDutyNX1_nx1mp_demo,
+    CallOfDutyNX1_nx1mp
   };
 
   ~CallOfDutyGame() override;

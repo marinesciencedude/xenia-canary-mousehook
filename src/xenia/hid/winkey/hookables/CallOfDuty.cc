@@ -105,12 +105,19 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_TU0_MP,
      {0x820102D8, 0x63675F66, kTitleIdCODMW2, 0x3358, NULL, 0x83AE320C,
       0x825A3FAC, NULL}},
-    {CallOfDutyGame::GameBuild::CallOfDutyNX1_PATCHED_SP,
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_Nightly_SP_maps,
      {0x82021104, 0x63675F66, kTitleIdCODNX1, 0x82807130, 0x8280712C,
       0x825EC774, NULL, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_nx1sp,
+     {0x8200FC1C, 0x63675F66, kTitleIdCODNX1, 0x82AF11B8, 0x82AF11B4,
+      0x828B8654, NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyNX1_nx1mp_demo,
      {0x82012228, 0x63675F66, kTitleIdCODNX1, 0x3668, NULL, 0x84136E78,
-      0x827519D4, 0x823748E0}}};
+      0x827519D4, 0x823748E0}},
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_nx1mp,
+     {0x8201E584, 0x63675F66, kTitleIdCODNX1, 0x3668, NULL, 0x83D66260,
+      0x82B79CD0, 0x82556C08}},
+};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -161,6 +168,13 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
+  /* uint32_t base_address_test =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].base_address);
+  if (base_address_test && base_address_test < 0x0000000050000000) {
+
+  }*/
+
   xe::be<float>* degree_x;
   xe::be<float>* degree_y;
 
@@ -170,6 +184,12 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].base_address);
     int32_t offset = supported_builds[game_build_].x_address;
+    /* uint32_t stored_base_address;
+    if (base_address && base_address >= 0x40000000) {
+      stored_base_address = base_address;
+
+    }
+    */
     degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
                                                                  offset);
     degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(base_address +
