@@ -107,7 +107,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       0x825A3FAC, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyNX1_PATCHED_SP,
      {0x82021104, 0x63675F66, kTitleIdCODNX1, 0x82807130, 0x8280712C,
-      0x825EC774, NULL, NULL}}};
+      0x825EC774, NULL, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_nx1mp_demo,
+     {0x82012228, 0x63675F66, kTitleIdCODNX1, 0x3668, NULL, 0x84136E78,
+      0x827519D4, 0x823748E0}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -194,8 +197,9 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (calc_fovscale == 0) {  // Required check otherwise mouse stops working.
     calc_fovscale = 1.f;
   }
-  const float a = 0.25f;  // Quadratic scaling to make
-                          // fovscale effect sens stronger
+  const float a =
+      (float)cvars::fov_sensitivity;  // Quadratic scaling to make
+                                      // fovscale effect sens stronger
   if (calc_fovscale != 1.f) {
     calc_fovscale =
         (1 - a) * (calc_fovscale * calc_fovscale) + a * calc_fovscale;
