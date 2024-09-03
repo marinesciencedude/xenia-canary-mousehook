@@ -194,7 +194,10 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   */
 
-  if (calc_fovscale == 0) {  // Required check otherwise mouse stops working.
+  if (calc_fovscale == 0.f ||
+      calc_fovscale >
+          1.0f /*for when cg_fovscale is used*/) {  // Required check otherwise
+                                                    // mouse stops working.
     calc_fovscale = 1.f;
   }
   const float a =
