@@ -28,6 +28,7 @@ DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
+const uint32_t kTitleIdCODNX1 = 0x4156089E;
 const uint32_t kTitleIdCODBO2 = 0x415608C3;
 const uint32_t kTitleIdCODMW3 = 0x415608CB;
 const uint32_t kTitleIdCODMW2 = 0x41560817;
@@ -103,7 +104,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       0x826E0A80, 0x823243E0}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_TU0_MP,
      {0x820102D8, 0x63675F66, kTitleIdCODMW2, 0x3358, NULL, 0x83AE320C,
-      0x825A3FAC, NULL}}};
+      0x825A3FAC, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_PATCHED_SP,
+     {0x82021104, 0x63675F66, kTitleIdCODNX1, 0x82807130, 0x8280712C,
+      0x825EC774, NULL, NULL}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -112,7 +116,7 @@ bool CallOfDutyGame::IsGameSupported() {
 
   if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3 &&
       title_id != kTitleIdCODBO2 && title_id != kTitleIdCODMW2 &&
-      title_id != kTitleIdCODMW3) {
+      title_id != kTitleIdCODMW3 && title_id != kTitleIdCODNX1) {
     return false;
   }
 
@@ -190,9 +194,8 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (calc_fovscale == 0) {  // Required check otherwise mouse stops working.
     calc_fovscale = 1.f;
   }
-  const float a =
-      (float)cvars::fov_sensitivity;  // Quadratic scaling to make
-                                      // fovscale effect sens stronger
+  const float a = 0.25f;  // Quadratic scaling to make
+                          // fovscale effect sens stronger
   if (calc_fovscale != 1.f) {
     calc_fovscale =
         (1 - a) * (calc_fovscale * calc_fovscale) + a * calc_fovscale;
