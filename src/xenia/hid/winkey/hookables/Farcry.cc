@@ -62,9 +62,8 @@ bool FarCryGame::IsGameSupported() {
   return false;
 }
 
-
 bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                             X_INPUT_STATE* out_state) {
+                         X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -72,7 +71,6 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
-
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -100,7 +98,7 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<float>* degree_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
 
-    float new_degree_x = *degree_x;
+  float new_degree_x = *degree_x;
   float new_degree_y = *degree_y;
 
   if (!cvars::invert_x) {
@@ -121,15 +119,14 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   *degree_y = new_degree_y;
 
-
   return true;
 }
 
 std::string FarCryGame::ChooseBinds() { return "Default"; }
 
 bool FarCryGame::ModifierKeyHandler(uint32_t user_index,
-                                        RawInputState& input_state,
-                                        X_INPUT_STATE* out_state) {
+                                    RawInputState& input_state,
+                                    X_INPUT_STATE* out_state) {
   return false;
 }
 }  // namespace winkey

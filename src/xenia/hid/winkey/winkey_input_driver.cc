@@ -19,8 +19,8 @@
 #include "xenia/ui/window.h"
 
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
-#include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/Farcry.h"
+#include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
