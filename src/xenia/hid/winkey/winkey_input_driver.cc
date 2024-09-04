@@ -20,6 +20,7 @@
 
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
+#include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 #include "xenia/hid/winkey/hookables/halo3.h"
@@ -396,6 +397,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
   hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<FarCryGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
