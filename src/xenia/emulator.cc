@@ -1586,6 +1586,120 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     }
   }
 
+  const uint32_t kTitleIdCODNX1 = 0x4156089E;
+  const uint32_t kTitleIdCODBO2 = 0x415608C3;
+  const uint32_t kTitleIdCODMW3 = 0x415608CB;
+  const uint32_t kTitleIdCODMW2 = 0x41560817;
+  const uint32_t kTitleIdCOD4 = 0x415607E6;
+  const uint32_t kTitleIdCOD3 = 0x415607E1;
+  if (cvars::disable_autoaim) {
+    if (module->title_id() == kTitleIdCOD4 ||
+        module->title_id() == kTitleIdCODMW2 ||
+        module->title_id() == kTitleIdCODMW3 ||
+        module->title_id() == kTitleIdCODBO2 ||
+        module->title_id() == kTitleIdCODNX1 ||
+        module->title_id() == kTitleIdCOD3) {
+      struct CODPatchOffsets {
+        uint32_t cg_fov_address;
+        uint32_t cg_fov;
+        uint32_t
+            lockon_address;  // Usually this is AimAssist_ApplyLockOn /
+                             // AimAssist_UpdateLockOn, thanks to Andersson799,
+                             // this doesn't disable Aim Assist in SP, which be
+                             // can be disabled in the options.
+        uint8_t patch_type;  // 0: 4E800020, 1: 39600000
+      };
+
+      std::vector<CODPatchOffsets> supported_builds = {
+          // Call of Duty 4 SP
+          {0x82044468, 0x63675F66, 0x82308D68, 0},
+
+          // Call of Duty 4 TU0 MP
+          {0x82BAD56C, 0x63675F66, 0x8233F508, 0},
+
+          // Call of Duty 4 TU4 MP
+          {0x82051048, 0x63675F66, 0x82347D58, 0},
+
+          // Call of Duty 4 Alpha 253 SP
+          {0x8204EB24, 0x63675F66, 0x820924f8, 0},
+
+          // Call of Duty 4 Alpha 253 MP
+          {0x82055EF4, 0x63675F66, 0x820a2558, 0},
+
+          // Call of Duty 4 Alpha 270 SP
+          {0x8204E7FC, 0x63675F66, 0x820A21F0, 0},
+
+          // Call of Duty 4 Alpha 270 MP
+          {0x8205617C, 0x63675F66, 0x820a21e8, 0},
+
+          // Call of Duty 4 Alpha 290 SP
+          {0x8203ABE8, 0x63675F66, 0x82082390, 0},
+
+          // Call of Duty 4 Alpha 290 MP
+          {0x82042588, 0x63675F66, 0x82092398, 0},
+
+          // Call of Duty 4 Alpha 328 SP
+          {0x82009C80, 0x63675F66, 0x820eb690, 0},
+
+          // Call of Duty 4 Alpha 328 MP
+          {0x8200BB2C, 0x63675F66, 0x820fb770, 0},
+
+          // Call of Duty MW2 Alpha 482 SP
+          {0x82007560, 0x63675F66, 0x820d7828, 0},
+
+          // Call of Duty MW2 Alpha 482 MP
+          {0x8200FF48, 0x63675F66, 0x820f5f98, 0},
+
+          // Call of Duty MW2 TU0 SP
+          {0x82020954, 0x63675F66, 0x820D7838, 0},
+
+          // Call of Duty 3 SP
+          {0x82078F00, 0x63675F66, NULL, 0},
+
+          // New Moon Patched XEX (Black Ops 2 Alpha)
+          {0x82004860, 0x63675F66, 0x82137D50, 0},
+
+          // Call of Duty MW3 TU0 MP
+          {0x8200C558, 0x63675F66, 0x820D4710, 0},
+
+          // Call of Duty MW2 TU0 MP
+          {0x820102D8, 0x63675F66, 0x820F5FB0, 0},
+
+          // Call of Duty NX1 Nightly SP Maps
+          {0x82021104, 0x63675F66, 0x820F9390, 0},
+
+          // Call of Duty NX1 SP
+          {0x8200FC1C, 0x63675F66, 0x82183d90, 0},
+
+          // Call of Duty NX1 MP Demo
+          {0x82012228, 0x63675F66, 0x820F9310, 0},
+
+          // Call of Duty NX1 MP
+          {0x8201E584, 0x63675F66, 0x821d5180, 0},
+
+          // Call of Duty NX1 Nightly MP Maps
+          {0x8201DD04, 0x63675F66, 0x821c7a68, 0},
+      };
+
+      for (auto& build : supported_builds) {
+        auto* fov_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+            build.cg_fov_address);
+        if (*fov_addr != build.cg_fov) {
+          continue;
+        }
+
+        if (build.lockon_address) {
+          uint32_t patch_value =
+              (build.patch_type == 0) ? 0x4E800020 : 0x39600000;
+          (build.patch_type == 0) ? 0x4E800020 : 0x39600000;
+          patch_addr(build.lockon_address, patch_value);
+        }
+
+        break;
+      }
+    }
+  }
+
   // Initializing the shader storage in a blocking way so the user doesn't
   // miss the initial seconds - for instance, sound from an intro video may
   // start playing before the video can be seen if doing this in parallel with
