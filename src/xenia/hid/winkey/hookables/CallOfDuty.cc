@@ -103,7 +103,7 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
      {0x8200C558, 0x63675F66, kTitleIdCODMW3, 0x35F4, NULL, 0x82599598,
       0x826E0A80, 0x823243E0}},
     {CallOfDutyGame::GameBuild::CallOfDutyMW2_TU0_MP,
-     {0x820102D8, 0x63675F66, kTitleIdCODMW2, 0x3358, NULL, 0x83AE320C,
+     {0x820102D8, 0x63675F66, kTitleIdCODMW2, 0x335C, NULL, 0x83AE320C,
       0x825A3FAC, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyNX1_Nightly_SP_maps,
      {0x82021104, 0x63675F66, kTitleIdCODNX1, 0x82807130, 0x8280712C,
@@ -183,6 +183,11 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     uint32_t base_address =
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].base_address);
+    if (!base_address || base_address == NULL) {
+      // Not in game
+      return false;
+    }
+
     int32_t offset = supported_builds[game_build_].x_address;
     /* uint32_t stored_base_address;
     if (base_address && base_address >= 0x40000000) {
