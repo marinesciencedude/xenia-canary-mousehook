@@ -104,7 +104,7 @@ bool GearsOfWarsGame::IsGameSupported() {
         auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
             current_time - start_time);
 
-        if (elapsed_time.count() >= 15) {
+        if (elapsed_time.count() >= 25) {
           bypass_conditions = true;
         }
       }
@@ -236,11 +236,10 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].camera_base_address);
     // printf("BASE ADDRESS: 0x%08X\n", base_address);
-    if (base_address &&
-        base_address <
-            0x0000000050000000) {  // timer isn't enough, check location it's
-                                   // most likely between 40000000 - 50000000,
-                                   // thanks Marine.
+    if (base_address && base_address >= 0x40000000 &&
+        base_address < 0x50000000) {  // timer isn't enough, check location it's
+      // most likely between 40000000 - 50000000,
+      // thanks Marine.
       degree_x = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
           base_address + supported_builds[game_build_].x_offset);
       // printf("DEGREE_X ADDRESS: 0x%08X\n",
@@ -265,6 +264,8 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       } else {
         *degree_y += y_delta;
       }
+    } else {
+      return false;
     }
   }
   return true;
