@@ -117,6 +117,9 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDutyNX1_nx1mp,
      {0x8201E584, 0x63675F66, kTitleIdCODNX1, 0x3668, NULL, 0x83D66260,
       0x82B79CD0, 0x82556C08}},
+    {CallOfDutyGame::GameBuild::CallOfDutyNX1_NightlyMPmaps,
+     {0x8201DD04, 0x63675F66, kTitleIdCODNX1, 0x3668, NULL, 0x83D060E0,
+      0x82B19C50, 0x82531558}},
 };
 
 CallOfDutyGame::~CallOfDutyGame() = default;
