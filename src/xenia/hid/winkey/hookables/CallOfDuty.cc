@@ -237,7 +237,7 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   float divsor;
-  divsor = 12.f / calc_fovscale;
+  divsor = 10.5f / calc_fovscale;
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
