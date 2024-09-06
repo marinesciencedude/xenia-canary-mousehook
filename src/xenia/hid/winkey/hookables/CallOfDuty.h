@@ -42,7 +42,8 @@ class CallOfDutyGame : public HookableGame {
     CallOfDutyNX1_nx1sp,
     CallOfDutyNX1_nx1mp_demo,
     CallOfDutyNX1_nx1mp,
-    CallOfDutyNX1_NightlyMPmaps
+    CallOfDutyNX1_NightlyMPmaps,
+    CallOfDutyWaW_TU7_SP
   };
 
   ~CallOfDutyGame() override;
