@@ -1590,6 +1590,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   const uint32_t kTitleIdCODBO2 = 0x415608C3;
   const uint32_t kTitleIdCODMW3 = 0x415608CB;
   const uint32_t kTitleIdCODMW2 = 0x41560817;
+  const uint32_t kTitleIdCODWaW = 0x4156081C;
   const uint32_t kTitleIdCOD4 = 0x415607E6;
   const uint32_t kTitleIdCOD3 = 0x415607E1;
   if (cvars::disable_autoaim) {
@@ -1598,7 +1599,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         module->title_id() == kTitleIdCODMW3 ||
         module->title_id() == kTitleIdCODBO2 ||
         module->title_id() == kTitleIdCODNX1 ||
-        module->title_id() == kTitleIdCOD3) {
+        module->title_id() == kTitleIdCOD3 ||
+        module->title_id() == kTitleIdCODWaW) {
       struct CODPatchOffsets {
         uint32_t cg_fov_address;
         uint32_t cg_fov;
@@ -1679,6 +1681,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
 
           // Call of Duty NX1 Nightly MP Maps
           {0x8201DD04, 0x63675F66, 0x821c7a68, 0},
+          // Call Of Duty World At War TU7 SP
+          {0x82055874, 0x63675F66, 0x820E1E50, 0},
       };
 
       for (auto& build : supported_builds) {
