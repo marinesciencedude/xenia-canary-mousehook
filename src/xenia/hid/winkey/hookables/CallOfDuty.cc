@@ -160,12 +160,6 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  // if (supported_builds.count(game_build_) == 0) {
-  //   return false;
-  // }
-
-  // Don't constantly write if there is no mouse movement.
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
@@ -177,13 +171,6 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       return false;
     }
   }
-
-  /* uint32_t base_address_test =
-      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-      supported_builds[game_build_].base_address);
-  if (base_address_test && base_address_test < 0x0000000050000000) {
-
-  }*/
 
   xe::be<float>* degree_x;
   xe::be<float>* degree_y;
@@ -223,11 +210,6 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   float new_degree_x = *degree_x;
   float new_degree_y = *degree_y;
   float calc_fovscale = *fovscale;
-  /* if (!radian_x || *radian_x == NULL) {
-    // Not in game
-    return false;
-  }
-  */
 
   if (calc_fovscale == 0.f ||
       calc_fovscale >
@@ -248,22 +230,22 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    new_degree_x -=
+    *degree_x -=
         (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
   } else {
-    new_degree_x +=
+    *degree_x +=
         (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
   }
-  *degree_x = new_degree_x;
+  //*degree_x = new_degree_x;
 
   if (!cvars::invert_y) {
-    new_degree_y +=
+    *degree_y +=
         (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
   } else {
-    new_degree_y -=
+    *degree_y -=
         (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
   }
-  *degree_y = new_degree_y;
+  //*degree_y = new_degree_y;
 
   return true;
 }
