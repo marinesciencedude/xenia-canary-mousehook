@@ -123,7 +123,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       0x82B19C50, 0x82531558}},
     {CallOfDutyGame::GameBuild::CallOfDutyWaW_TU7_SP,
      {0x82055874, 0x63675F66, kTitleIdCODWaW, 0xEAEC, NULL, 0x824DE870,
-      0x849355D4, NULL}}};
+      0x849355D4, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyWaW_TU7_MP,
+     {0x82012704, 0x63675F66, kTitleIdCODWaW, 0x9D64, NULL, 0x85914734,
+      0x824AEBF0, NULL}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 

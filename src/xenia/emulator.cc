@@ -1681,8 +1681,12 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
 
           // Call of Duty NX1 Nightly MP Maps
           {0x8201DD04, 0x63675F66, 0x821c7a68, 0},
+
           // Call Of Duty World At War TU7 SP
           {0x82055874, 0x63675F66, 0x820E1E50, 0},
+
+          // Call Of Duty World At War TU7 MP
+          {0x82012704, 0x63675F66, 0x82124C10, 0},
       };
 
       for (auto& build : supported_builds) {
