@@ -35,6 +35,8 @@ class CallOfDutyGame : public HookableGame {
     CallOfDutyMW2_Alpha_482MP,
     CallOfDutyMW2_TU0_SP,
     CallOfDuty3_SP,
+    CallOfDuty3_MP_TU0,
+    CallOfDuty3_MP_TU3,
     New_Moon_PatchedXEX,
     CallOfDutyMW3_TU0_MP,
     CallOfDutyMW2_TU0_MP,
