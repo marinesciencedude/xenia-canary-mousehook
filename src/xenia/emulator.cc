@@ -1691,6 +1691,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           {0x82012704, 0x63675F66, 0x82124C10, 0},
           // CallOfDutyGhosts_IW6_DEV_2iw6mp
           {0x820BB320, 0x63675F66, 0x82293F50, 0},
+          // CallOfDutyGhosts_IW6_DEV_1iw6sp
+          {0x82032648, 0x63675F66, 0x82224b10, 0},
       };
 
       for (auto& build : supported_builds) {
