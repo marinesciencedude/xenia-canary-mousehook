@@ -28,6 +28,7 @@ DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
+const uint32_t kTitleIdCODGhostsDEV = 0x4156088E;
 const uint32_t kTitleIdCODNX1 = 0x4156089E;
 const uint32_t kTitleIdCODBO2 = 0x415608C3;
 const uint32_t kTitleIdCODMW3 = 0x415608CB;
@@ -132,7 +133,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       0x849355D4, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyWaW_TU7_MP,
      {0x82012704, 0x63675F66, kTitleIdCODWaW, 0x9D64, NULL, 0x85914734,
-      0x824AEBF0, NULL}}};
+      0x824AEBF0, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyGhosts_IW6_DEV_2iw6mp,
+     {0x820BB320, 0x63675F66, kTitleIdCODGhostsDEV, 0x3A5C, NULL, 0x84BF6668,
+      0x82FC6708, 0x82832AC8}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -142,7 +146,7 @@ bool CallOfDutyGame::IsGameSupported() {
   if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3 &&
       title_id != kTitleIdCODBO2 && title_id != kTitleIdCODMW2 &&
       title_id != kTitleIdCODMW3 && title_id != kTitleIdCODNX1 &&
-      title_id != kTitleIdCODWaW) {
+      title_id != kTitleIdCODWaW && title_id != kTitleIdCODGhostsDEV) {
     return false;
   }
 
