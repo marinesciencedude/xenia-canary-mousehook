@@ -1656,9 +1656,19 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
 
           // Call of Duty MW2 TU0 SP
           {0x82020954, 0x63675F66, 0x820D7838, 0},
+          // I found COD3's Aim Assist thanks to Garungorp's Mouse Injector
+          // https://github.com/garungorp/MouseInjectorDolphinDuck/blob/e9af92296038f82968a222a7eb2aef88b8d18c82/games/ps2_cod3.c#L28
+          // Call of Duty 3 SP TU0
+          {0x8248C6D4, 0xC0C70008, 0x8248DE8C, 1},
 
-          // Call of Duty 3 SP
-          {0x82078F00, 0x63675F66, NULL, 0},
+          // Call of Duty 3 SP TU3
+          {0x8248C6D4, 0x38210160, 0x8248D43C, 1},
+
+          // Call of Duty 3 MP TU0
+          {0x82078614, 0x63675F66, NULL /*0x821BDE58*/, 1},
+
+          // Call of Duty 3 MP TU3
+          {0x8206E994, 0x63675F66, NULL, 0},
 
           // New Moon Patched XEX (Black Ops 2 Alpha)
           {0x82004860, 0x63675F66, 0x82137D50, 0},
@@ -1704,8 +1714,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
 
         if (build.lockon_address) {
           uint32_t patch_value =
-              (build.patch_type == 0) ? 0x4E800020 : 0x39600000;
-          (build.patch_type == 0) ? 0x4E800020 : 0x39600000;
+              (build.patch_type == 0) ? 0x4E800020 : 0x60000000;
+          (build.patch_type == 0) ? 0x4E800020 : 0x60000000;
           patch_addr(build.lockon_address, patch_value);
         }
 

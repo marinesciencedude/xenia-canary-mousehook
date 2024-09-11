@@ -244,24 +244,23 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   float divsor;
   divsor = 10.5f / calc_fovscale;
 
+  float camX = (float)*degree_x;
+  float camY = (float)*degree_y;
+
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    *degree_x -=
-        (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
+    camX -= (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
   } else {
-    *degree_x +=
-        (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
+    camX += (input_state.mouse.x_delta / divsor) * (float)cvars::sensitivity;
   }
-  //*degree_x = new_degree_x;
+  *degree_x = camX;
 
   if (!cvars::invert_y) {
-    *degree_y +=
-        (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
+    camY += (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
   } else {
-    *degree_y -=
-        (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
+    camY -= (input_state.mouse.y_delta / divsor) * (float)cvars::sensitivity;
   }
-  //*degree_y = new_degree_y;
+  *degree_y = camY;
 
   return true;
 }
