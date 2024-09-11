@@ -235,6 +235,8 @@ void XLiveAPI::Init() {
   if (player->XUID() !=
       kernel_state()->xam_state()->GetUserProfile((uint32_t)0)->xuid()) {
     XELOGI("XLiveAPI:: Player 0 XUID mismatch!");
+    xuid_mismatch = true;
+
     assert_always();
   }
 
