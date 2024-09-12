@@ -38,13 +38,14 @@ struct GameBuildAddrs {
   uint32_t y_address;
   uint32_t z_address;
   uint32_t auto_center_strength_address;
+  uint32_t mounting_center_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8, 0xBE674C54}},
+     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8, 0xBE674C54, 0xBE665F00}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8, NULL}}};
+     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8, NULL, NULL}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -102,6 +103,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   xe::be<float>* auto_center_strength_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].auto_center_strength_address);
+  auto* mounting_center = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].mounting_center_address);
 
   float auto_center_strength = *auto_center_strength_act;
 
@@ -138,6 +141,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     }
     *auto_center_strength_act = auto_center_strength;
   }
+  if (supported_builds[game_build_].mounting_center_address != NULL &&
+      *mounting_center != 0 &&
+      (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0))
+    *mounting_center = 0;
   return true;
 }
 
