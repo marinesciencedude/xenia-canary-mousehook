@@ -36,7 +36,8 @@ struct GameBuildAddrs {
   const char* title_version;
   uint32_t check_addr;
   uint32_t check_value;
-  uint32_t x_address;
+  uint32_t base_address;
+  uint32_t x_offset;
   uint32_t y_offset;
   uint32_t z_offset;
   uint32_t auto_center_strength_offset;
@@ -45,11 +46,13 @@ struct GameBuildAddrs {
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0x82010BEC, 0x7A3A5C72, 0xBE674BE0, 0x4, 0x8, 0x74, 0xBE665F00}},
+     {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
+      0xBE665F00}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
-     {"12.0", 0x82010C0C, 0x7A3A5C72, 0xBE64CFD0, 0x4, 0x8, 0x74, 0xBE641960}},
+     {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
+      0xBE641960}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", NULL, NULL, 0xBE63D6D0, 0x4, 0x8, 0x74, NULL}}};
+     {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, NULL}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -104,21 +107,36 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
+  xe::be<uint32_t>* base_address =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          supported_builds[game_build_].base_address);
+
+  if (!base_address || *base_address == NULL) {
+    // Not in game
+    return false;
+  }
+
+  xe::be<uint32_t> x_address =
+      *base_address - supported_builds[game_build_].x_offset;
+  xe::be<uint32_t> y_address =
+      *base_address - supported_builds[game_build_].y_offset;
+  xe::be<uint32_t> z_address =
+      *base_address - supported_builds[game_build_].z_offset;
+  xe::be<uint32_t> auto_center_strength_address =
+      *base_address - supported_builds[game_build_].auto_center_strength_offset;
+
   xe::be<float>* degree_x_act =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].x_address);
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
+
   xe::be<float>* degree_y_act =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].x_address +
-          supported_builds[game_build_].y_offset);
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
+
   xe::be<float>* degree_z_act =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].x_address +
-          supported_builds[game_build_].z_offset);
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(z_address);
+
   xe::be<float>* auto_center_strength_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].x_address +
-          supported_builds[game_build_].auto_center_strength_offset);
+          auto_center_strength_address);
   auto* mounting_center = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].mounting_center_address);
 
