@@ -41,7 +41,9 @@ struct GameBuildAddrs {
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8}}};
+     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8}},
+    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
+     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
