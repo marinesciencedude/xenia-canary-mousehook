@@ -42,17 +42,20 @@ struct GameBuildAddrs {
   uint32_t z_offset;
   uint32_t auto_center_strength_offset;
   uint32_t mounting_center_address;
+  uint32_t x_cover_address;
+  uint32_t y_cover_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE665F00}},
+      0xBE665F00, 0xBE67B620, 0xBE67B740}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE641960}},
+      0xBE641960, NULL, NULL}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, NULL}}};
+     {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, NULL, NULL,
+      NULL}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -116,6 +119,21 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
+  if (supported_builds[game_build_].x_cover_address != NULL) {
+    xe::be<float>* radian_x_cover =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].x_cover_address);
+    float camX = *radian_x_cover;
+    xe::be<float>* radian_y_cover =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].y_cover_address);
+    float camY = *radian_y_cover;
+    camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / 1000.f);
+    camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f);
+    *radian_x_cover = camX;
+    *radian_y_cover = camY;
+  }
+
   xe::be<uint32_t> x_address =
       *base_address - supported_builds[game_build_].x_offset;
   xe::be<uint32_t> y_address =
@@ -163,10 +181,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   degree_z = sin(hor_angle) * cos(vert_angle);
   degree_y = sin(vert_angle);
 
-  if (degree_y > 0.7173560262f)
-    degree_y = 0.7173560262f;
-  else if (degree_y < -0.891207397f)
-    degree_y = -0.891207397f;
+  if (degree_y > 0.7173560260f)
+    degree_y = 0.7173560260f;
+  else if (degree_y < -0.891207390f)
+    degree_y = -0.891207390f;
 
   *degree_x_act = degree_x;
   *degree_y_act = degree_y;
@@ -175,7 +193,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
-    auto_center_strength += 0.5f;  // Maybe setting it to 1.f is better, I'm
+    auto_center_strength += 0.1f;  // Maybe setting it to 1.f is better, I'm
                                    // just hoping += 0.5 makes it smoother..
     if (auto_center_strength > 1.f) {
       auto_center_strength = 1.f;
