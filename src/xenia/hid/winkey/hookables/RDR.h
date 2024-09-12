@@ -21,6 +21,7 @@ class RedDeadRedemptionGame : public HookableGame {
   enum class GameBuild {
     Unknown,
     RedDeadRedemption_GOTY_Disk1,
+    RedDeadRedemption_GOTY_Disk2,
     RedDeadRedemption_Original_TU0
   };
 

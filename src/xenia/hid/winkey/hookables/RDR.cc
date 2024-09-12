@@ -34,18 +34,22 @@ namespace hid {
 namespace winkey {
 struct GameBuildAddrs {
   const char* title_version;
+  uint32_t check_addr;
+  uint32_t check_value;
   uint32_t x_address;
-  uint32_t y_address;
-  uint32_t z_address;
-  uint32_t auto_center_strength_address;
+  uint32_t y_offset;
+  uint32_t z_offset;
+  uint32_t auto_center_strength_offset;
   uint32_t mounting_center_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8, 0xBE674C54, 0xBE665F00}},
+     {"12.0", 0x82010BEC, 0x7A3A5C72, 0xBE674BE0, 0x4, 0x8, 0x74, 0xBE665F00}},
+    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
+     {"12.0", 0x82010C0C, 0x7A3A5C72, 0xBE64CFD0, 0x4, 0x8, 0x74, 0xBE641960}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8, NULL, NULL}}};
+     {"1.0", NULL, NULL, 0xBE63D6D0, 0x4, 0x8, 0x74, NULL}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -58,7 +62,16 @@ bool RedDeadRedemptionGame::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    if (build.second.check_addr != NULL) {
+      // Required due to GOTY disks sharing same version.
+      auto* check_addr_ptr =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              build.second.check_addr);
+      if (*check_addr_ptr == build.second.check_value) {
+        game_build_ = build.first;
+        return true;
+      }
+    } else if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
     }
@@ -96,13 +109,16 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
           supported_builds[game_build_].x_address);
   xe::be<float>* degree_y_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].y_address);
+          supported_builds[game_build_].x_address +
+          supported_builds[game_build_].y_offset);
   xe::be<float>* degree_z_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].z_address);
+          supported_builds[game_build_].x_address +
+          supported_builds[game_build_].z_offset);
   xe::be<float>* auto_center_strength_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].auto_center_strength_address);
+          supported_builds[game_build_].x_address +
+          supported_builds[game_build_].auto_center_strength_offset);
   auto* mounting_center = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].mounting_center_address);
 
@@ -131,7 +147,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   *degree_y_act = degree_y;
   *degree_z_act = degree_z;
 
-  if (supported_builds[game_build_].auto_center_strength_address != NULL &&
+  if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
     auto_center_strength += 0.5f;  // Maybe setting it to 1.f is better, I'm
