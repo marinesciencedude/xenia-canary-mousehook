@@ -37,13 +37,14 @@ struct GameBuildAddrs {
   uint32_t x_address;
   uint32_t y_address;
   uint32_t z_address;
+  uint32_t auto_center_strength_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8}},
+     {"12.0", 0xBE674BE0, 0xBE674BE4, 0xBE674BE8, 0xBE674C54}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8}}};
+     {"1.0", 0xBE63D6D0, 0xBE63D6D4, 0xBE63D6D8, NULL}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -98,6 +99,11 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   xe::be<float>* degree_z_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].z_address);
+  xe::be<float>* auto_center_strength_act =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].auto_center_strength_address);
+
+  float auto_center_strength = *auto_center_strength_act;
 
   float degree_x = *degree_x_act;
   float degree_y = *degree_y_act;
@@ -122,6 +128,16 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   *degree_y_act = degree_y;
   *degree_z_act = degree_z;
 
+  if (supported_builds[game_build_].auto_center_strength_address != NULL &&
+      auto_center_strength <= 1.f &&
+      (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
+    auto_center_strength += 0.5f;  // Maybe setting it to 1.f is better, I'm
+                                   // just hoping += 0.5 makes it smoother..
+    if (auto_center_strength > 1.f) {
+      auto_center_strength = 1.f;
+    }
+    *auto_center_strength_act = auto_center_strength;
+  }
   return true;
 }
 
