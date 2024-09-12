@@ -44,12 +44,13 @@ struct GameBuildAddrs {
   uint32_t mounting_center_address;
   uint32_t x_cover_address;
   uint32_t y_cover_address;
+  uint32_t mounted_x_offset_from_cover;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE665F00, 0xBE67B620, 0xBE67B740}},
+      0xBE665F00, 0xBE67B620, 0xBE67B740, 0x5680}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE641960, NULL, NULL}},
@@ -123,6 +124,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<float>* radian_x_cover =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(
             supported_builds[game_build_].x_cover_address);
+    xe::be<float>* radian_x_mounted =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].x_cover_address -
+            supported_builds[game_build_].mounted_x_offset_from_cover);
     float camX = *radian_x_cover;
     xe::be<float>* radian_y_cover =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -131,6 +136,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / 1000.f);
     camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f);
     *radian_x_cover = camX;
+    *radian_x_mounted = camX;
     *radian_y_cover = camY;
   }
 
@@ -193,8 +199,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
-    auto_center_strength += 0.1f;  // Maybe setting it to 1.f is better, I'm
-                                   // just hoping += 0.5 makes it smoother..
+    auto_center_strength += 0.01f;  // Maybe setting it to 1.f is better, I'm
+                                    // just hoping += 0.5 makes it smoother..
     if (auto_center_strength > 1.f) {
       auto_center_strength = 1.f;
     }
