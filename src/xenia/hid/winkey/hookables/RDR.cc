@@ -45,12 +45,13 @@ struct GameBuildAddrs {
   uint32_t x_cover_address;
   uint32_t y_cover_address;
   uint32_t mounted_x_offset_from_cover;
+  uint32_t cam_type_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE665F00, 0xBE67B620, 0xBE67B740, 0x5680}},
+      0xBE665F00, 0xBE67B620, 0xBE67B740, 0x5680, 0xBE6ADDCB}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE641960, NULL, NULL}},
@@ -149,6 +150,18 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   xe::be<uint32_t> auto_center_strength_address =
       *base_address - supported_builds[game_build_].auto_center_strength_offset;
 
+  if (supported_builds[game_build_].cam_type_address != NULL) {
+    auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].cam_type_address);
+    if (cam_type &&
+        (*cam_type == 10 || *cam_type == 13)) {  // Carriage & Mine Cart Cam
+      x_address -= 0x810;
+      y_address -= 0x810;
+      z_address -= 0x810;
+      auto_center_strength_address = x_address + 0x74;
+    }
+  }
+
   xe::be<float>* degree_x_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
 
@@ -199,8 +212,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
-    auto_center_strength += 0.01f;  // Maybe setting it to 1.f is better, I'm
-                                    // just hoping += 0.5 makes it smoother..
+    auto_center_strength += 0.15f;  // Maybe setting it to 1.f is better, I'm
+                                    // just hoping += 0.x makes it smoother..
     if (auto_center_strength > 1.f) {
       auto_center_strength = 1.f;
     }
