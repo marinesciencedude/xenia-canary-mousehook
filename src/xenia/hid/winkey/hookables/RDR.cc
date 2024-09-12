@@ -130,18 +130,25 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
   // Calculate the horizontal and vertical angles
   float hor_angle = atan2(degree_z, degree_x);
-  float vert_angle = asin(degree_y / (float)cvars::sensitivity);
+  float vert_angle = asin(degree_y);
 
-  hor_angle += (input_state.mouse.x_delta / 1000.f);  // X-axis delta
-  vert_angle = std::clamp(vert_angle - (input_state.mouse.y_delta / 1000.f),
-                          -static_cast<float>(M_PI / 2.0f),
-                          static_cast<float>(M_PI / 2.0f));
+  hor_angle += ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
+                1000.f);  // X-axis delta
+  vert_angle = std::clamp(
+      vert_angle -
+          ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f),
+      -static_cast<float>(M_PI / 2.0f), static_cast<float>(M_PI / 2.0f));
 
   // Calculate 3D camera vector |
   // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
-  degree_x = cos(hor_angle) * cos(vert_angle) * (float)cvars::sensitivity;
-  degree_z = sin(hor_angle) * cos(vert_angle) * (float)cvars::sensitivity;
-  degree_y = sin(vert_angle) * (float)cvars::sensitivity;
+  degree_x = cos(hor_angle) * cos(vert_angle);
+  degree_z = sin(hor_angle) * cos(vert_angle);
+  degree_y = sin(vert_angle);
+
+  if (degree_y > 0.7173560262f)
+    degree_y = 0.7173560262f;
+  else if (degree_y < -0.891207397f)
+    degree_y = -0.891207397f;
 
   *degree_x_act = degree_x;
   *degree_y_act = degree_y;
