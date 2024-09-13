@@ -47,19 +47,23 @@ struct GameBuildAddrs {
   uint32_t y_cover_offset;
   uint32_t mounted_x_offset_from_cover;
   uint32_t cam_type_address;
+  uint32_t cam_type_offset;
   uint32_t pause_flag_address;
+  uint32_t fovscale_base_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0xBE6AA360, 0x82F79E77}},
+      0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0x820D68E8, 0x794B,
+      0x82F79E77, 0xBE67B80C}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE641960, NULL, NULL, NULL}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
      {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, 0xBE65B73C,
-      0xBE661AC8, 0x1A0, 0x2C0, NULL, 0xBE68A060, 0x82F49B73}}};
+      0xBE661AC8, 0x1A0, 0x2C0, NULL, 0xBE68A060, 0xB, 0x82F49B73,
+      0xBE64CEAC}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -131,6 +135,23 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
+  float divisor;
+  if (supported_builds[game_build_].fovscale_base_address != NULL) {
+    xe::be<uint32_t>* fovscale_address =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].fovscale_base_address);
+    xe::be<uint32_t> fovscale_address_result = +0xD0;
+    xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        fovscale_address_result);
+
+    float fov = *fovscale;
+    if (fov <= 0.5f) {
+      fov = 0.5f;
+    }
+    divisor = 1000.f * fov;
+  } else
+    divisor = 1000.f;
+
   if (supported_builds[game_build_].cover_base_address != NULL) {
     xe::be<uint32_t>* cover_base =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
@@ -145,8 +166,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<float>* radian_y_cover =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
     float camY = *radian_y_cover;
-    camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / 1000.f);
-    camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f);
+    camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
+    camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
     *radian_x_cover = camX;
 
     *radian_y_cover = camY;
@@ -172,7 +193,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t>* cam_type_result =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].cam_type_address);
-    xe::be<uint32_t> cam_byte_read = *cam_type_result + 0xB;
+    xe::be<uint32_t> cam_byte_read =
+        *cam_type_result + supported_builds[game_build_].cam_type_offset;
     auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
     if (cam_type &&
         (*cam_type == 10 || *cam_type == 13)) {  // Carriage & Mine Cart Cam
@@ -207,10 +229,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   float vert_angle = asin(degree_y);
 
   hor_angle += ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
-                1000.f);  // X-axis delta
+                divisor);  // X-axis delta
   vert_angle = std::clamp(
       vert_angle -
-          ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f),
+          ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor),
       -static_cast<float>(M_PI / 2.0f), static_cast<float>(M_PI / 2.0f));
 
   // Calculate 3D camera vector |
@@ -219,10 +241,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   degree_z = sin(hor_angle) * cos(vert_angle);
   degree_y = sin(vert_angle);
 
-  if (degree_y > 0.7173560260f)
-    degree_y = 0.7173560260f;
-  else if (degree_y < -0.891207390f)
-    degree_y = -0.891207390f;
+  if (degree_y > 0.7153550260f)
+    degree_y = 0.7153550260f;
+  else if (degree_y < -0.861205390f)
+    degree_y = -0.861205390f;
 
   *degree_x_act = degree_x;
   *degree_y_act = degree_y;
