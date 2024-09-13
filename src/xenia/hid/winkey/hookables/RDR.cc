@@ -53,13 +53,13 @@ struct GameBuildAddrs {
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0xBE6ADDCB, 0x82F79E77}},
+      0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0xBE6AA360, 0x82F79E77}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE641960, NULL, NULL, NULL}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
      {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, 0xBE65B73C,
-      0xBE661AC8, 0x1A0, 0x2C0, NULL, 0xBE682E8B, 0x82F49B73}}};
+      0xBE661AC8, 0x1A0, 0x2C0, NULL, 0xBE68A060, 0x82F49B73}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -169,8 +169,11 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *base_address - supported_builds[game_build_].auto_center_strength_offset;
 
   if (supported_builds[game_build_].cam_type_address != NULL) {
-    auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].cam_type_address);
+    xe::be<uint32_t>* cam_type_result =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].cam_type_address);
+    xe::be<uint32_t> cam_byte_read = *cam_type_result + 0xB;
+    auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
     if (cam_type &&
         (*cam_type == 10 || *cam_type == 13)) {  // Carriage & Mine Cart Cam
       x_address -= 0x810;
