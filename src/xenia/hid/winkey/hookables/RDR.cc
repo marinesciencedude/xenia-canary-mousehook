@@ -42,22 +42,24 @@ struct GameBuildAddrs {
   uint32_t z_offset;
   uint32_t auto_center_strength_offset;
   uint32_t mounting_center_address;
-  uint32_t x_cover_address;
-  uint32_t y_cover_address;
+  uint32_t cover_base_address;
+  uint32_t x_cover_offset;
+  uint32_t y_cover_offset;
   uint32_t mounted_x_offset_from_cover;
   uint32_t cam_type_address;
+  uint32_t pause_flag_address;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE665F00, 0xBE67B620, 0xBE67B740, 0x5680, 0xBE6ADDCB}},
+      0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0xBE6ADDCB, 0x82F79E77}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
-      0xBE641960, NULL, NULL}},
+      0xBE641960, NULL, NULL, NULL}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, 0xBE65EFE0,
-      0xBE64CCC0, 0xBE64CDE0, 0x5680, 0xBE682E8B}}};
+     {"1.0", NULL, NULL, 0x830641D8, 0x460, 0x45C, 0x458, 0x3EC, 0xBE65B73C,
+      0xBE661AC8, 0x1A0, 0x2C0, NULL, 0xBE682E8B, 0x82F49B73}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -111,6 +113,14 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   if (!current_thread) {
     return false;
   }
+  if (supported_builds[game_build_].pause_flag_address != NULL) {
+    xe::be<uint8_t>* isPaused =
+        kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
+            supported_builds[game_build_].pause_flag_address);
+    if (isPaused && *isPaused >= 4) {
+      return false;
+    }
+  }
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
@@ -121,24 +131,32 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
-  if (supported_builds[game_build_].x_cover_address != NULL) {
+  if (supported_builds[game_build_].cover_base_address != NULL) {
+    xe::be<uint32_t>* cover_base =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].cover_base_address);
+    xe::be<uint32_t> x_cover_address =
+        *cover_base + supported_builds[game_build_].x_cover_offset;
+    xe::be<uint32_t> y_cover_address =
+        *cover_base + supported_builds[game_build_].y_cover_offset;
     xe::be<float>* radian_x_cover =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].x_cover_address);
-    xe::be<float>* radian_x_mounted =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].x_cover_address -
-            supported_builds[game_build_].mounted_x_offset_from_cover);
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(x_cover_address);
     float camX = *radian_x_cover;
     xe::be<float>* radian_y_cover =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].y_cover_address);
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
     float camY = *radian_y_cover;
     camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / 1000.f);
     camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / 1000.f);
     *radian_x_cover = camX;
-    *radian_x_mounted = camX;
+
     *radian_y_cover = camY;
+    if (supported_builds[game_build_].mounted_x_offset_from_cover != NULL) {
+      xe::be<float>* radian_x_mounted =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              x_cover_address -
+              supported_builds[game_build_].mounted_x_offset_from_cover);
+      *radian_x_mounted = camX;
+    }
   }
 
   xe::be<uint32_t> x_address =
@@ -174,8 +192,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   xe::be<float>* auto_center_strength_act =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           auto_center_strength_address);
-  auto* mounting_center = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].mounting_center_address);
 
   float auto_center_strength = *auto_center_strength_act;
 
@@ -220,9 +236,15 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     *auto_center_strength_act = auto_center_strength;
   }
   if (supported_builds[game_build_].mounting_center_address != NULL &&
-      *mounting_center != 0 &&
-      (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0))
-    *mounting_center = 0;
+      (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
+    xe::be<uint32_t>* mounting_center_pointer =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].mounting_center_address);
+    xe::be<uint32_t> mounting_center_final = *mounting_center_pointer + 0x1F00;
+    auto* mounting_center =
+        kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
+    if (*mounting_center != 0) *mounting_center = 0;
+  }
   return true;
 }
 
