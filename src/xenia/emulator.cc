@@ -1665,10 +1665,10 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           {0x8248C6D4, 0x38210160, 0x8248D43C, 1},
 
           // Call of Duty 3 MP TU0
-          {0x82078614, 0x63675F66, NULL /*0x821BDE58*/, 1},
+          {0x82078614, 0x63675F66, 0x824AC7A0, 1},
 
           // Call of Duty 3 MP TU3
-          {0x8206E994, 0x63675F66, NULL, 0},
+          {0x8206E994, 0x63675F66, 0x82471D70, 1},
 
           // New Moon Patched XEX (Black Ops 2 Alpha)
           {0x82004860, 0x63675F66, 0x82137D50, 0},
