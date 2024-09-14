@@ -10,6 +10,7 @@
 #ifndef XENIA_HID_WINKEY_RedDeadRedemption_H_
 #define XENIA_HID_WINKEY_RedDeadRedemption_H_
 
+#include "xenia/base/chrono.h"
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
 namespace xe {
@@ -42,6 +43,8 @@ class RedDeadRedemptionGame : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+  std::chrono::steady_clock::time_point last_movement_time_x_;
+  std::chrono::steady_clock::time_point last_movement_time_y_;
 };
 
 }  // namespace winkey

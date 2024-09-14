@@ -26,6 +26,7 @@ using namespace xe::kernel;
 DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
+DECLARE_double(right_stick_hold_time_workaround);
 
 const uint32_t kTitleIdRedDeadRedemption = 0x5454082B;
 
@@ -50,13 +51,14 @@ struct GameBuildAddrs {
   uint32_t cam_type_offset;
   uint32_t pause_flag_address;
   uint32_t fovscale_base_address;
+  uint32_t weapon_wheel_status;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
      {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE684000, 0x820D6A8C, 0xF1F, 0x103F, 0x5680, 0x820D68E8, 0x794B,
-      0x82F79E77, 0xBE67B80C}},
+      0x82F79E77, 0xBE67B80C, 0xBEA580F3}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
      {"12.0", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460, 0x45C, 0x458, 0x3EC,
       0xBE641960, NULL, NULL, NULL}},
@@ -113,6 +115,14 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
+  auto now = std::chrono::steady_clock::now();
+  auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - last_movement_time_x_)
+                       .count();
+  auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - last_movement_time_y_)
+                       .count();
+
   XThread* current_thread = XThread::GetCurrentThread();
   if (!current_thread) {
     return false;
@@ -153,30 +163,40 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     divisor = 1000.f;
 
   if (supported_builds[game_build_].cover_base_address != NULL) {
-    xe::be<uint32_t>* cover_base =
+    xe::be<uint32_t>* cam_type_result =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].cover_base_address);
-    xe::be<uint32_t> x_cover_address =
-        *cover_base + supported_builds[game_build_].x_cover_offset;
-    xe::be<uint32_t> y_cover_address =
-        *cover_base + supported_builds[game_build_].y_cover_offset;
-    xe::be<float>* radian_x_cover =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(x_cover_address);
-    float camX = *radian_x_cover;
-    xe::be<float>* radian_y_cover =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
-    float camY = *radian_y_cover;
-    camX -= ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
-    camY -= ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
-    *radian_x_cover = camX;
+            supported_builds[game_build_].cam_type_address);
+    xe::be<uint32_t> cam_byte_read =
+        *cam_type_result + supported_builds[game_build_].cam_type_offset;
+    auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+    if (cam_type && *cam_type == 9) {
+      xe::be<uint32_t>* cover_base =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              supported_builds[game_build_].cover_base_address);
+      xe::be<uint32_t> x_cover_address =
+          *cover_base + supported_builds[game_build_].x_cover_offset;
+      xe::be<uint32_t> y_cover_address =
+          *cover_base + supported_builds[game_build_].y_cover_offset;
+      xe::be<float>* radian_x_cover =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(x_cover_address);
+      float camX = *radian_x_cover;
+      xe::be<float>* radian_y_cover =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
+      float camY = *radian_y_cover;
+      camX -=
+          ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
+      camY -=
+          ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
+      *radian_x_cover = camX;
 
-    *radian_y_cover = camY;
-    if (supported_builds[game_build_].mounted_x_offset_from_cover != NULL) {
-      xe::be<float>* radian_x_mounted =
-          kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              x_cover_address -
-              supported_builds[game_build_].mounted_x_offset_from_cover);
-      *radian_x_mounted = camX;
+      *radian_y_cover = camY;
+      if (supported_builds[game_build_].mounted_x_offset_from_cover != NULL) {
+        xe::be<float>* radian_x_mounted =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                x_cover_address -
+                supported_builds[game_build_].mounted_x_offset_from_cover);
+        *radian_x_mounted = camX;
+      }
     }
   }
 
@@ -245,11 +265,51 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     degree_y = 0.7153550260f;
   else if (degree_y < -0.861205390f)
     degree_y = -0.861205390f;
+  if (supported_builds[game_build_].weapon_wheel_status &&
+      *kernel_memory()->TranslateVirtual<uint8_t*>(
+          supported_builds[game_build_].weapon_wheel_status) == 2) {
+    static int last_x_delta = 0;
+    static int last_y_delta = 0;
 
-  *degree_x_act = degree_x;
-  *degree_y_act = degree_y;
-  *degree_z_act = degree_z;
+    const long long hold_time =
+        static_cast<long long>(cvars::right_stick_hold_time_workaround);
+    // Check for mouse movement and set thumbstick values
+    if (input_state.mouse.x_delta != 0) {
+      if (input_state.mouse.x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
+      last_movement_time_x_ = now;
+      last_x_delta = input_state.mouse.x_delta;
+    } else if (elapsed_x < hold_time) {  // hold time
+      if (last_x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
+    }
 
+    if (input_state.mouse.y_delta != 0) {
+      if (input_state.mouse.y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      }
+      last_movement_time_y_ = now;
+      last_y_delta = input_state.mouse.y_delta;
+    } else if (elapsed_y < hold_time) {  // hold time
+      if (last_y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      }
+    }
+  } else {
+    *degree_x_act = degree_x;
+    *degree_y_act = degree_y;
+    *degree_z_act = degree_z;
+  }
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
