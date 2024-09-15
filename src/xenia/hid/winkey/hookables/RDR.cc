@@ -53,8 +53,8 @@ struct GameBuildAddrs {
   uint32_t cam_type_offset;
   uint32_t pause_flag_address;     // gamePausePos
   uint32_t fovscale_base_address;  // rdrZoomMemPos
-  uint32_t fovscale_offset;  // unused for now..
-  uint32_t weapon_wheel_status;  // rdrMenuTypeMemPos
+  uint32_t fovscale_offset;        // unused for now..
+  uint32_t weapon_wheel_status;    // rdrMenuTypeMemPos
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
