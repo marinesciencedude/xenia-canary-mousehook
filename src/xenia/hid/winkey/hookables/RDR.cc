@@ -37,23 +37,24 @@ struct GameBuildAddrs {
   const char* title_version;
   uint32_t check_addr;
   uint32_t check_value;
-  uint32_t base_address;
-  uint32_t x_offset;
-  uint32_t y_offset;
-  uint32_t z_offset;
-  uint32_t auto_center_strength_offset;
-  uint32_t mounting_center_address;
+  uint32_t base_address;                 // pointer points to base camera,
+  uint32_t x_offset;                     // Carriage is -0x810 of these
+  uint32_t y_offset;                     // Carriage is -0x810 of these
+  uint32_t z_offset;                     // Carriage is -0x810 of these
+  uint32_t auto_center_strength_offset;  // defaultCamAutoPos // calcucalted
+                                         // from base_address
+  uint32_t mounting_center_address;      // mountingCamAutoPos
   uint32_t cover_base_address;
   uint32_t x_cover_offset;
   uint32_t y_cover_offset;
-  uint32_t mounted_base_address;
+  uint32_t mounted_base_address;  // MoveTurretCam
   uint32_t mounted_x_offset;
-  uint32_t cam_type_address;
+  uint32_t cam_type_address;  // rdrCamTypeMemPos
   uint32_t cam_type_offset;
-  uint32_t pause_flag_address;
-  uint32_t fovscale_base_address;
+  uint32_t pause_flag_address;     // gamePausePos
+  uint32_t fovscale_base_address;  // rdrZoomMemPos
   uint32_t fovscale_offset;  // unused for now..
-  uint32_t weapon_wheel_status;
+  uint32_t weapon_wheel_status;  // rdrMenuTypeMemPos
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
@@ -174,7 +175,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
     divisor = 850.5f * fov;
 
-    printf("fov: %f divisor: %f\n", fov, divisor);
+    // printf("fov: %f divisor: %f\n", fov, divisor);
   }
 
   else {
