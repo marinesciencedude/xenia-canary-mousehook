@@ -210,7 +210,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
       *radian_y_cover = camY;
 
-    } else if (cam_type && *cam_type == 7) {
+    } else if (cam_type && *cam_type == 7 ||
+               *cam_type == 6) {  // Cannon or turrent
       xe::be<uint32_t>* cover_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].cover_base_address);
