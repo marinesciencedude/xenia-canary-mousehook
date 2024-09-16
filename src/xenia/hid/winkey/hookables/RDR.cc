@@ -55,23 +55,24 @@ struct GameBuildAddrs {
   uint32_t fovscale_base_address;  // rdrZoomMemPos
   uint32_t fovscale_offset;        // unused for now..
   uint32_t weapon_wheel_status;    // rdrMenuTypeMemPos
+  uint32_t auto_center_cover_offset;
 };
 
 std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,
-      0x45C,  0x458,      0x3EC,      0xBE684000, 0x820D6A8C,
-      0xF1F,  0x103F,     0xBBC67E24, 0x2B0,      0x820D68E8,
-      0x794B, 0x82F79E77, 0xBE67B5C0, 0x514DC,    NULL}},
+     {"12.0",     0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
+      0x458,      0x3EC,      0xBE684000, 0x820D6A8C, 0xF1F,      0x103F,
+      0xBBC67E24, 0x2B0,      0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B5C0,
+      0x514DC,    NULL,       0x15a0}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
-     {"12.0",   0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,
-      0x45C,    0x458,      0x3EC,      0xBE63AB24, 0x8305D6BC,
-      0x477880, 0x4779A0,   0xBE642900, 0x2B0,      0x8305D684,
-      0x4D0D4B, 0x82F79E77, 0xBE6575C0, 0x514DC,    NULL}},
+     {"12.0",     0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
+      0x458,      0x3EC,      0xBE63AB24, 0x8305D6BC, 0x477880,   0x4779A0,
+      0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE6575C0,
+      0x514DC,    NULL,       0x15a0}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
      {"1.0",      NULL,       NULL,       0x830641D8, 0x460, 0x45C, 0x458,
       0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, NULL,  NULL,
-      0xBE68A060, 0xB,        0x82F49B73, 0xBE64CEAC, NULL,  NULL}}};
+      0xBE68A060, 0xB,        0x82F49B73, 0xBE64CEAC, NULL,  NULL,  0x15a0}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -206,6 +207,19 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
           ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
       camY -=
           ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
+
+      if (input_state.mouse.x_delta != 0 ||
+          input_state.mouse.y_delta != 0 &&
+              supported_builds[game_build_].mounting_center_address != NULL) {
+        xe::be<uint32_t>* cover_center_pointer =
+            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                supported_builds[game_build_].mounting_center_address);
+        xe::be<uint32_t> cover_center_final = *cover_center_pointer + 0x15a0;
+        auto* cover_center =
+            kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
+        if (*cover_center != 0) *cover_center = 0;
+      }
+
       *radian_x_cover = camX;
 
       *radian_y_cover = camY;
