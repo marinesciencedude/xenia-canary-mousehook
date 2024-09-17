@@ -19,7 +19,7 @@ namespace winkey {
 
 class RedDeadRedemptionGame : public HookableGame {
  public:
-  enum class GameBuild {
+  enum /* class*/ GameBuild {
     Unknown,
     RedDeadRedemption_GOTY_Disk1,
     RedDeadRedemption_GOTY_Disk2,

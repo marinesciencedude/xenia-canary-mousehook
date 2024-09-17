@@ -58,31 +58,34 @@ struct GameBuildAddrs {
   uint32_t weapon_wheel_offset;
 };
 
-std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
-    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk1,
-     {"12.0",     0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
-      0x458,      0x3EC,      0xBE684000, 0x820D6A8C, 0xF1F,      0x103F,
-      0xBBC67E24, 0x2B0,      0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B5C0,
-      NULL,       0x82F7B450, 0xF3}},
-    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_GOTY_Disk2,
-     {"12.0",     0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
-      0x458,      0x3EC,      0xBE63AB24, 0x8305D6BC, 0x477880,   0x4779A0,
-      0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE6575C0,
-      NULL,       0x82F7B450, 0xF3}},
-    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0",      NULL,       NULL,       0x830641D8, 0x460, 0x45C,      0x458,
-      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, 0xBBC5FD14, 0x2B0,
-      0xBE68A060, 0xB,        0x82F49B73, 0xBF449054, NULL,  0x82F4B0E0, 0xF3}},
-    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU9,
-     {"1.0.9",    NULL,       NULL,       0x8305DBE8, 0x460, 0x45C,      0x458,
-      0x3EC,      0xBE69827C, 0xBE696608, 0x1A0,      0x2C0, 0xBBC63E24, 0x2B0,
-      0xBE6BAB60, 0xB,        0x82F49EB7, 0xBF47F574, NULL,  0x82F4B660, 0xF3}},
-    {RedDeadRedemptionGame::GameBuild::
-         RedDeadRedemption_UndeadNightmare_Standalone_TU4,
-     {"4.0",      NULL,       NULL,       0x8309AF88, 0x460,      0x45C,
-      0x458,      0x3EC,      0xBE6430A4, 0xBE65B88C, 0x1A0,      0x2C0,
-      0xBBC67E3C, 0x2B0,      0xBE685260, 0xB,        0x82F79E77, 0xBF463794,
-      NULL,       0x82F7B450, 0xF3}}};
+struct GameBuildAddrs supported_builds[6] = {
+    {"",   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+    // RedDeadRedemption_GOTY_Disk1
+    {"12.0",     0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,  0x45C,      0x458,
+     0x3EC,      0xBE684000, 0x820D6A8C, 0xF1F,      0x103F, 0xBBC67E24, 0x2B0,
+     0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B5C0, NULL,   0x82F7B450, 0xF3},
+
+    // RedDeadRedemption_GOTY_Disk2
+    {"12.0",     0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
+     0x458,      0x3EC,      0xBE63AB24, 0x8305D6BC, 0x477880,   0x4779A0,
+     0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE6575C0,
+     NULL,       0x82F7B450, 0xF3},
+
+    // RedDeadRedemption_Original_TU0
+    {"1.0",      NULL,       NULL,       0x830641D8, 0x460, 0x45C,      0x458,
+     0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, 0xBBC5FD14, 0x2B0,
+     0xBE68A060, 0xB,        0x82F49B73, 0xBF449054, NULL,  0x82F4B0E0, 0xF3},
+
+    // RedDeadRedemption_Original_TU9
+    {"1.0.9",    NULL,       NULL,       0x8305DBE8, 0x460, 0x45C,      0x458,
+     0x3EC,      0xBE69827C, 0xBE696608, 0x1A0,      0x2C0, 0xBBC63E24, 0x2B0,
+     0xBE6BAB60, 0xB,        0x82F49EB7, 0xBF47F574, NULL,  0x82F4B660, 0xF3},
+
+    // RedDeadRedemption_UndeadNightmare_Standalone_TU4
+    {"4.0",      NULL,       NULL,       0x8309AF88, 0x460, 0x45C,      0x458,
+     0x3EC,      0xBE6430A4, 0xBE65B88C, 0x1A0,      0x2C0, 0xBBC67E3C, 0x2B0,
+     0xBE685260, 0xB,        0x82F79E77, 0xBF463794, NULL,  0x82F7B450, 0xF3}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
@@ -94,18 +97,18 @@ bool RedDeadRedemptionGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
-    if (build.second.check_addr != NULL) {
-      // Required due to GOTY disks sharing same version.
+for (int i = 0; i < (sizeof(supported_builds) / sizeof(supported_builds[0]));
+       i++) {
+    if (supported_builds[i].check_addr != NULL) {
       auto* check_addr_ptr =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              build.second.check_addr);
-      if (*check_addr_ptr == build.second.check_value) {
-        game_build_ = build.first;
+              supported_builds[i].check_addr);
+      if (*check_addr_ptr == supported_builds[i].check_value) {
+        game_build_ = static_cast<RedDeadRedemptionGame::GameBuild>(i);
         return true;
       }
-    } else if (current_version == build.second.title_version) {
-      game_build_ = build.first;
+    } else if (current_version == supported_builds[i].title_version) {
+      game_build_ = static_cast<RedDeadRedemptionGame::GameBuild>(i);
       return true;
     }
   }
@@ -128,7 +131,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+if (game_build_ < 0 ||
+      game_build_ >= sizeof(supported_builds) / sizeof(supported_builds[0])) {
     return false;
   }
 
@@ -335,6 +339,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t>* weapon_wheel_result =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].weapon_wheel_base_address);
+    if (!weapon_wheel_result || *weapon_wheel_result == NULL) {
+      // Not in game
+      return false;
+    }
     xe::be<uint32_t> weapon_wheel_read =
         *weapon_wheel_result +
         supported_builds[game_build_].weapon_wheel_offset;
