@@ -1601,7 +1601,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     std::vector<RDRPatchOffsets> supported_builds = {
         // RDR GOTY DISK 1
         {0x82010BEC, 0x7A3A5C72, 0x60000000, 0x4e800020, 0x82371E78, 0x822F9E60,
-         0x82371E70},
+         0x82371E58},
         // RDR TU0
         {0x8201071C, 0x7A3A5C72, 0x60000000, 0x4e800020, 0x82370C08, 0x822F83B0,
          0x82370C28},
@@ -1615,7 +1615,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         continue;
       }
       patch_addr(build.auto_center_read_address, build.BENop);
-      patch_addr(build.alt_auto_center_read_address, build.BENop);
+      if (build.alt_auto_center_read_address)
+        patch_addr(build.alt_auto_center_read_address, build.BENop);
       if (cvars::disable_autoaim && build.aim_assist_function_address) {
         patch_addr(build.aim_assist_function_address, build.BEStub);
       }
