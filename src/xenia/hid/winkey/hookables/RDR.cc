@@ -341,43 +341,22 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     auto* weapon_wheel_status =
         kernel_memory()->TranslateVirtual<uint8_t*>(weapon_wheel_read);
     if (*weapon_wheel_status == 2) {
-      static int last_x_delta = 0;
-      static int last_y_delta = 0;
+      static float xn = 0.0f;
+      static float yn = 0.0f;
+      // static float wpnWheelSegA = 0.83f; Trying to figure this out from
+      // Galaxy's table.. static float wpnWheelSegB = 0.38f;
 
-      const long long hold_time =
-          static_cast<long long>(cvars::right_stick_hold_time_workaround);
-      // Check for mouse movement and set thumbstick values
-      if (input_state.mouse.x_delta != 0) {
-        if (input_state.mouse.x_delta > 0) {
-          out_state->gamepad.thumb_rx = SHRT_MAX;
-        } else {
-          out_state->gamepad.thumb_rx = SHRT_MIN;
-        }
-        last_movement_time_x_ = now;
-        last_x_delta = input_state.mouse.x_delta;
-      } else if (elapsed_x < hold_time) {  // hold time
-        if (last_x_delta > 0) {
-          out_state->gamepad.thumb_rx = SHRT_MAX;
-        } else {
-          out_state->gamepad.thumb_rx = SHRT_MIN;
-        }
-      }
+      xn += input_state.mouse.x_delta / 50.f;
+      yn += input_state.mouse.y_delta / 50.f;
 
-      if (input_state.mouse.y_delta != 0) {
-        if (input_state.mouse.y_delta > 0) {
-          out_state->gamepad.thumb_ry = SHRT_MAX;
-        } else {
-          out_state->gamepad.thumb_ry = SHRT_MIN;
-        }
-        last_movement_time_y_ = now;
-        last_y_delta = input_state.mouse.y_delta;
-      } else if (elapsed_y < hold_time) {  // hold time
-        if (last_y_delta > 0) {
-          out_state->gamepad.thumb_ry = SHRT_MIN;
-        } else {
-          out_state->gamepad.thumb_ry = SHRT_MAX;
-        }
-      }
+      if (xn > 1.0f) xn = 1.0f;
+      if (xn < -1.0f) xn = -1.0f;
+      if (yn > 1.0f) yn = 1.0f;
+      if (yn < -1.0f) yn = -1.0f;
+
+      out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
+      out_state->gamepad.thumb_ry =
+          static_cast<short>(-yn * SHRT_MAX);  // Invert Y-axis
     } else {
       *degree_x_act = degree_x;
       *degree_y_act = degree_y;
