@@ -51,9 +51,9 @@ struct GameBuildAddrs {
   uint32_t mounted_x_offset;
   uint32_t cam_type_address;  // rdrCamTypeMemPos
   uint32_t cam_type_offset;
-  uint32_t pause_flag_address;     // gamePausePos
-  uint32_t fovscale_base_address;  // rdrZoomMemPos
-  uint32_t fovscale_offset;        // unused for now..
+  uint32_t pause_flag_address;         // gamePausePos
+  uint32_t fovscale_base_address;      // rdrZoomMemPos
+  uint32_t fovscale_offset;            // unused for now..
   uint32_t weapon_wheel_base_address;  // rdrMenuTypeMemPos
   uint32_t weapon_wheel_offset;
 };
@@ -227,8 +227,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
     } else if (cam_type && *cam_type == 7 ||
                *cam_type == 6 &&
-                   supported_builds[game_build_]
-                       .mounted_base_address != NULL) {  // Cannon or turrent
+                   supported_builds[game_build_].mounted_base_address !=
+                       NULL) {  // Cannon or turrent
       xe::be<uint32_t>* cover_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].cover_base_address);
