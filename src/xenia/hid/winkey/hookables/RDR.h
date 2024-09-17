@@ -23,7 +23,8 @@ class RedDeadRedemptionGame : public HookableGame {
     Unknown,
     RedDeadRedemption_GOTY_Disk1,
     RedDeadRedemption_GOTY_Disk2,
-    RedDeadRedemption_Original_TU0
+    RedDeadRedemption_Original_TU0,
+    RedDeadRedemption_Original_TU9
   };
 
   ~RedDeadRedemptionGame() override;

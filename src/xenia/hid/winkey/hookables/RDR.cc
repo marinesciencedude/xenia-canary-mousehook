@@ -70,10 +70,14 @@ std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
       0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE6575C0,
       NULL,       0x82F7B450, 0xF3}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
-     {"1.0",      NULL,       NULL,       0x830641D8, 0x460,      0x45C,
-      0x458,      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0,
-      0xBBC5FD14, 0x2B0,      0xBE68A060, 0xB,        0x82F49B73, 0xBF449054,
-      NULL,       0x82F4B0E0, 0xF3}}};
+     {"1.0",      NULL,       NULL,       0x830641D8, 0x460, 0x45C,      0x458,
+      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, 0xBBC5FD14, 0x2B0,
+      0xBE68A060, 0xB,        0x82F49B73, 0xBF449054, NULL,  0x82F4B0E0, 0xF3}},
+    {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU9,
+     {"1.0.9",    NULL,       NULL,       0x8305DBE8, 0x460,      0x45C,
+      0x458,      0x3EC,      0xBE69827C, 0xBE647B90, 0xB00,      0xC20,
+      0xBBC63E24, 0x2B0,      0xBE6BAB60, 0xB,        0x82F49EB7, 0xBF47F574,
+      NULL,       0x82F4B660, 0xF3}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 
