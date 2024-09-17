@@ -71,7 +71,7 @@ std::map<RedDeadRedemptionGame::GameBuild, GameBuildAddrs> supported_builds{
       0x514DC,    NULL,       0x15a0}},
     {RedDeadRedemptionGame::GameBuild::RedDeadRedemption_Original_TU0,
      {"1.0",      NULL,       NULL,       0x830641D8, 0x460, 0x45C, 0x458,
-      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, NULL,  NULL,
+      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0, 0xBE63EA20,  0x2B0,
       0xBE68A060, 0xB,        0x82F49B73, 0xBF449054, NULL,  NULL,  0x15a0}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
@@ -225,7 +225,9 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *radian_y_cover = camY;
 
     } else if (cam_type && *cam_type == 7 ||
-               *cam_type == 6) {  // Cannon or turrent
+               *cam_type == 6 &&
+                   supported_builds[game_build_]
+                       .mounted_base_address != NULL) {  // Cannon or turrent
       xe::be<uint32_t>* cover_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].cover_base_address);
