@@ -97,7 +97,7 @@ bool RedDeadRedemptionGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-for (int i = 0; i < (sizeof(supported_builds) / sizeof(supported_builds[0]));
+  for (int i = 0; i < (sizeof(supported_builds) / sizeof(supported_builds[0]));
        i++) {
     if (supported_builds[i].check_addr != NULL) {
       auto* check_addr_ptr =
@@ -131,7 +131,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
 
-if (game_build_ < 0 ||
+  if (game_build_ < 0 ||
       game_build_ >= sizeof(supported_builds) / sizeof(supported_builds[0])) {
     return false;
   }
