@@ -203,7 +203,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t> cam_byte_read =
         *cam_type_result + supported_builds[game_build_].cam_type_offset;
     auto* cam_type = kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
-    if (cam_type && *cam_type == 9) {
+    if (cam_type && *cam_type == 9 && !IsWeaponWheelShown()) {
       xe::be<uint32_t>* cover_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].cover_base_address);
@@ -335,20 +335,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     degree_y = 0.7153550260f;
   else if (degree_y < -0.861205390f)
     degree_y = -0.861205390f;
-  if (supported_builds[game_build_].weapon_wheel_base_address != NULL) {
-    xe::be<uint32_t>* weapon_wheel_result =
-        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].weapon_wheel_base_address);
-    if (!weapon_wheel_result || *weapon_wheel_result == NULL) {
-      // Not in game
-      return false;
-    }
-    xe::be<uint32_t> weapon_wheel_read =
-        *weapon_wheel_result +
-        supported_builds[game_build_].weapon_wheel_offset;
-    auto* weapon_wheel_status =
-        kernel_memory()->TranslateVirtual<uint8_t*>(weapon_wheel_read);
-    if (*weapon_wheel_status == 2) {
+
+    if (IsWeaponWheelShown()) {
       static float xn = 0.0f;
       static float yn = 0.0f;
 
@@ -393,11 +381,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *degree_y_act = degree_y;
       *degree_z_act = degree_z;
     }
-  } else {
-    *degree_x_act = degree_x;
-    *degree_y_act = degree_y;
-    *degree_z_act = degree_z;
-  }
+  
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
@@ -420,6 +404,25 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   }
   return true;
 }
+bool RedDeadRedemptionGame::IsWeaponWheelShown() {
+  if (supported_builds[game_build_].weapon_wheel_base_address != NULL) {
+    xe::be<uint32_t>* weapon_wheel_result =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].weapon_wheel_base_address);
+    xe::be<uint32_t> weapon_wheel_read =
+        *weapon_wheel_result +
+        supported_builds[game_build_].weapon_wheel_offset;
+    auto* weapon_wheel_status =
+        kernel_memory()->TranslateVirtual<uint8_t*>(weapon_wheel_read);
+    if (*weapon_wheel_status == 2)
+      return true;
+    else
+      return false;
+
+  } else
+    return false;
+}
+
 
 std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
 
