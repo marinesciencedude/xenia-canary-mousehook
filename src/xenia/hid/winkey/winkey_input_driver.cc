@@ -49,6 +49,10 @@ DEFINE_int32(walk_diagonal, 18421,
              "Joystick movement for diagonal shiftwalking, default 18421 "
              "equates to 134.99 h.u./s",
              "MouseHook");
+DEFINE_bool(turbo_gallop_horse, false,
+            "Enables turbo galloping for horses and coaches in Red Dead "
+            "Redemption (Bound to Modifier same as Turbo sprint)",
+            "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \

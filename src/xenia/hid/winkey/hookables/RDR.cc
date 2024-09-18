@@ -28,6 +28,7 @@ DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_bool(turbo_gallop_horse);
 
 const uint32_t kTitleIdRedDeadRedemption = 0x5454082B;
 
@@ -548,10 +549,10 @@ bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
   9 = Cover
   10 = Coach
   13 = Minecart
- Maybe add a bool-config to allow spamming for Horse?
   */
-  if (!IsPaused() && IsCinematicTypeEnabled() && player_status != 8 &&
-      player_status != 10) {
+  if (!IsPaused() && IsCinematicTypeEnabled() &&
+      (cvars::turbo_gallop_horse ||
+       player_status != 8 && player_status != 10)) {
     static auto last_toggle_time = std::chrono::steady_clock::now();
     static bool a_button_pressed = false;
 
@@ -561,7 +562,7 @@ bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
                           now - last_toggle_time)
                           .count();
 
-    const int spam_interval_ms = 33;
+    const int spam_interval_ms = 100;
 
     if (elapsed_ms >= spam_interval_ms) {
       a_button_pressed = !a_button_pressed;
