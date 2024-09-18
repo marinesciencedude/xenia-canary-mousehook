@@ -336,52 +336,52 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   else if (degree_y < -0.861205390f)
     degree_y = -0.861205390f;
 
-    if (IsWeaponWheelShown()) {
-      static float xn = 0.0f;
-      static float yn = 0.0f;
+  if (IsWeaponWheelShown()) {
+    static float xn = 0.0f;
+    static float yn = 0.0f;
 
-      float mouse_delta_x = input_state.mouse.x_delta / 2.5f;
-      float mouse_delta_y = input_state.mouse.y_delta / 2.5f;
+    float mouse_delta_x = input_state.mouse.x_delta / 2.5f;
+    float mouse_delta_y = input_state.mouse.y_delta / 2.5f;
 
-      xn += mouse_delta_x;
-      yn += mouse_delta_y;
+    xn += mouse_delta_x;
+    yn += mouse_delta_y;
 
-      if (xn > 1.0f) xn = 1.0f;
-      if (xn < -1.0f) xn = -1.0f;
-      if (yn > 1.0f) yn = 1.0f;
-      if (yn < -1.0f) yn = -1.0f;
+    if (xn > 1.0f) xn = 1.0f;
+    if (xn < -1.0f) xn = -1.0f;
+    if (yn > 1.0f) yn = 1.0f;
+    if (yn < -1.0f) yn = -1.0f;
 
-      float angle = atan2(yn, xn);
-      float angle_degrees = RadianstoDegree(angle);
+    float angle = atan2(yn, xn);
+    float angle_degrees = RadianstoDegree(angle);
 
-      if (angle_degrees < 0) {
-        angle_degrees += 360.0f;
-      }
-      float dominance_threshold = 0.45f;
-
-      if (fabs(xn) > fabs(yn) + dominance_threshold) {
-        angle_degrees = (xn > 0) ? 0.0f : 180.0f;
-      } else if (fabs(yn) > fabs(xn) + dominance_threshold) {
-        angle_degrees = (yn > 0) ? 90.0f : 270.0f;
-      } else {
-        float segment_size = 45.0f;
-        angle_degrees = roundf(angle_degrees / segment_size) * segment_size;
-      }
-
-      float snapped_angle_radians = DegreetoRadians(angle_degrees);
-
-      xn = cosf(snapped_angle_radians);
-      yn = sinf(snapped_angle_radians);
-
-      out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
-      out_state->gamepad.thumb_ry =
-          static_cast<short>(-yn * SHRT_MAX);  // Invert Y-axis
-    } else {
-      *degree_x_act = degree_x;
-      *degree_y_act = degree_y;
-      *degree_z_act = degree_z;
+    if (angle_degrees < 0) {
+      angle_degrees += 360.0f;
     }
-  
+    float dominance_threshold = 0.45f;
+
+    if (fabs(xn) > fabs(yn) + dominance_threshold) {
+      angle_degrees = (xn > 0) ? 0.0f : 180.0f;
+    } else if (fabs(yn) > fabs(xn) + dominance_threshold) {
+      angle_degrees = (yn > 0) ? 90.0f : 270.0f;
+    } else {
+      float segment_size = 45.0f;
+      angle_degrees = roundf(angle_degrees / segment_size) * segment_size;
+    }
+
+    float snapped_angle_radians = DegreetoRadians(angle_degrees);
+
+    xn = cosf(snapped_angle_radians);
+    yn = sinf(snapped_angle_radians);
+
+    out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
+    out_state->gamepad.thumb_ry =
+        static_cast<short>(-yn * SHRT_MAX);  // Invert Y-axis
+  } else {
+    *degree_x_act = degree_x;
+    *degree_y_act = degree_y;
+    *degree_z_act = degree_z;
+  }
+
   if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
       auto_center_strength <= 1.f &&
       (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
@@ -422,7 +422,6 @@ bool RedDeadRedemptionGame::IsWeaponWheelShown() {
   } else
     return false;
 }
-
 
 std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
 
