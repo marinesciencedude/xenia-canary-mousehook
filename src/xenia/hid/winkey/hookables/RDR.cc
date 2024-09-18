@@ -537,7 +537,43 @@ std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
 bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
                                                RawInputState& input_state,
                                                X_INPUT_STATE* out_state) {
-  return false;
+  uint16_t buttons = out_state->gamepad.buttons;
+  buttons |= 0x1000;
+  uint8_t player_status = GetCamType();
+  /*
+  2 = Duel
+  6 = Turret
+  7 = Cannon
+  8 = Horse
+  9 = Cover
+  10 = Coach
+  13 = Minecart
+ Maybe add a bool-config to allow spamming for Horse?
+  */
+  if (!IsPaused() && IsCinematicTypeEnabled() && player_status != 8 &&
+      player_status != 10) {
+    static auto last_toggle_time = std::chrono::steady_clock::now();
+    static bool a_button_pressed = false;
+
+    auto now = std::chrono::steady_clock::now();
+
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          now - last_toggle_time)
+                          .count();
+
+    const int spam_interval_ms = 33;
+
+    if (elapsed_ms >= spam_interval_ms) {
+      a_button_pressed = !a_button_pressed;
+      last_toggle_time = now;
+    }
+
+    if (a_button_pressed) {
+      out_state->gamepad.buttons = buttons;
+    }
+  } else
+    out_state->gamepad.buttons = buttons;
+  return true;
 }
 }  // namespace winkey
 }  // namespace hid
