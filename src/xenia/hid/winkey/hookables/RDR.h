@@ -38,6 +38,7 @@ class RedDeadRedemptionGame : public HookableGame {
   bool IsCinematicTypeEnabled();
   void HandleRightStickEmulation(RawInputState& input_state,
                                  X_INPUT_STATE* out_state);
+  float ClampVerticalAngle(float degree_y);
 
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);

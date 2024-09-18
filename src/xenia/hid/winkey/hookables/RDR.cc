@@ -329,22 +329,20 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
     hor_angle += ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
                   divisor);  // X-axis delta
-    vert_angle = std::clamp(
+    vert_angle = ClampVerticalAngle(
         vert_angle -
-            ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor),
-        -static_cast<float>(M_PI / 2.0f), static_cast<float>(M_PI / 2.0f));
-
+        ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor));
     // Calculate 3D camera vector |
     // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
     degree_x = cos(hor_angle) * cos(vert_angle);
     degree_z = sin(hor_angle) * cos(vert_angle);
     degree_y = sin(vert_angle);
 
-    if (degree_y > 0.7153550260f)
+    /* if (degree_y > 0.7153550260f)
       degree_y = 0.7153550260f;
     else if (degree_y < -0.861205390f)
       degree_y = -0.861205390f;
-
+      */
     if (IsWeaponWheelShown()) {
       static float xn = 0.0f;
       static float yn = 0.0f;
@@ -490,6 +488,13 @@ void RedDeadRedemptionGame::HandleRightStickEmulation(
 
   out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
   out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
+}
+
+float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
+  const float max_y_angle = 0.8f;
+  const float min_y_angle = -1.1f;
+
+  return std::clamp(degree_y, min_y_angle, max_y_angle);
 }
 
 std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
