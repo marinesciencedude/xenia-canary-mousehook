@@ -24,6 +24,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
@@ -192,6 +193,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       float fov = *fovscale;
       if (fov <= 0.5f || fov > 35.f) {
         fov = 1.f;
+      }
+      const float a = (float)cvars::fov_sensitivity;
+      if (fov >= 0.96f) {
+        fov = a * fov + (1 - a) * (fov * fov);
       }
 
       divisor = 850.5f * fov;
