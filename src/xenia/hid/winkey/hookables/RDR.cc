@@ -351,16 +351,39 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     if (*weapon_wheel_status == 2) {
       static float xn = 0.0f;
       static float yn = 0.0f;
-      // static float wpnWheelSegA = 0.83f; Trying to figure this out from
-      // Galaxy's table.. static float wpnWheelSegB = 0.38f;
 
-      xn += input_state.mouse.x_delta / 50.f;
-      yn += input_state.mouse.y_delta / 50.f;
+      float mouse_delta_x = input_state.mouse.x_delta / 2.5f;
+      float mouse_delta_y = input_state.mouse.y_delta / 2.5f;
+
+      xn += mouse_delta_x;
+      yn += mouse_delta_y;
 
       if (xn > 1.0f) xn = 1.0f;
       if (xn < -1.0f) xn = -1.0f;
       if (yn > 1.0f) yn = 1.0f;
       if (yn < -1.0f) yn = -1.0f;
+
+      float angle = atan2(yn, xn);
+      float angle_degrees = RadianstoDegree(angle);
+
+      if (angle_degrees < 0) {
+        angle_degrees += 360.0f;
+      }
+      float dominance_threshold = 0.45f;
+
+      if (fabs(xn) > fabs(yn) + dominance_threshold) {
+        angle_degrees = (xn > 0) ? 0.0f : 180.0f;
+      } else if (fabs(yn) > fabs(xn) + dominance_threshold) {
+        angle_degrees = (yn > 0) ? 90.0f : 270.0f;
+      } else {
+        float segment_size = 45.0f;
+        angle_degrees = roundf(angle_degrees / segment_size) * segment_size;
+      }
+
+      float snapped_angle_radians = DegreetoRadians(angle_degrees);
+
+      xn = cosf(snapped_angle_radians);
+      yn = sinf(snapped_angle_radians);
 
       out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
       out_state->gamepad.thumb_ry =
