@@ -154,14 +154,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
   if (!current_thread) {
     return false;
   }
-  if (supported_builds[game_build_].pause_flag_address != NULL) {
-    xe::be<uint8_t>* isPaused =
-        kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
-            supported_builds[game_build_].pause_flag_address);
-    if (isPaused && *isPaused >= 4) {
-      return false;
-    }
-  }
+  if (IsPaused()) return false;
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
@@ -458,7 +451,18 @@ bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
   }
   return false;
 }
-
+bool RedDeadRedemptionGame::IsPaused() {
+  if (supported_builds[game_build_].pause_flag_address != NULL) {
+    xe::be<uint8_t>* isPaused =
+        kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
+            supported_builds[game_build_].pause_flag_address);
+    if (isPaused && *isPaused >= 4) {
+      return true;
+    } else
+      return false;
+  } else
+    return false;
+}
 void RedDeadRedemptionGame::HandleRightStickEmulation(
     RawInputState& input_state, X_INPUT_STATE* out_state) {
   auto now = std::chrono::steady_clock::now();
