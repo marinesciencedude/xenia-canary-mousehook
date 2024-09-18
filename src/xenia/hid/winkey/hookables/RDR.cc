@@ -203,14 +203,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       divisor = 850.5f;
     }
     if (supported_builds[game_build_].cover_base_address != NULL) {
-      xe::be<uint32_t>* cam_type_result =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              supported_builds[game_build_].cam_type_address);
-      xe::be<uint32_t> cam_byte_read =
-          *cam_type_result + supported_builds[game_build_].cam_type_offset;
-      auto* cam_type =
-          kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
-      if (cam_type && *cam_type == 9 && !IsWeaponWheelShown()) {
+      uint8_t cam_type = GetCamType();
+      if (cam_type && cam_type == 9 && !IsWeaponWheelShown()) {
         xe::be<uint32_t>* cover_base =
             kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
                 supported_builds[game_build_].cover_base_address);
@@ -245,8 +239,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
         *radian_y_cover = camY;
 
-      } else if (cam_type && *cam_type == 7 ||
-                 *cam_type == 6 &&
+      } else if (cam_type && cam_type == 7 ||
+                 cam_type == 6 &&
                      supported_builds[game_build_].mounted_base_address !=
                          NULL) {  // Cannon or turrent
         xe::be<uint32_t>* cover_base =
@@ -372,16 +366,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *degree_z_act = degree_z;
 
       if (supported_builds[game_build_].cam_type_address != NULL) {
-        xe::be<uint32_t>* cam_type_result =
-            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                supported_builds[game_build_].cam_type_address);
-        xe::be<uint32_t> cam_byte_read =
-            *cam_type_result + supported_builds[game_build_].cam_type_offset;
-        auto* cam_type =
-            kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+        uint8_t cam_type = GetCamType();
 
         if (cam_type &&
-            (*cam_type == 10 || *cam_type == 13)) {  // carriage / mine cart
+            (cam_type == 10 || cam_type == 13)) {  // carriage / mine cart
 
           uint32_t carriage_x_address = x_address - 0x810;
           uint32_t carriage_y_address = y_address - 0x810;
@@ -452,18 +440,9 @@ bool RedDeadRedemptionGame::IsWeaponWheelShown() {
 
 bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
   if (supported_builds[game_build_].cinematicCam_address != NULL) {
-    if (supported_builds[game_build_].cam_type_address != NULL) {
-      xe::be<uint32_t>* cam_type_result =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              supported_builds[game_build_].cam_type_address);
-      xe::be<uint32_t> cam_byte_read =
-          *cam_type_result + supported_builds[game_build_].cam_type_offset;
-      auto* cam_type =
-          kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
-
-      if (cam_type && *cam_type == 2) {
-        return false;
-      }
+    uint8_t cam_type = GetCamType();
+    if (cam_type == 2) {
+      return false;
     }
 
     uint8_t* cinematic_type_ptr = kernel_memory()->TranslateVirtual<uint8_t*>(
@@ -471,10 +450,7 @@ bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
     if (*cinematic_type_ptr == 131) {
       return true;
     }
-
-    return true;
   }
-
   return false;
 }
 
@@ -528,6 +504,23 @@ float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
   const float min_y_angle = -1.1f;
 
   return std::clamp(degree_y, min_y_angle, max_y_angle);
+}
+
+uint8_t RedDeadRedemptionGame::GetCamType() {
+  if (supported_builds[game_build_].cam_type_address != NULL) {
+    xe::be<uint32_t>* cam_type_result =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].cam_type_address);
+    xe::be<uint32_t> cam_byte_read =
+        *cam_type_result + supported_builds[game_build_].cam_type_offset;
+    uint8_t* cam_type_ptr =
+        kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+
+    if (cam_type_ptr) {
+      return *cam_type_ptr;
+    }
+  }
+  return 0;  // 0 is on foot mostly with cam_type
 }
 
 std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
