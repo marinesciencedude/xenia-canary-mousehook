@@ -287,23 +287,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         *base_address -
         supported_builds[game_build_].auto_center_strength_offset;
 
-    if (supported_builds[game_build_].cam_type_address != NULL) {
-      xe::be<uint32_t>* cam_type_result =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              supported_builds[game_build_].cam_type_address);
-      xe::be<uint32_t> cam_byte_read =
-          *cam_type_result + supported_builds[game_build_].cam_type_offset;
-      auto* cam_type =
-          kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
-      if (cam_type &&
-          (*cam_type == 10 || *cam_type == 13)) {  // Carriage & Mine Cart Cam
-        x_address -= 0x810;
-        y_address -= 0x810;
-        z_address -= 0x810;
-        auto_center_strength_address = x_address + 0x74;
-      }
-    }
-
     xe::be<float>* degree_x_act =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
 
@@ -387,6 +370,40 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *degree_x_act = degree_x;
       *degree_y_act = degree_y;
       *degree_z_act = degree_z;
+
+      if (supported_builds[game_build_].cam_type_address != NULL) {
+        xe::be<uint32_t>* cam_type_result =
+            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                supported_builds[game_build_].cam_type_address);
+        xe::be<uint32_t> cam_byte_read =
+            *cam_type_result + supported_builds[game_build_].cam_type_offset;
+        auto* cam_type =
+            kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+
+        if (cam_type &&
+            (*cam_type == 10 || *cam_type == 13)) {  // carriage / mine cart
+
+          uint32_t carriage_x_address = x_address - 0x810;
+          uint32_t carriage_y_address = y_address - 0x810;
+          uint32_t carriage_z_address = z_address - 0x810;
+          auto_center_strength_address = carriage_x_address + 0x74;
+
+          // Write to the carriage (or mine cart) offset addresses
+          xe::be<float>* carriage_x_act =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_x_address);
+          xe::be<float>* carriage_y_act =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_y_address);
+          xe::be<float>* carriage_z_act =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_z_address);
+
+          *carriage_x_act = degree_x;
+          *carriage_y_act = degree_y;
+          *carriage_z_act = degree_z;
+        }
+      }
     }
 
     if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
@@ -435,13 +452,29 @@ bool RedDeadRedemptionGame::IsWeaponWheelShown() {
 
 bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
   if (supported_builds[game_build_].cinematicCam_address != NULL) {
-    xe::be<uint8_t>* cinematic_type_ptr =
-        kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
-            supported_builds[game_build_].cinematicCam_address);
+    if (supported_builds[game_build_].cam_type_address != NULL) {
+      xe::be<uint32_t>* cam_type_result =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              supported_builds[game_build_].cam_type_address);
+      xe::be<uint32_t> cam_byte_read =
+          *cam_type_result + supported_builds[game_build_].cam_type_offset;
+      auto* cam_type =
+          kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+
+      if (cam_type && *cam_type == 2) {
+        return false;
+      }
+    }
+
+    uint8_t* cinematic_type_ptr = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].cinematicCam_address);
     if (*cinematic_type_ptr == 131) {
       return true;
     }
+
+    return true;
   }
+
   return false;
 }
 
