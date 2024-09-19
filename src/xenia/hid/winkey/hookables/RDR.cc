@@ -410,9 +410,18 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               supported_builds[game_build_].mounting_center_address);
       xe::be<uint32_t> mounting_center_final =
           *mounting_center_pointer + 0x1F00;
+      // the horse auto center has a shouldAutoAlignBehind text + 0x40 from it,
+      // only apply if it's there otherwise game crashes when getting on horse
+      // for some players, the auto center most likely requires a pattern scan
+      // to be reliable.
+      auto* mounting_sanity =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              mounting_center_final + 0x40);
+      static uint32_t shoul = 0x73686F75;
       auto* mounting_center =
           kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
-      if (*mounting_center != 0) *mounting_center = 0;
+      if (*mounting_center != 0 && *mounting_sanity == shoul)
+        *mounting_center = 0;
     }
   } else
     HandleRightStickEmulation(input_state, out_state);
