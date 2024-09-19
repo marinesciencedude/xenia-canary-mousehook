@@ -20,17 +20,13 @@ namespace winkey {
 class GearsOfWarsGame : public HookableGame {
  public:
   enum class GameBuild {
-    Unknown,
+    Unknown = 0,
     GearsOfWars2_TU6,
-    GearsOfWars2_TU6_XBL,
-    GearsOfWars2_TU0_XBL,
     GearsOfWars2_TU0,
     GearsOfWars1_TU0,
     GearsOfWars1_TU5,
     GearsOfWars3_TU0,
     GearsOfWars3_TU6,
-    GearsOfWars3_TU0_XBL,
-    GearsOfWars3_TU6_XBL,
     GearsOfWarsJudgment_TU0,
     GearsOfWarsJudgment_TU4
   };
