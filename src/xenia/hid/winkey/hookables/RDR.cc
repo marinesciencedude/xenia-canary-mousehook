@@ -229,9 +229,15 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
                   supported_builds[game_build_].mounting_center_address);
           xe::be<uint32_t> cover_center_final = *cover_center_pointer + 0x15a0;
+          auto* cover_sanity =
+              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                  cover_center_final + 0x9A0);
+          static uint32_t shoul = 0x73686F75;
           auto* cover_center =
               kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
-          if (*cover_center != 0 && mouseisMoving != 0) *cover_center = 0;
+          if (*cover_center != 0 && mouseisMoving != 0 &&
+              *cover_sanity == shoul)
+            *cover_center = 0;
         }
 
         *radian_x_cover = camX;
@@ -542,7 +548,7 @@ uint8_t RedDeadRedemptionGame::GetCamType() {
   }
 
   // Otherwise, we need to search for the pattern in memory
-  uint32_t start_address = 0xBE6A0A00;  // camera stuff start
+  uint32_t start_address = 0xBA000A00;  // camera stuff start
   uint32_t end_address = 0xBF000000;
 
   // Pattern you are searching for with wildcards (assuming 0xCC is the
