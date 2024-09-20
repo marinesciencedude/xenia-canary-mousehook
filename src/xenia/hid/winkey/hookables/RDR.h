@@ -42,6 +42,13 @@ class RedDeadRedemptionGame : public HookableGame {
   float ClampVerticalAngle(float degree_y);
   uint8_t GetCamType();
 
+  uint32_t FindPatternWithWildcardAddress(uint32_t start_address,
+                                          uint32_t end_address,
+                                          const std::vector<uint8_t>& pattern);
+
+  bool CompareMemoryWithPattern(const uint8_t* memory,
+                                const std::vector<uint8_t>& pattern);
+
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 

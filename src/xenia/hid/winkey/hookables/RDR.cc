@@ -166,6 +166,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
   if (IsCinematicTypeEnabled()) {
+    static int32_t mouseisMoving = 0;
+    mouseisMoving = +input_state.mouse.y_delta + input_state.mouse.x_delta;
     // static uint32_t saved_fovscale_address = 0;
     float divisor;
     if (supported_builds[game_build_].fovscale_base_address != NULL) {
@@ -222,16 +224,14 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         camY -=
             ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
 
-        if (input_state.mouse.x_delta != 0 ||
-            input_state.mouse.y_delta != 0 &&
-                supported_builds[game_build_].mounting_center_address != NULL) {
+        if (supported_builds[game_build_].mounting_center_address != NULL) {
           xe::be<uint32_t>* cover_center_pointer =
               kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
                   supported_builds[game_build_].mounting_center_address);
           xe::be<uint32_t> cover_center_final = *cover_center_pointer + 0x15a0;
           auto* cover_center =
               kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
-          if (*cover_center != 0) *cover_center = 0;
+          if (*cover_center != 0 && mouseisMoving != 0) *cover_center = 0;
         }
 
         *radian_x_cover = camX;
@@ -403,8 +403,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       }
       *auto_center_strength_act = auto_center_strength;
     }
-    if (supported_builds[game_build_].mounting_center_address != NULL &&
-        (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
+    if (supported_builds[game_build_].mounting_center_address != NULL) {
       xe::be<uint32_t>* mounting_center_pointer =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].mounting_center_address);
@@ -418,11 +417,16 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               mounting_center_final + 0x40);
       static uint32_t shoul = 0x73686F75;
+
       auto* mounting_center =
           kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
-      if (*mounting_center != 0 && *mounting_sanity == shoul)
+      if (*mounting_center != 0 && *mounting_sanity == shoul &&
+          mouseisMoving != 0)
         *mounting_center = 0;
+      mouseisMoving = 0;
     }
+    mouseisMoving = 0;
+
   } else
     HandleRightStickEmulation(input_state, out_state);
   return true;
@@ -525,21 +529,92 @@ float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
   return std::clamp(degree_y, min_y_angle, max_y_angle);
 }
 
-uint8_t RedDeadRedemptionGame::GetCamType() {
-  if (supported_builds[game_build_].cam_type_address != NULL) {
-    xe::be<uint32_t>* cam_type_result =
-        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].cam_type_address);
-    xe::be<uint32_t> cam_byte_read =
-        *cam_type_result + supported_builds[game_build_].cam_type_offset;
-    uint8_t* cam_type_ptr =
-        kernel_memory()->TranslateVirtual<uint8_t*>(cam_byte_read);
+static uint32_t cached_cam_type_address = 0;
 
+uint8_t RedDeadRedemptionGame::GetCamType() {
+  if (cached_cam_type_address != 0) {
+    uint8_t* cam_type_ptr =
+        kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
     if (cam_type_ptr) {
-      return *cam_type_ptr;
+      return *cam_type_ptr;  // Return the cached camera type
+    }
+    return 0;
+  }
+
+  // Otherwise, we need to search for the pattern in memory
+  uint32_t start_address = 0xBE6A0A00;  // camera stuff start
+  uint32_t end_address = 0xBF000000;
+
+  // Pattern you are searching for with wildcards (assuming 0xCC is the
+  // wildcard)
+  std::vector<uint8_t> pattern = {
+      0xCC, 0xCC, 0xCC, 0xCC,  // Wildcards for the actual address
+      0x00, 0x0F, 0x00, 0x10,  // Specific bytes in the pattern
+      0x00, 0x00, 0x3F, 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+
+  // Find the pattern in console memory (one-time scan)
+  cached_cam_type_address =
+      FindPatternWithWildcardAddress(start_address, end_address, pattern);
+
+  // If we found the address, translate it and return the camera type
+  if (cached_cam_type_address != 0) {
+    uint8_t* cam_type_ptr =
+        kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
+    if (cam_type_ptr) {
+      return *cam_type_ptr;  // Return the camera type from the found address
     }
   }
-  return 0;  // 0 is on foot mostly with cam_type
+
+  return 0;  // Default to 0 if no pattern was found or the cam_type_ptr is
+             // invalid
+}
+
+uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
+    uint32_t start_address, uint32_t end_address,
+    const std::vector<uint8_t>& pattern) {
+  // Translate the start and end addresses
+  auto* memory_base =
+      kernel_memory()->TranslateVirtual<uint8_t*>(start_address);
+  auto* memory_end = kernel_memory()->TranslateVirtual<uint8_t*>(end_address);
+
+  size_t pattern_length = pattern.size();
+
+  for (auto* current_address = memory_base; current_address < memory_end;
+       current_address++) {
+    // Debug: Print current memory address being checked
+    printf("Checking memory at address: %p\n", current_address);
+
+    // Compare the memory with the pattern
+    if (CompareMemoryWithPattern(current_address, pattern)) {
+      // Compute the guest virtual address (ensure 32-bit format)
+      uint32_t guest_virtual_address =
+          start_address + (uint32_t)(current_address - memory_base);
+
+      // Debug: Print the address in 0x format
+      printf("Pattern found at address: 0x%08X\n", guest_virtual_address);
+
+      // Return the 32-bit guest virtual address
+      return guest_virtual_address - 0x1;
+    }
+  }
+
+  return 0;
+}
+bool RedDeadRedemptionGame::CompareMemoryWithPattern(
+    const uint8_t* memory, const std::vector<uint8_t>& pattern) {
+  for (size_t i = 0; i < pattern.size(); i++) {
+    // If the pattern byte is 0xCC (wildcard), we skip checking
+    if (pattern[i] == 0xCC) {
+      continue;  // 0xCC acts as a wildcard and matches anything
+    }
+    // Compare the memory byte with the pattern byte
+    printf("Comparing memory[%zu] = %02X with pattern[%zu] = %02X\n", i,
+           memory[i], i, pattern[i]);
+    if (memory[i] != pattern[i]) {
+      return false;  // Mismatch, so the pattern does not match here
+    }
+  }
+  return true;  // Pattern matches
 }
 
 std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
