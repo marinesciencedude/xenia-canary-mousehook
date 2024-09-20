@@ -229,9 +229,13 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
                   supported_builds[game_build_].mounting_center_address);
           xe::be<uint32_t> cover_center_final = *cover_center_pointer + 0x15a0;
+          auto* cover_sanity =
+              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                  cover_center_final + 0x9A0);
+          static uint32_t shoul = 0x73686F75;
           auto* cover_center =
               kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
-          if (*cover_center != 0) *cover_center = 0;
+          if (*cover_center != 0 && *cover_sanity == shoul) *cover_center = 0;
         }
 
         *radian_x_cover = camX;
