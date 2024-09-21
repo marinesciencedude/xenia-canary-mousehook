@@ -100,6 +100,8 @@ uint32_t RedDeadRedemptionGame::cached_carriage_y_address = 0;
 uint32_t RedDeadRedemptionGame::cached_carriage_z_address = 0;
 uint32_t RedDeadRedemptionGame::cached_auto_center_strength_address_carriage =
     0;
+static uint32_t cached_mounting_center_final = 0;
+static uint32_t cached_cover_center_final = 0;
 bool RedDeadRedemptionGame::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdRedDeadRedemption) {
     return false;
@@ -199,6 +201,20 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               carriage_base_address + 0x74;
         }
       }
+      if (cached_mounting_center_final == 0 || cached_cover_center_final == 0) {
+        // Pattern for 'shouldAutoAlignBehind'
+        std::vector<uint8_t> pattern = {
+            0x73, 0x68, 0x6F, 0x75, 0x6C, 0x64, 0x41, 0x75, 0x74, 0x6F, 0x41,
+            0x6C, 0x69, 0x67, 0x6E, 0x42, 0x65, 0x68, 0x69, 0x6E, 0x64};
+        uint32_t start_address = 0xBA000000;
+        uint32_t end_address = 0xBF000000;
+        uint32_t pattern_address =
+            FindPatternWithWildcardAddress(start_address, end_address, pattern);
+        if (pattern_address != 0) {
+          cached_mounting_center_final = pattern_address - 0x3F;
+          cached_cover_center_final = pattern_address - 0x99F;
+        }
+      }
     }
 
     static int32_t mouseisMoving = 0;
@@ -270,9 +286,19 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
           static uint32_t shoul = 0x73686F75;
           auto* cover_center =
               kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
+
           if (*cover_center != 0 && mouseisMoving != 0 &&
-              *cover_sanity == shoul)
+              *cover_sanity == shoul) {
             *cover_center = 0;
+          } else if (cached_cover_center_final != 0) {
+            // Use cached address if sanity check fails
+            cover_center_final = cached_cover_center_final;
+            cover_center =
+                kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
+            if (*cover_center != 0 && mouseisMoving != 0) {
+              *cover_center = 0;
+            }
+          }
         }
 
         *radian_x_cover = camX;
@@ -496,24 +522,28 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               supported_builds[game_build_].mounting_center_address);
       xe::be<uint32_t> mounting_center_final =
           *mounting_center_pointer + 0x1F00;
-      // the horse auto center has a shouldAutoAlignBehind text + 0x40 from it,
-      // only apply if it's there otherwise game crashes when getting on horse
-      // for some players, the auto center most likely requires a pattern scan
-      // to be reliable.
+
       auto* mounting_sanity =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               mounting_center_final + 0x40);
       static uint32_t shoul = 0x73686F75;
-
       auto* mounting_center =
           kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
+
       if (*mounting_center != 0 && *mounting_sanity == shoul &&
-          mouseisMoving != 0)
+          mouseisMoving != 0) {
         *mounting_center = 0;
+      } else if (cached_mounting_center_final != 0) {
+        // Use cached address if sanity check fails
+        mounting_center_final = cached_mounting_center_final;
+        mounting_center =
+            kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
+        if (*mounting_center != 0 && mouseisMoving != 0) {
+          *mounting_center = 0;
+        }
+      }
       mouseisMoving = 0;
     }
-    mouseisMoving = 0;
-
   } else
     HandleRightStickEmulation(input_state, out_state);
   return true;
