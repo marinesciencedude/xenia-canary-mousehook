@@ -61,6 +61,10 @@ class RedDeadRedemptionGame : public HookableGame {
   GameBuild game_build_ = GameBuild::Unknown;
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
+  static uint32_t cached_carriage_x_address;
+  static uint32_t cached_carriage_y_address;
+  static uint32_t cached_carriage_z_address;
+  static uint32_t cached_auto_center_strength_address_carriage;
 };
 
 }  // namespace winkey

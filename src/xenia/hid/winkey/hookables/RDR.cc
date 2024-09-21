@@ -95,7 +95,11 @@ struct GameBuildAddrs supported_builds[6] = {
      NULL,       0x82F7B450, 0xF3,       0x7049E69C}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
-
+uint32_t RedDeadRedemptionGame::cached_carriage_x_address = 0;
+uint32_t RedDeadRedemptionGame::cached_carriage_y_address = 0;
+uint32_t RedDeadRedemptionGame::cached_carriage_z_address = 0;
+uint32_t RedDeadRedemptionGame::cached_auto_center_strength_address_carriage =
+    0;
 bool RedDeadRedemptionGame::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdRedDeadRedemption) {
     return false;
@@ -166,6 +170,37 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
   if (IsCinematicTypeEnabled()) {
+    if (!IsPaused()) {
+      // Perform pattern scan to find carriage addresses if not already cached
+      if (cached_carriage_x_address == 0) {
+        // Perform pattern scan
+        uint32_t start_address = 0xBA000000;  // Adjust as necessary
+        uint32_t end_address = 0xBF000000;    // Adjust as necessary
+        uint8_t wildcard =
+            0xAB;  // Choose a wildcard that doesn't conflict with your pattern
+
+        std::vector<uint8_t> pattern = {0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD,
+                                        0xCD, 0xCD, 0xBE, 0xCC, 0xCC, 0xCC,
+                                        0x00, 0x00, 0x03, 0xB0, 0xBE, 0xCC,
+                                        0xCC, 0xCC, 0x00, 0x00, 0x00, 0x50};
+
+        uint32_t pattern_address =
+            FindPatternWithWildcardAddress(start_address, end_address, pattern);
+
+        if (pattern_address != 0) {
+          // Calculate the base address for carriage x, y, z
+          uint32_t carriage_base_address = pattern_address - 0x77;
+
+          // Cache the addresses
+          cached_carriage_x_address = carriage_base_address;
+          cached_carriage_y_address = carriage_base_address + 0x04;
+          cached_carriage_z_address = carriage_base_address + 0x08;
+          cached_auto_center_strength_address_carriage =
+              carriage_base_address + 0x74;
+        }
+      }
+    }
+
     static int32_t mouseisMoving = 0;
     mouseisMoving = +input_state.mouse.y_delta + input_state.mouse.x_delta;
     // static uint32_t saved_fovscale_address = 0;
@@ -285,6 +320,52 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t> auto_center_strength_address =
         *base_address -
         supported_builds[game_build_].auto_center_strength_offset;
+
+    if (supported_builds[game_build_].cam_type_address != NULL) {
+      uint8_t cam_type = GetCamType();
+
+      if (cam_type &&
+          (cam_type == 10 || cam_type == 13)) {  // Carriage / mine cart
+        // Adjust addresses for carriage / mine cart
+        uint32_t carriage_x_address = x_address - 0x810;
+        uint32_t carriage_y_address = y_address - 0x810;
+        uint32_t carriage_z_address = z_address - 0x810;
+        uint32_t auto_center_strength_address_carriage =
+            carriage_x_address + 0x74;
+
+        // Perform sanity check
+        uint32_t check_address = carriage_x_address + 0x78;
+        xe::be<uint32_t>* check_value_ptr =
+            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(check_address);
+
+        if (check_value_ptr && *check_value_ptr != 0xCDCDCDCD) {
+          // Sanity check failed, use cached addresses if available
+          if (cached_carriage_x_address != 0) {
+            carriage_x_address = cached_carriage_x_address;
+            carriage_y_address = cached_carriage_y_address;
+            carriage_z_address = cached_carriage_z_address;
+            auto_center_strength_address_carriage =
+                cached_auto_center_strength_address_carriage;
+          } else {
+            // Cached addresses not available, cannot proceed
+            return false;
+          }
+        } else {
+          // Sanity check passed, cache the addresses
+          cached_carriage_x_address = carriage_x_address;
+          cached_carriage_y_address = carriage_y_address;
+          cached_carriage_z_address = carriage_z_address;
+          cached_auto_center_strength_address_carriage =
+              auto_center_strength_address_carriage;
+        }
+
+        // Update x_address, y_address, z_address to the carriage addresses
+        x_address = carriage_x_address;
+        y_address = carriage_y_address;
+        z_address = carriage_z_address;
+        auto_center_strength_address = auto_center_strength_address_carriage;
+      }
+    }
 
     xe::be<float>* degree_x_act =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
@@ -588,7 +669,7 @@ uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
   for (auto* current_address = memory_base; current_address < memory_end;
        current_address++) {
     // Debug: Print current memory address being checked
-    printf("Checking memory at address: %p\n", current_address);
+    // printf("Checking memory at address: %p\n", current_address);
 
     // Compare the memory with the pattern
     if (CompareMemoryWithPattern(current_address, pattern)) {
@@ -597,7 +678,7 @@ uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
           start_address + (uint32_t)(current_address - memory_base);
 
       // Debug: Print the address in 0x format
-      printf("Pattern found at address: 0x%08X\n", guest_virtual_address);
+      printf("Pattern found at address: 0x%08X\n", guest_virtual_address - 0x1);
 
       // Return the 32-bit guest virtual address
       return guest_virtual_address - 0x1;
@@ -614,8 +695,8 @@ bool RedDeadRedemptionGame::CompareMemoryWithPattern(
       continue;  // 0xCC acts as a wildcard and matches anything
     }
     // Compare the memory byte with the pattern byte
-    printf("Comparing memory[%zu] = %02X with pattern[%zu] = %02X\n", i,
-           memory[i], i, pattern[i]);
+    // printf("Comparing memory[%zu] = %02X with pattern[%zu] = %02X\n", i,
+    //    memory[i], i, pattern[i]);
     if (memory[i] != pattern[i]) {
       return false;  // Mismatch, so the pattern does not match here
     }
