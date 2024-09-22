@@ -351,455 +351,465 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     if (supported_builds[game_build_].cam_type_address != NULL) {
       uint8_t cam_type = GetCamType();
 
-    if (supported_builds[game_build_].cam_type_address != NULL) {
-      uint8_t cam_type = GetCamType();
+      if (supported_builds[game_build_].cam_type_address != NULL) {
+        uint8_t cam_type = GetCamType();
 
-      if (cam_type &&
-          (cam_type == 10 || cam_type == 13)) {  // Carriage / mine cart
-        // Adjust addresses for carriage / mine cart
-        uint32_t carriage_x_address = x_address - 0x810;
-        uint32_t carriage_y_address = y_address - 0x810;
-        uint32_t carriage_z_address = z_address - 0x810;
-        uint32_t auto_center_strength_address_carriage =
-            carriage_x_address + 0x74;
+        if (cam_type &&
+            (cam_type == 10 || cam_type == 13)) {  // Carriage / mine cart
+          // Adjust addresses for carriage / mine cart
+          uint32_t carriage_x_address = x_address - 0x810;
+          uint32_t carriage_y_address = y_address - 0x810;
+          uint32_t carriage_z_address = z_address - 0x810;
+          uint32_t auto_center_strength_address_carriage =
+              carriage_x_address + 0x74;
 
-        // Perform sanity check
-        uint32_t check_address = carriage_x_address + 0x78;
-        xe::be<uint32_t>* check_value_ptr =
-            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(check_address);
+          // Perform sanity check
+          uint32_t check_address = carriage_x_address + 0x78;
+          xe::be<uint32_t>* check_value_ptr =
+              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                  check_address);
 
-        if (check_value_ptr && *check_value_ptr != 0xCDCDCDCD) {
-          // Sanity check failed, use cached addresses if available
-          if (cached_carriage_x_address != 0) {
-            carriage_x_address = cached_carriage_x_address;
-            carriage_y_address = cached_carriage_y_address;
-            carriage_z_address = cached_carriage_z_address;
-            auto_center_strength_address_carriage =
-                cached_auto_center_strength_address_carriage;
+          if (check_value_ptr && *check_value_ptr != 0xCDCDCDCD) {
+            // Sanity check failed, use cached addresses if available
+            if (cached_carriage_x_address != 0) {
+              carriage_x_address = cached_carriage_x_address;
+              carriage_y_address = cached_carriage_y_address;
+              carriage_z_address = cached_carriage_z_address;
+              auto_center_strength_address_carriage =
+                  cached_auto_center_strength_address_carriage;
+            } else {
+              // Cached addresses not available, cannot proceed
+              return false;
+            }
           } else {
-            // Cached addresses not available, cannot proceed
-            return false;
+            // Sanity check passed, cache the addresses
+            cached_carriage_x_address = carriage_x_address;
+            cached_carriage_y_address = carriage_y_address;
+            cached_carriage_z_address = carriage_z_address;
+            cached_auto_center_strength_address_carriage =
+                auto_center_strength_address_carriage;
           }
+
+          // Update x_address, y_address, z_address to the carriage addresses
+          xe::be<float>* degree_x_carriage =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_x_address);
+
+          xe::be<float>* degree_y_carriage =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_y_address);
+
+          xe::be<float>* degree_z_carriage =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  carriage_z_address);
+
+          xe::be<float>* auto_center_strength_carriage =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                  auto_center_strength_address_carriage);
+
+          // Calculate the horizontal and vertical angles
+          float hor_angle = atan2(*degree_z_carriage, *degree_x_carriage);
+          float vert_angle = asin(*degree_y_carriage);
+          hor_angle -=
+              invert_x_multiplier *
+              ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
+               divisor);
+          vert_angle = ClampVerticalAngle(
+              vert_angle +
+              (invert_y_multiplier *
+               ((input_state.mouse.y_delta * (float)cvars::sensitivity)) /
+               divisor));
+
+          // Calculate 3D camera vector |
+          // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
+          *degree_x_carriage = cos(hor_angle) * cos(vert_angle);
+          *degree_z_carriage = sin(hor_angle) * cos(vert_angle);
+          *degree_y_carriage = sin(vert_angle);
+
+          float auto_center_strength_c_f = *auto_center_strength_carriage;
+
+          if (supported_builds[game_build_].auto_center_strength_offset !=
+                  NULL &&
+              auto_center_strength_c_f <= 1.f &&
+              (input_state.mouse.x_delta != 0 ||
+               input_state.mouse.y_delta != 0)) {
+            auto_center_strength_c_f +=
+                0.15f;  // Maybe setting it to 1.f is better, I'm
+                        // just hoping += 0.x makes it smoother..
+            if (auto_center_strength_c_f > 1.f) {
+              auto_center_strength_c_f = 1.f;
+            }
+            *auto_center_strength_carriage = auto_center_strength_c_f;
+          }
+        }
+      }
+
+      xe::be<float>* degree_x_act =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
+
+      xe::be<float>* degree_y_act =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
+
+      xe::be<float>* degree_z_act =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(z_address);
+
+      xe::be<float>* auto_center_strength_act =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              auto_center_strength_address);
+
+      float auto_center_strength = *auto_center_strength_act;
+
+      float degree_x = *degree_x_act;
+      float degree_y = *degree_y_act;
+      float degree_z = *degree_z_act;
+
+      // Calculate the horizontal and vertical angles
+      float hor_angle = atan2(degree_z, degree_x);
+      float vert_angle = asin(degree_y);
+
+      hor_angle -=
+          invert_x_multiplier *
+          ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
+      vert_angle = ClampVerticalAngle(
+          vert_angle +
+          (invert_y_multiplier *
+           ((input_state.mouse.y_delta * (float)cvars::sensitivity)) /
+           divisor));
+
+      // Calculate 3D camera vector |
+      // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
+      degree_x = cos(hor_angle) * cos(vert_angle);
+      degree_z = sin(hor_angle) * cos(vert_angle);
+      degree_y = sin(vert_angle);
+
+      /* if (degree_y > 0.7153550260f)
+        degree_y = 0.7153550260f;
+      else if (degree_y < -0.861205390f)
+        degree_y = -0.861205390f;
+        */
+      if (IsWeaponWheelShown()) {
+        static float xn = 0.0f;
+        static float yn = 0.0f;
+
+        float mouse_delta_x = input_state.mouse.x_delta / 2.5f;
+        float mouse_delta_y = input_state.mouse.y_delta / 2.5f;
+
+        xn += mouse_delta_x;
+        yn += mouse_delta_y;
+
+        if (xn > 1.0f) xn = 1.0f;
+        if (xn < -1.0f) xn = -1.0f;
+        if (yn > 1.0f) yn = 1.0f;
+        if (yn < -1.0f) yn = -1.0f;
+
+        float angle = atan2(yn, xn);
+        float angle_degrees = RadianstoDegree(angle);
+
+        if (angle_degrees < 0) {
+          angle_degrees += 360.0f;
+        }
+        float dominance_threshold = 0.45f;
+
+        if (fabs(xn) > fabs(yn) + dominance_threshold) {
+          angle_degrees = (xn > 0) ? 0.0f : 180.0f;
+        } else if (fabs(yn) > fabs(xn) + dominance_threshold) {
+          angle_degrees = (yn > 0) ? 90.0f : 270.0f;
         } else {
-          // Sanity check passed, cache the addresses
-          cached_carriage_x_address = carriage_x_address;
-          cached_carriage_y_address = carriage_y_address;
-          cached_carriage_z_address = carriage_z_address;
-          cached_auto_center_strength_address_carriage =
-              auto_center_strength_address_carriage;
+          float segment_size = 45.0f;
+          angle_degrees = roundf(angle_degrees / segment_size) * segment_size;
         }
 
-        // Update x_address, y_address, z_address to the carriage addresses
-        xe::be<float>* degree_x_carriage =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                carriage_x_address);
+        float snapped_angle_radians = DegreetoRadians(angle_degrees);
 
-        xe::be<float>* degree_y_carriage =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                carriage_y_address);
+        xn = cosf(snapped_angle_radians);
+        yn = sinf(snapped_angle_radians);
 
-        xe::be<float>* degree_z_carriage =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                carriage_z_address);
-
-        xe::be<float>* auto_center_strength_carriage =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                auto_center_strength_address_carriage);
-
-        // Calculate the horizontal and vertical angles
-        float hor_angle = atan2(*degree_z_carriage, *degree_x_carriage);
-        float vert_angle = asin(*degree_y_carriage);
-        hor_angle -=
-            invert_x_multiplier *
-            ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
-        vert_angle = ClampVerticalAngle(
-            vert_angle +
-            (invert_y_multiplier *
-             ((input_state.mouse.y_delta * (float)cvars::sensitivity)) /
-             divisor));
-
-        // Calculate 3D camera vector |
-        // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
-        *degree_x_carriage = cos(hor_angle) * cos(vert_angle);
-        *degree_z_carriage = sin(hor_angle) * cos(vert_angle);
-        *degree_y_carriage = sin(vert_angle);
-
-        float auto_center_strength_c_f = *auto_center_strength_carriage;
-
-        if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
-            auto_center_strength_c_f <= 1.f &&
-            (input_state.mouse.x_delta != 0 ||
-             input_state.mouse.y_delta != 0)) {
-          auto_center_strength_c_f +=
-              0.15f;  // Maybe setting it to 1.f is better, I'm
-                      // just hoping += 0.x makes it smoother..
-          if (auto_center_strength_c_f > 1.f) {
-            auto_center_strength_c_f = 1.f;
-          }
-          *auto_center_strength_carriage = auto_center_strength_c_f;
-        }
-      }
-    }
-
-    xe::be<float>* degree_x_act =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
-
-    xe::be<float>* degree_y_act =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
-
-    xe::be<float>* degree_z_act =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(z_address);
-
-    xe::be<float>* auto_center_strength_act =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            auto_center_strength_address);
-
-    float auto_center_strength = *auto_center_strength_act;
-
-    float degree_x = *degree_x_act;
-    float degree_y = *degree_y_act;
-    float degree_z = *degree_z_act;
-
-    // Calculate the horizontal and vertical angles
-    float hor_angle = atan2(degree_z, degree_x);
-    float vert_angle = asin(degree_y);
-
-    hor_angle -=
-        invert_x_multiplier *
-        ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
-    vert_angle = ClampVerticalAngle(
-        vert_angle +
-        (invert_y_multiplier *
-         ((input_state.mouse.y_delta * (float)cvars::sensitivity)) / divisor));
-
-    // Calculate 3D camera vector |
-    // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
-    degree_x = cos(hor_angle) * cos(vert_angle);
-    degree_z = sin(hor_angle) * cos(vert_angle);
-    degree_y = sin(vert_angle);
-
-    /* if (degree_y > 0.7153550260f)
-      degree_y = 0.7153550260f;
-    else if (degree_y < -0.861205390f)
-      degree_y = -0.861205390f;
-      */
-    if (IsWeaponWheelShown()) {
-      static float xn = 0.0f;
-      static float yn = 0.0f;
-
-      float mouse_delta_x = input_state.mouse.x_delta / 2.5f;
-      float mouse_delta_y = input_state.mouse.y_delta / 2.5f;
-
-      xn += mouse_delta_x;
-      yn += mouse_delta_y;
-
-      if (xn > 1.0f) xn = 1.0f;
-      if (xn < -1.0f) xn = -1.0f;
-      if (yn > 1.0f) yn = 1.0f;
-      if (yn < -1.0f) yn = -1.0f;
-
-      float angle = atan2(yn, xn);
-      float angle_degrees = RadianstoDegree(angle);
-
-      if (angle_degrees < 0) {
-        angle_degrees += 360.0f;
-      }
-      float dominance_threshold = 0.45f;
-
-      if (fabs(xn) > fabs(yn) + dominance_threshold) {
-        angle_degrees = (xn > 0) ? 0.0f : 180.0f;
-      } else if (fabs(yn) > fabs(xn) + dominance_threshold) {
-        angle_degrees = (yn > 0) ? 90.0f : 270.0f;
+        out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
+        out_state->gamepad.thumb_ry =
+            static_cast<short>(-yn * SHRT_MAX);  // Invert Y-axis
       } else {
-        float segment_size = 45.0f;
-        angle_degrees = roundf(angle_degrees / segment_size) * segment_size;
+        *degree_x_act = degree_x;
+        *degree_y_act = degree_y;
+        *degree_z_act = degree_z;
       }
 
-      float snapped_angle_radians = DegreetoRadians(angle_degrees);
-
-      xn = cosf(snapped_angle_radians);
-      yn = sinf(snapped_angle_radians);
-
-      out_state->gamepad.thumb_rx = static_cast<short>(xn * SHRT_MAX);
-      out_state->gamepad.thumb_ry =
-          static_cast<short>(-yn * SHRT_MAX);  // Invert Y-axis
-    } else {
-      *degree_x_act = degree_x;
-      *degree_y_act = degree_y;
-      *degree_z_act = degree_z;
-    }
-
-    if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
-        auto_center_strength <= 1.f &&
-        (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
-      auto_center_strength += 0.15f;  // Maybe setting it to 1.f is better, I'm
-                                      // just hoping += 0.x makes it smoother..
-      if (auto_center_strength > 1.f) {
-        auto_center_strength = 1.f;
-      }
-      *auto_center_strength_act = auto_center_strength;
-    }
-    if (supported_builds[game_build_].mounting_center_address != NULL) {
-      xe::be<uint32_t>* mounting_center_pointer =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              supported_builds[game_build_].mounting_center_address);
-      xe::be<uint32_t> mounting_center_final =
-          *mounting_center_pointer + 0x1F00;
-
-      auto* mounting_sanity =
-          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              mounting_center_final + 0x40);
-      static uint32_t shoul = 0x73686F75;
-      auto* mounting_center =
-          kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
-
-      if (*mounting_center != 0 && *mounting_sanity == shoul &&
-          mouseisMoving != 0) {
-        *mounting_center = 0;
-      } else if (cached_mounting_center_final != 0) {
-        // Use cached address if sanity check fails
-        mounting_center_final = cached_mounting_center_final;
-        mounting_center =
-            kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
-        if (*mounting_center != 0 && mouseisMoving != 0) {
-          *mounting_center = 0;
+      if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
+          auto_center_strength <= 1.f &&
+          (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0)) {
+        auto_center_strength +=
+            0.15f;  // Maybe setting it to 1.f is better, I'm
+                    // just hoping += 0.x makes it smoother..
+        if (auto_center_strength > 1.f) {
+          auto_center_strength = 1.f;
         }
+        *auto_center_strength_act = auto_center_strength;
       }
-      mouseisMoving = 0;
-    }
-  } else
-    HandleRightStickEmulation(input_state, out_state);
-  return true;
-}
-bool RedDeadRedemptionGame::IsWeaponWheelShown() {
-  if (supported_builds[game_build_].weapon_wheel_base_address != NULL) {
-    xe::be<uint32_t>* weapon_wheel_result =
-        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].weapon_wheel_base_address);
-    xe::be<uint32_t> weapon_wheel_read =
-        *weapon_wheel_result +
-        supported_builds[game_build_].weapon_wheel_offset;
-    auto* weapon_wheel_status =
-        kernel_memory()->TranslateVirtual<uint8_t*>(weapon_wheel_read);
-    if (*weapon_wheel_status == 2)
-      return true;
-    else
-      return false;
+      if (supported_builds[game_build_].mounting_center_address != NULL) {
+        xe::be<uint32_t>* mounting_center_pointer =
+            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                supported_builds[game_build_].mounting_center_address);
+        xe::be<uint32_t> mounting_center_final =
+            *mounting_center_pointer + 0x1F00;
 
-  } else
-    return false;
-}
+        auto* mounting_sanity =
+            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                mounting_center_final + 0x40);
+        static uint32_t shoul = 0x73686F75;
+        auto* mounting_center =
+            kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
 
-bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
-  if (supported_builds[game_build_].cinematicCam_address != NULL) {
-    uint8_t cam_type = GetCamType();
-    if (cam_type == 2) {
-      return false;
-    }
-
-    uint8_t* cinematic_type_ptr = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].cinematicCam_address);
-    if (*cinematic_type_ptr == 131) {
-      return true;
-    }
+        if (*mounting_center != 0 && *mounting_sanity == shoul &&
+            mouseisMoving != 0) {
+          *mounting_center = 0;
+        } else if (cached_mounting_center_final != 0) {
+          // Use cached address if sanity check fails
+          mounting_center_final = cached_mounting_center_final;
+          mounting_center = kernel_memory()->TranslateVirtual<uint8_t*>(
+              mounting_center_final);
+          if (*mounting_center != 0 && mouseisMoving != 0) {
+            *mounting_center = 0;
+          }
+        }
+        mouseisMoving = 0;
+      }
+    } else
+      HandleRightStickEmulation(input_state, out_state);
+    return true;
   }
-  return false;
-}
-bool RedDeadRedemptionGame::IsPaused() {
-  if (supported_builds[game_build_].pause_flag_address != NULL) {
-    xe::be<uint8_t>* isPaused =
-        kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
-            supported_builds[game_build_].pause_flag_address);
-    if (isPaused && *isPaused >= 4) {
-      return true;
+  bool RedDeadRedemptionGame::IsWeaponWheelShown() {
+    if (supported_builds[game_build_].weapon_wheel_base_address != NULL) {
+      xe::be<uint32_t>* weapon_wheel_result =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              supported_builds[game_build_].weapon_wheel_base_address);
+      xe::be<uint32_t> weapon_wheel_read =
+          *weapon_wheel_result +
+          supported_builds[game_build_].weapon_wheel_offset;
+      auto* weapon_wheel_status =
+          kernel_memory()->TranslateVirtual<uint8_t*>(weapon_wheel_read);
+      if (*weapon_wheel_status == 2)
+        return true;
+      else
+        return false;
+
     } else
       return false;
-  } else
-    return false;
-}
-void RedDeadRedemptionGame::HandleRightStickEmulation(
-    RawInputState& input_state, X_INPUT_STATE* out_state) {
-  auto now = std::chrono::steady_clock::now();
-  auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       now - last_movement_time_x_)
-                       .count();
-  auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       now - last_movement_time_y_)
-                       .count();
-
-  static float accumulated_x = 0.0f;
-  static float accumulated_y = 0.0f;
-
-  const long long hold_time =
-      static_cast<long long>(cvars::right_stick_hold_time_workaround);
-
-  if (input_state.mouse.x_delta != 0) {
-    float delta_x =
-        (input_state.mouse.x_delta * 50.f) * (float)cvars::sensitivity;
-    accumulated_x += delta_x;
-    accumulated_x = std::clamp(accumulated_x, (float)SHRT_MIN, (float)SHRT_MAX);
-    last_movement_time_x_ = now;
-  } else if (elapsed_x < hold_time) {  // Hold the last accumulated value
-    accumulated_x = std::clamp(accumulated_x, (float)SHRT_MIN, (float)SHRT_MAX);
-  } else {
-    accumulated_x = 0.0f;
   }
 
-  if (input_state.mouse.y_delta != 0) {
-    float delta_y =
-        (input_state.mouse.y_delta * 50.f) * (float)cvars::sensitivity;
+  bool RedDeadRedemptionGame::IsCinematicTypeEnabled() {
+    if (supported_builds[game_build_].cinematicCam_address != NULL) {
+      uint8_t cam_type = GetCamType();
+      if (cam_type == 2) {
+        return false;
+      }
 
-    accumulated_y -= delta_y;
-    accumulated_y = std::clamp(accumulated_y, (float)SHRT_MIN, (float)SHRT_MAX);
-    last_movement_time_y_ = now;
-  } else if (elapsed_y < hold_time) {  // Hold the last accumulated value
-    accumulated_y = std::clamp(accumulated_y, (float)SHRT_MIN, (float)SHRT_MAX);
-  } else {
-    accumulated_y = 0.0f;
-  }
-
-  out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
-  out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
-}
-
-float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
-  const float max_y_angle = 0.8f;
-  const float min_y_angle = -1.1f;
-
-  return std::clamp(degree_y, min_y_angle, max_y_angle);
-}
-
-static uint32_t cached_cam_type_address = 0;
-
-uint8_t RedDeadRedemptionGame::GetCamType() {
-  if (cached_cam_type_address != 0) {
-    uint8_t* cam_type_ptr =
-        kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
-    if (cam_type_ptr) {
-      return *cam_type_ptr;  // Return the cached camera type
+      uint8_t* cinematic_type_ptr = kernel_memory()->TranslateVirtual<uint8_t*>(
+          supported_builds[game_build_].cinematicCam_address);
+      if (*cinematic_type_ptr == 131) {
+        return true;
+      }
     }
+    return false;
+  }
+  bool RedDeadRedemptionGame::IsPaused() {
+    if (supported_builds[game_build_].pause_flag_address != NULL) {
+      xe::be<uint8_t>* isPaused =
+          kernel_memory()->TranslateVirtual<xe::be<uint8_t>*>(
+              supported_builds[game_build_].pause_flag_address);
+      if (isPaused && *isPaused >= 4) {
+        return true;
+      } else
+        return false;
+    } else
+      return false;
+  }
+  void RedDeadRedemptionGame::HandleRightStickEmulation(
+      RawInputState & input_state, X_INPUT_STATE * out_state) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_movement_time_x_)
+                         .count();
+    auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
+                         now - last_movement_time_y_)
+                         .count();
+
+    static float accumulated_x = 0.0f;
+    static float accumulated_y = 0.0f;
+
+    const long long hold_time =
+        static_cast<long long>(cvars::right_stick_hold_time_workaround);
+
+    if (input_state.mouse.x_delta != 0) {
+      float delta_x =
+          (input_state.mouse.x_delta * 50.f) * (float)cvars::sensitivity;
+      accumulated_x += delta_x;
+      accumulated_x =
+          std::clamp(accumulated_x, (float)SHRT_MIN, (float)SHRT_MAX);
+      last_movement_time_x_ = now;
+    } else if (elapsed_x < hold_time) {  // Hold the last accumulated value
+      accumulated_x =
+          std::clamp(accumulated_x, (float)SHRT_MIN, (float)SHRT_MAX);
+    } else {
+      accumulated_x = 0.0f;
+    }
+
+    if (input_state.mouse.y_delta != 0) {
+      float delta_y =
+          (input_state.mouse.y_delta * 50.f) * (float)cvars::sensitivity;
+
+      accumulated_y -= delta_y;
+      accumulated_y =
+          std::clamp(accumulated_y, (float)SHRT_MIN, (float)SHRT_MAX);
+      last_movement_time_y_ = now;
+    } else if (elapsed_y < hold_time) {  // Hold the last accumulated value
+      accumulated_y =
+          std::clamp(accumulated_y, (float)SHRT_MIN, (float)SHRT_MAX);
+    } else {
+      accumulated_y = 0.0f;
+    }
+
+    out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
+    out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
+  }
+
+  float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
+    const float max_y_angle = 0.8f;
+    const float min_y_angle = -1.1f;
+
+    return std::clamp(degree_y, min_y_angle, max_y_angle);
+  }
+
+  static uint32_t cached_cam_type_address = 0;
+
+  uint8_t RedDeadRedemptionGame::GetCamType() {
+    if (cached_cam_type_address != 0) {
+      uint8_t* cam_type_ptr =
+          kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
+      if (cam_type_ptr) {
+        return *cam_type_ptr;  // Return the cached camera type
+      }
+      return 0;
+    }
+
+    // Otherwise, we need to search for the pattern in memory
+    uint32_t start_address = 0xBA000A00;  // camera stuff start
+    uint32_t end_address = 0xBF000000;
+
+    // Pattern you are searching for with wildcards (assuming 0xCC is the
+    // wildcard)
+    std::vector<uint8_t> pattern = {
+        0xCC, 0xCC, 0xCC, 0xCC,  // Wildcards for the actual address
+        0x00, 0x0F, 0x00, 0x10,  // Specific bytes in the pattern
+        0x00, 0x00, 0x3F, 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+
+    // Find the pattern in console memory (one-time scan)
+    cached_cam_type_address =
+        FindPatternWithWildcardAddress(start_address, end_address, pattern);
+
+    // If we found the address, translate it and return the camera type
+    if (cached_cam_type_address != 0) {
+      uint8_t* cam_type_ptr =
+          kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
+      if (cam_type_ptr) {
+        return *cam_type_ptr;  // Return the camera type from the found address
+      }
+    }
+
+    return 0;  // Default to 0 if no pattern was found or the cam_type_ptr is
+               // invalid
+  }
+
+  uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
+      uint32_t start_address, uint32_t end_address,
+      const std::vector<uint8_t>& pattern) {
+    // Translate the start and end addresses
+    auto* memory_base =
+        kernel_memory()->TranslateVirtual<uint8_t*>(start_address);
+    auto* memory_end = kernel_memory()->TranslateVirtual<uint8_t*>(end_address);
+
+    size_t pattern_length = pattern.size();
+
+    for (auto* current_address = memory_base; current_address < memory_end;
+         current_address++) {
+      // Debug: Print current memory address being checked
+      // printf("Checking memory at address: %p\n", current_address);
+
+      // Compare the memory with the pattern
+      if (CompareMemoryWithPattern(current_address, pattern)) {
+        // Compute the guest virtual address (ensure 32-bit format)
+        uint32_t guest_virtual_address =
+            start_address + (uint32_t)(current_address - memory_base);
+
+        // Debug: Print the address in 0x format
+        printf("Pattern found at address: 0x%08X\n",
+               guest_virtual_address - 0x1);
+
+        // Return the 32-bit guest virtual address
+        return guest_virtual_address - 0x1;
+      }
+    }
+
     return 0;
   }
-
-  // Otherwise, we need to search for the pattern in memory
-  uint32_t start_address = 0xBA000A00;  // camera stuff start
-  uint32_t end_address = 0xBF000000;
-
-  // Pattern you are searching for with wildcards (assuming 0xCC is the
-  // wildcard)
-  std::vector<uint8_t> pattern = {
-      0xCC, 0xCC, 0xCC, 0xCC,  // Wildcards for the actual address
-      0x00, 0x0F, 0x00, 0x10,  // Specific bytes in the pattern
-      0x00, 0x00, 0x3F, 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-
-  // Find the pattern in console memory (one-time scan)
-  cached_cam_type_address =
-      FindPatternWithWildcardAddress(start_address, end_address, pattern);
-
-  // If we found the address, translate it and return the camera type
-  if (cached_cam_type_address != 0) {
-    uint8_t* cam_type_ptr =
-        kernel_memory()->TranslateVirtual<uint8_t*>(cached_cam_type_address);
-    if (cam_type_ptr) {
-      return *cam_type_ptr;  // Return the camera type from the found address
+  bool RedDeadRedemptionGame::CompareMemoryWithPattern(
+      const uint8_t* memory, const std::vector<uint8_t>& pattern) {
+    for (size_t i = 0; i < pattern.size(); i++) {
+      // If the pattern byte is 0xCC (wildcard), we skip checking
+      if (pattern[i] == 0xCC) {
+        continue;  // 0xCC acts as a wildcard and matches anything
+      }
+      // Compare the memory byte with the pattern byte
+      // printf("Comparing memory[%zu] = %02X with pattern[%zu] = %02X\n", i,
+      //    memory[i], i, pattern[i]);
+      if (memory[i] != pattern[i]) {
+        return false;  // Mismatch, so the pattern does not match here
+      }
     }
+    return true;  // Pattern matches
   }
 
-  return 0;  // Default to 0 if no pattern was found or the cam_type_ptr is
-             // invalid
-}
+  std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
 
-uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
-    uint32_t start_address, uint32_t end_address,
-    const std::vector<uint8_t>& pattern) {
-  // Translate the start and end addresses
-  auto* memory_base =
-      kernel_memory()->TranslateVirtual<uint8_t*>(start_address);
-  auto* memory_end = kernel_memory()->TranslateVirtual<uint8_t*>(end_address);
+  bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
+                                                 RawInputState & input_state,
+                                                 X_INPUT_STATE * out_state) {
+    uint16_t buttons = out_state->gamepad.buttons;
+    buttons |= 0x1000;
+    uint8_t player_status = GetCamType();
+    /*
+    2 = Duel
+    6 = Turret
+    7 = Cannon
+    8 = Horse
+    9 = Cover
+    10 = Coach
+    13 = Minecart
+    */
+    if (!IsPaused() && IsCinematicTypeEnabled() &&
+        (cvars::turbo_gallop_horse ||
+         player_status != 8 && player_status != 10)) {
+      static auto last_toggle_time = std::chrono::steady_clock::now();
+      static bool a_button_pressed = false;
 
-  size_t pattern_length = pattern.size();
+      auto now = std::chrono::steady_clock::now();
 
-  for (auto* current_address = memory_base; current_address < memory_end;
-       current_address++) {
-    // Debug: Print current memory address being checked
-    // printf("Checking memory at address: %p\n", current_address);
+      auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            now - last_toggle_time)
+                            .count();
 
-    // Compare the memory with the pattern
-    if (CompareMemoryWithPattern(current_address, pattern)) {
-      // Compute the guest virtual address (ensure 32-bit format)
-      uint32_t guest_virtual_address =
-          start_address + (uint32_t)(current_address - memory_base);
+      const int spam_interval_ms = 100;
 
-      // Debug: Print the address in 0x format
-      printf("Pattern found at address: 0x%08X\n", guest_virtual_address - 0x1);
+      if (elapsed_ms >= spam_interval_ms) {
+        a_button_pressed = !a_button_pressed;
+        last_toggle_time = now;
+      }
 
-      // Return the 32-bit guest virtual address
-      return guest_virtual_address - 0x1;
-    }
-  }
-
-  return 0;
-}
-bool RedDeadRedemptionGame::CompareMemoryWithPattern(
-    const uint8_t* memory, const std::vector<uint8_t>& pattern) {
-  for (size_t i = 0; i < pattern.size(); i++) {
-    // If the pattern byte is 0xCC (wildcard), we skip checking
-    if (pattern[i] == 0xCC) {
-      continue;  // 0xCC acts as a wildcard and matches anything
-    }
-    // Compare the memory byte with the pattern byte
-    // printf("Comparing memory[%zu] = %02X with pattern[%zu] = %02X\n", i,
-    //    memory[i], i, pattern[i]);
-    if (memory[i] != pattern[i]) {
-      return false;  // Mismatch, so the pattern does not match here
-    }
-  }
-  return true;  // Pattern matches
-}
-
-std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
-
-bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
-                                               RawInputState& input_state,
-                                               X_INPUT_STATE* out_state) {
-  uint16_t buttons = out_state->gamepad.buttons;
-  buttons |= 0x1000;
-  uint8_t player_status = GetCamType();
-  /*
-  2 = Duel
-  6 = Turret
-  7 = Cannon
-  8 = Horse
-  9 = Cover
-  10 = Coach
-  13 = Minecart
-  */
-  if (!IsPaused() && IsCinematicTypeEnabled() &&
-      (cvars::turbo_gallop_horse ||
-       player_status != 8 && player_status != 10)) {
-    static auto last_toggle_time = std::chrono::steady_clock::now();
-    static bool a_button_pressed = false;
-
-    auto now = std::chrono::steady_clock::now();
-
-    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          now - last_toggle_time)
-                          .count();
-
-    const int spam_interval_ms = 100;
-
-    if (elapsed_ms >= spam_interval_ms) {
-      a_button_pressed = !a_button_pressed;
-      last_toggle_time = now;
-    }
-
-    if (a_button_pressed) {
+      if (a_button_pressed) {
+        out_state->gamepad.buttons = buttons;
+      }
+    } else
       out_state->gamepad.buttons = buttons;
-    }
-  } else
-    out_state->gamepad.buttons = buttons;
-  return true;
-}
+    return true;
+  }
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
