@@ -42,6 +42,13 @@ class RedDeadRedemptionGame : public HookableGame {
   float ClampVerticalAngle(float degree_y);
   uint8_t GetCamType();
 
+  uint32_t FindPatternWithWildcardAddress(uint32_t start_address,
+                                          uint32_t end_address,
+                                          const std::vector<uint8_t>& pattern);
+
+  bool CompareMemoryWithPattern(const uint8_t* memory,
+                                const std::vector<uint8_t>& pattern);
+
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
@@ -54,6 +61,10 @@ class RedDeadRedemptionGame : public HookableGame {
   GameBuild game_build_ = GameBuild::Unknown;
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
+  static uint32_t cached_carriage_x_address;
+  static uint32_t cached_carriage_y_address;
+  static uint32_t cached_carriage_z_address;
+  static uint32_t cached_auto_center_strength_address_carriage;
 };
 
 }  // namespace winkey
