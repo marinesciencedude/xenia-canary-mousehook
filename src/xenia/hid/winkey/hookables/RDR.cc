@@ -172,6 +172,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     return false;
   }
   if (IsCinematicTypeEnabled()) {
+    const float invert_x_multiplier = cvars::invert_x ? 1.0f : -1.0f;
+    const float invert_y_multiplier = cvars::invert_y ? 1.0f : -1.0f;
     if (!IsPaused()) {
       // Perform pattern scan to find carriage addresses if not already cached
       if (cached_carriage_x_address == 0) {
@@ -256,84 +258,84 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     }
     if (supported_builds[game_build_].cover_base_address != NULL) {
       uint8_t cam_type = GetCamType();
-      if (cam_type && cam_type == 9 && !IsWeaponWheelShown()) {
+      if ((cam_type && cam_type == 9 && !IsWeaponWheelShown()) ||
+          ((cam_type == 7 || cam_type == 6) &&
+           supported_builds[game_build_].mounted_base_address != NULL)) {
         xe::be<uint32_t>* cover_base =
             kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
                 supported_builds[game_build_].cover_base_address);
-        xe::be<uint32_t> x_cover_address =
-            *cover_base + supported_builds[game_build_].x_cover_offset;
-        xe::be<uint32_t> y_cover_address =
-            *cover_base + supported_builds[game_build_].y_cover_offset;
-        xe::be<float>* radian_x_cover =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(x_cover_address);
-        float camX = *radian_x_cover;
-        xe::be<float>* radian_y_cover =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
-        float camY = *radian_y_cover;
-        camX -=
-            ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
-        camY -=
-            ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
+        xe::be<float>* radian_x_ptr = nullptr;
+        xe::be<float>* radian_y_ptr = nullptr;
 
-        if (supported_builds[game_build_].mounting_center_address != NULL) {
-          xe::be<uint32_t>* cover_center_pointer =
-              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                  supported_builds[game_build_].mounting_center_address);
-          xe::be<uint32_t> cover_center_final = *cover_center_pointer + 0x15a0;
-          auto* cover_sanity =
-              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                  cover_center_final + 0x9A0);
-          static uint32_t shoul = 0x73686F75;
-          auto* cover_center =
-              kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
+        if (cam_type == 9) {
+          // Cover mode
+          xe::be<uint32_t> x_cover_address =
+              *cover_base + supported_builds[game_build_].x_cover_offset;
+          xe::be<uint32_t> y_cover_address =
+              *cover_base + supported_builds[game_build_].y_cover_offset;
+          radian_x_ptr = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              x_cover_address);
+          radian_y_ptr = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              y_cover_address);
 
-          if (*cover_center != 0 && mouseisMoving != 0 &&
-              *cover_sanity == shoul) {
-            *cover_center = 0;
-          } else if (cached_cover_center_final != 0) {
-            // Use cached address if sanity check fails
-            cover_center_final = cached_cover_center_final;
-            cover_center =
+          if (supported_builds[game_build_].mounting_center_address != NULL) {
+            xe::be<uint32_t>* cover_center_pointer =
+                kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                    supported_builds[game_build_].mounting_center_address);
+            xe::be<uint32_t> cover_center_final =
+                *cover_center_pointer + 0x15a0;
+            auto* cover_sanity =
+                kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                    cover_center_final + 0x9A0);
+            static uint32_t shoul = 0x73686F75;
+            auto* cover_center =
                 kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
-            if (*cover_center != 0 && mouseisMoving != 0) {
+
+            if (*cover_center != 0 && mouseisMoving != 0 &&
+                *cover_sanity == shoul) {
               *cover_center = 0;
+            } else if (cached_cover_center_final != 0 &&
+                       *cover_sanity != shoul) {
+              // Use cached address if sanity check fails
+              cover_center_final = cached_cover_center_final;
+              cover_center = kernel_memory()->TranslateVirtual<uint8_t*>(
+                  cover_center_final);
+              if (*cover_center != 0 && mouseisMoving != 0) {
+                *cover_center = 0;
+              }
             }
           }
+        } else if ((cam_type == 7 || cam_type == 6) &&
+                   supported_builds[game_build_].mounted_base_address != NULL) {
+          // Cannon or turret mode
+          xe::be<uint32_t>* mounted_base =
+              kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                  supported_builds[game_build_].mounted_base_address);
+          xe::be<uint32_t> y_cover_address =
+              *cover_base + supported_builds[game_build_].y_cover_offset;
+          xe::be<uint32_t> x_mounted_cover_address =
+              *mounted_base + supported_builds[game_build_].mounted_x_offset;
+
+          radian_x_ptr = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              x_mounted_cover_address);
+          radian_y_ptr = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              y_cover_address);
         }
 
-        *radian_x_cover = camX;
+        if (radian_x_ptr && radian_y_ptr) {
+          float camX = *radian_x_ptr;
+          float camY = *radian_y_ptr;
 
-        *radian_y_cover = camY;
+          camX += invert_x_multiplier *
+                  ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
+                   divisor);
+          camY += invert_y_multiplier *
+                  ((input_state.mouse.y_delta * (float)cvars::sensitivity) /
+                   divisor);
 
-      } else if (cam_type && cam_type == 7 ||
-                 cam_type == 6 &&
-                     supported_builds[game_build_].mounted_base_address !=
-                         NULL) {  // Cannon or turrent
-        xe::be<uint32_t>* cover_base =
-            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                supported_builds[game_build_].cover_base_address);
-        xe::be<uint32_t>* mounted_base =
-            kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                supported_builds[game_build_].mounted_base_address);
-        xe::be<uint32_t> y_cover_address =
-            *cover_base + supported_builds[game_build_].y_cover_offset;
-        xe::be<uint32_t> x_mounted_cover_address =
-            *mounted_base + supported_builds[game_build_].mounted_x_offset;
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
-        xe::be<float>* radian_y_cover =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(y_cover_address);
-        float camY = *radian_y_cover;
-        xe::be<float>* radian_x_mounted_cover =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                x_mounted_cover_address);
-        float camX = *radian_x_mounted_cover;
-        camX -=
-            ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
-        camY -=
-            ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor);
-        *radian_x_mounted_cover = camX;
-
-        *radian_y_cover = camY;
+          *radian_x_ptr = camX;
+          *radian_y_ptr = camY;
+        }
       }
     }
 
@@ -386,10 +388,54 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         }
 
         // Update x_address, y_address, z_address to the carriage addresses
-        x_address = carriage_x_address;
-        y_address = carriage_y_address;
-        z_address = carriage_z_address;
-        auto_center_strength_address = auto_center_strength_address_carriage;
+        xe::be<float>* degree_x_carriage =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                carriage_x_address);
+
+        xe::be<float>* degree_y_carriage =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                carriage_y_address);
+
+        xe::be<float>* degree_z_carriage =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                carriage_z_address);
+
+        xe::be<float>* auto_center_strength_carriage =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                auto_center_strength_address_carriage);
+
+        // Calculate the horizontal and vertical angles
+        float hor_angle = atan2(*degree_z_carriage, *degree_x_carriage);
+        float vert_angle = asin(*degree_y_carriage);
+        hor_angle -=
+            invert_x_multiplier *
+            ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
+        vert_angle = ClampVerticalAngle(
+            vert_angle +
+            (invert_y_multiplier *
+             ((input_state.mouse.y_delta * (float)cvars::sensitivity)) /
+             divisor));
+
+        // Calculate 3D camera vector |
+        // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
+        *degree_x_carriage = cos(hor_angle) * cos(vert_angle);
+        *degree_z_carriage = sin(hor_angle) * cos(vert_angle);
+        *degree_y_carriage = sin(vert_angle);
+
+        float auto_center_strength_c_f = *auto_center_strength_carriage;
+
+        if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
+            auto_center_strength_c_f <= 1.f &&
+            (input_state.mouse.x_delta != 0 ||
+             input_state.mouse.y_delta != 0)) {
+          auto_center_strength_c_f +=
+              0.15f;  // Maybe setting it to 1.f is better, I'm
+                      // just hoping += 0.x makes it smoother..
+          if (auto_center_strength_c_f > 1.f) {
+            auto_center_strength_c_f = 1.f;
+          }
+          *auto_center_strength_carriage = auto_center_strength_c_f;
+        }
       }
     }
 
@@ -416,11 +462,14 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     float hor_angle = atan2(degree_z, degree_x);
     float vert_angle = asin(degree_y);
 
-    hor_angle += ((input_state.mouse.x_delta * (float)cvars::sensitivity) /
-                  divisor);  // X-axis delta
+    hor_angle -=
+        invert_x_multiplier *
+        ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
     vert_angle = ClampVerticalAngle(
-        vert_angle -
-        ((input_state.mouse.y_delta * (float)cvars::sensitivity) / divisor));
+        vert_angle +
+        (invert_y_multiplier *
+         ((input_state.mouse.y_delta * (float)cvars::sensitivity)) / divisor));
+
     // Calculate 3D camera vector |
     // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
     degree_x = cos(hor_angle) * cos(vert_angle);
@@ -476,34 +525,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       *degree_x_act = degree_x;
       *degree_y_act = degree_y;
       *degree_z_act = degree_z;
-
-      if (supported_builds[game_build_].cam_type_address != NULL) {
-        uint8_t cam_type = GetCamType();
-
-        if (cam_type &&
-            (cam_type == 10 || cam_type == 13)) {  // carriage / mine cart
-
-          uint32_t carriage_x_address = x_address - 0x810;
-          uint32_t carriage_y_address = y_address - 0x810;
-          uint32_t carriage_z_address = z_address - 0x810;
-          auto_center_strength_address = carriage_x_address + 0x74;
-
-          // Write to the carriage (or mine cart) offset addresses
-          xe::be<float>* carriage_x_act =
-              kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                  carriage_x_address);
-          xe::be<float>* carriage_y_act =
-              kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                  carriage_y_address);
-          xe::be<float>* carriage_z_act =
-              kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                  carriage_z_address);
-
-          *carriage_x_act = degree_x;
-          *carriage_y_act = degree_y;
-          *carriage_z_act = degree_z;
-        }
-      }
     }
 
     if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
