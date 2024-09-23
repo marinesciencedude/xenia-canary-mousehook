@@ -1604,7 +1604,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
          0x82371E58},
         // RDR GOTY DISK 2
         {0x82010C0C, 0x7A3A5C72, 0x60000000, 0x4e800020, 0x82371E58, 0x822F9F60,
-         0x82371E3C},
+         NULL},
         // RDR TU0
         {0x8201071C, 0x7A3A5C72, 0x60000000, 0x4e800020, 0x82370C08, 0x822F83B0,
          0x82370C28},
