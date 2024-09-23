@@ -33,7 +33,7 @@ DEFINE_bool(swap_wheel, false,
             "MouseHook");
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_double(
-    fov_sensitivity, 0.9f,
+    fov_sensitivity, 0.9,
     "Mouse scale when FOV is lowered (Currently for COD & Red Dead Redemption)",
     "MouseHook");
 DEFINE_bool(disable_autoaim, true,
@@ -49,10 +49,15 @@ DEFINE_int32(walk_diagonal, 18421,
              "Joystick movement for diagonal shiftwalking, default 18421 "
              "equates to 134.99 h.u./s",
              "MouseHook");
-DEFINE_bool(turbo_gallop_horse, false,
-            "Enables turbo galloping for horses and coaches in Red Dead "
+DEFINE_bool(rdr_turbo_gallop_horse, false,
+            "(Red Dead Redemption) Enables turbo galloping for horses and "
+            "coaches in Red Dead "
             "Redemption (Bound to Modifier same as Turbo sprint)",
             "MouseHook");
+DEFINE_bool(
+    rdr_snappy_wheel, true,
+    "(Red Dead Redemption) Snaps the Weapon Wheel in 45 degree increments",
+    "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \

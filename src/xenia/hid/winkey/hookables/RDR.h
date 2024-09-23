@@ -35,6 +35,8 @@ class RedDeadRedemptionGame : public HookableGame {
   float RadianstoDegree(float radians);
   float DegreetoRadians(float degree);
   bool IsWeaponWheelShown();
+  void HandleWeaponWheelEmulation(RawInputState& input_state,
+                                  X_INPUT_STATE* out_state);
   bool IsCinematicTypeEnabled();
   bool IsPaused();
   void HandleRightStickEmulation(RawInputState& input_state,
