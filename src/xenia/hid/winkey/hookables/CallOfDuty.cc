@@ -140,6 +140,9 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDutyGhosts_IW6_DEV_1iw6sp,
      {0x82032648, 0x63675F66, kTitleIdCODGhostsDEV, 0x60, NULL, 0x8418C234,
       0x82D81130, NULL}},
+    {CallOfDutyGame::GameBuild::CallOfDutyGhosts_IW6_DEV_4iw6sp_demo,
+     {0x82013184, 0x63675F66, kTitleIdCODGhostsDEV, 0x60, NULL, 0x84254FC8,
+      0x829EBF28, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyGhosts_IW6_DEV_default,
      {0x82021FC4, 0x63675F66, kTitleIdCODGhostsDEV, 0x60, NULL, 0x8418C234,
       0x82956468, NULL}}};

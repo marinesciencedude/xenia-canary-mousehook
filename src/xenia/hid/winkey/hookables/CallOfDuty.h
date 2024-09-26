@@ -49,6 +49,7 @@ class CallOfDutyGame : public HookableGame {
     CallOfDutyWaW_TU7_MP,
     CallOfDutyGhosts_IW6_DEV_2iw6mp,
     CallOfDutyGhosts_IW6_DEV_1iw6sp,
+    CallOfDutyGhosts_IW6_DEV_4iw6sp_demo,
     CallOfDutyGhosts_IW6_DEV_default
   };
 
