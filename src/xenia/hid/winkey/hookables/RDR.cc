@@ -774,7 +774,16 @@ bool RedDeadRedemptionGame::CompareMemoryWithPattern(
   return true;  // Pattern matches
 }
 
-std::string RedDeadRedemptionGame::ChooseBinds() { return "Default"; }
+std::string RedDeadRedemptionGame::ChooseBinds() {
+  if (!IsPaused()) {
+    if (uint8_t player_status = GetCamType();
+        player_status == 8 || player_status == 10) {
+      return "Horse";
+    } else
+      return "Default";
+  } else
+    return "Default";
+}
 
 bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
                                                RawInputState& input_state,
