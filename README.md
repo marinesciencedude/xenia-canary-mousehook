@@ -1,3 +1,4 @@
+# [This is my own fork of Mousehook this isn't the main Mousehook repo](https://github.com/marinesciencedude/xenia-canary-mousehook/pulls?q=is%3Apr+author%3AClippy95+)
 # Mousehook
 
 This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
