@@ -227,7 +227,7 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   float new_degree_y = *degree_y;
   float calc_fovscale = *fovscale;
 
-  if (calc_fovscale == 0.f ||
+  if (calc_fovscale <= 0.f ||
       calc_fovscale >
           1.0f /*for when cg_fovscale is used*/) {  // Required check otherwise
                                                     // mouse stops working.
