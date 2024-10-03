@@ -51,7 +51,8 @@ class CallOfDutyGame : public HookableGame {
     CallOfDutyGhosts_IW6_DEV_1iw6sp,
     CallOfDutyGhosts_IW6_DEV_4iw6sp_demo,
     CallOfDutyGhosts_IW6_DEV_default,
-    CallOfDutyAdvancedWarfare_TU17_MP
+    CallOfDutyAdvancedWarfare_TU17_SP,
+    CallOfDutyAdvancedWarfare_TU17_MP,
   };
 
   ~CallOfDutyGame() override;
