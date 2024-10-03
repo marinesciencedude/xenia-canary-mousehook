@@ -27,6 +27,7 @@ DECLARE_double(sensitivity);
 DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
+DECLARE_bool(d3d12_readback_resolve);
 
 const uint32_t kTitleIdCODAW = 0x41560914;
 const uint32_t kTitleIdCODGhostsDEV = 0x4156088E;
@@ -281,7 +282,21 @@ std::string CallOfDutyGame::ChooseBinds() { return "Default"; }
 bool CallOfDutyGame::ModifierKeyHandler(uint32_t user_index,
                                         RawInputState& input_state,
                                         X_INPUT_STATE* out_state) {
-  return false;
+  if (kernel_state()->title_id() == kTitleIdCODAW) {
+    // AW has broken bloom in some maps, toggling readback_resolve fixes it.
+    static std::chrono::steady_clock::time_point last_toggle_time;
+    const std::chrono::milliseconds toggle_delay(500);
+
+    auto now = std::chrono::steady_clock::now();
+
+    if (now - last_toggle_time > toggle_delay) {
+      cvars::d3d12_readback_resolve = !cvars::d3d12_readback_resolve;
+
+      last_toggle_time = now;
+    }
+    return true;
+  } else
+    return false;
 }
 bool CallOfDutyGame::Dvar_GetBool(std::string dvar, uint32_t dvar_address) {
   XThread* current_thread = XThread::GetCurrentThread();
