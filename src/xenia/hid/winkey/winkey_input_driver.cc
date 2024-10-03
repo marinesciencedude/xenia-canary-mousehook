@@ -42,7 +42,7 @@ DEFINE_double(right_stick_hold_time_workaround, 33,
               "is detected. (Currently Saints Row 2 & Gears Of Wars series)",
               "MouseHook");
 
-DEFINE_bool(use_right_stick_workaround_gears1and2, false,
+DEFINE_bool(use_right_stick_workaround_gears1and2, true,
             "(Gears) Enables the use of the RS workaround for Gears 1 and 2. "
             "Recommended for Gears 3 & Judgement.",
             "MouseHook");
