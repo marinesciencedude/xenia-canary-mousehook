@@ -181,16 +181,14 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         // Perform pattern scan
         uint32_t start_address = 0xBA000000;  // Adjust as necessary
         uint32_t end_address = 0xBF000000;    // Adjust as necessary
-        uint8_t wildcard =
-            0xAB;  // Choose a wildcard that doesn't conflict with your pattern
 
         std::vector<uint8_t> pattern = {0xCD, 0xCD, 0xCD, 0xCD, 0xCD, 0xCD,
                                         0xCD, 0xCD, 0xBE, 0xCC, 0xCC, 0xCC,
                                         0x00, 0x00, 0x03, 0xB0, 0xBE, 0xCC,
                                         0xCC, 0xCC, 0x00, 0x00, 0x00, 0x50};
 
-        uint32_t pattern_address =
-            FindPatternWithWildcardAddress(start_address, end_address, pattern);
+        uint32_t pattern_address = FindPatternWithWildcardAddress(
+            start_address, end_address, pattern, "Carriage 3D Camera");
 
         if (pattern_address != 0) {
           // Calculate the base address for carriage x, y, z
@@ -211,8 +209,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
             0x6C, 0x69, 0x67, 0x6E, 0x42, 0x65, 0x68, 0x69, 0x6E, 0x64};
         uint32_t start_address = 0xBA000000;
         uint32_t end_address = 0xBF000000;
-        uint32_t pattern_address =
-            FindPatternWithWildcardAddress(start_address, end_address, pattern);
+        uint32_t pattern_address = FindPatternWithWildcardAddress(
+            start_address, end_address, pattern, "shouldAutoAlignBehind");
         if (pattern_address != 0) {
           cached_mounting_center_final = pattern_address - 0x3F;
           cached_cover_center_final = pattern_address - 0x99F;
@@ -710,8 +708,8 @@ uint8_t RedDeadRedemptionGame::GetCamType() {
       0x00, 0x00, 0x3F, 0xFF, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 
   // Find the pattern in console memory (one-time scan)
-  cached_cam_type_address =
-      FindPatternWithWildcardAddress(start_address, end_address, pattern);
+  cached_cam_type_address = FindPatternWithWildcardAddress(
+      start_address, end_address, pattern, "cam_type");
 
   // If we found the address, translate it and return the camera type
   if (cached_cam_type_address != 0) {
@@ -728,7 +726,7 @@ uint8_t RedDeadRedemptionGame::GetCamType() {
 
 uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
     uint32_t start_address, uint32_t end_address,
-    const std::vector<uint8_t>& pattern) {
+    const std::vector<uint8_t>& pattern, const char* pattern_name) {
   // Translate the start and end addresses
   auto* memory_base =
       kernel_memory()->TranslateVirtual<uint8_t*>(start_address);
@@ -743,12 +741,11 @@ uint32_t RedDeadRedemptionGame::FindPatternWithWildcardAddress(
 
     // Compare the memory with the pattern
     if (CompareMemoryWithPattern(current_address, pattern)) {
-      // Compute the guest virtual address (ensure 32-bit format)
       uint32_t guest_virtual_address =
           start_address + (uint32_t)(current_address - memory_base);
 
-      // Debug: Print the address in 0x format
-      printf("Pattern found at address: 0x%08X\n", guest_virtual_address - 0x1);
+      printf("Pattern '%s' found at address: 0x%08X\n", pattern_name,
+             guest_virtual_address - 0x1);
 
       // Return the 32-bit guest virtual address
       return guest_virtual_address - 0x1;

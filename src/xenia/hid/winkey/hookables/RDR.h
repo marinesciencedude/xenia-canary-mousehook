@@ -46,7 +46,8 @@ class RedDeadRedemptionGame : public HookableGame {
 
   uint32_t FindPatternWithWildcardAddress(uint32_t start_address,
                                           uint32_t end_address,
-                                          const std::vector<uint8_t>& pattern);
+                                          const std::vector<uint8_t>& pattern,
+                                          const char* pattern_name);
 
   bool CompareMemoryWithPattern(const uint8_t* memory,
                                 const std::vector<uint8_t>& pattern);
