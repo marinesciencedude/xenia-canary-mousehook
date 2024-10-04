@@ -68,32 +68,32 @@ struct GameBuildAddrs supported_builds[6] = {
     // RedDeadRedemption_GOTY_Disk1
     {"12.0",     0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE684000, 0x820D6A8C, 0xF1F,      0x103F,
-     0xBBC67E24, 0x2B0,      0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B5C0,
-     NULL,       0x82F7B450, 0xF3,       0x7049E69C},
+     0xBBC67E24, 0x2B0,      0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B80C,
+     0xD0,       0x82F7B450, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_GOTY_Disk2
     {"12.0",     0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE63AB24, 0xBE65C7FC, 0x1A0,      0x2C0,
-     0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE6575C0,
-     NULL,       0x82F7B450, 0xF3,       0x7049E69C},
+     0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE65780C,
+     0xD0,       0x82F7B450, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_Original_TU0
     {"1.0",      NULL,       NULL,       0x830641D8, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0,
-     0xBBC5FD14, 0x2B0,      0xBE68A060, 0xB,        0x82F49B73, 0xBF449054,
-     NULL,       0x82F4B0E0, 0xF3,       0x7049E69C},
+     0xBBC5FD14, 0x2B0,      0xBE68A060, 0xB,        0x82F49B73, 0xBE64CEAC,
+     0xD0,       0x82F4B0E0, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_Original_TU9
     {"1.0.9",    NULL,       NULL,       0x8305DBE8, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE69827C, 0xBE696608, 0x1A0,      0x2C0,
-     0xBBC63E24, 0x2B0,      0xBE6BAB60, 0xB,        0x82F49EB7, 0xBF47F574,
-     NULL,       0x82F4B660, 0xF3,       0x7049E69C},
+     0xBBC63E24, 0x2B0,      0xBE6BAB60, 0xB,        0x82F49EB7, 0xBE685CEC,
+     0xD0,       0x82F4B660, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_UndeadNightmare_Standalone_TU4
     {"4.0",      NULL,       NULL,       0x8309AF88, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE6430A4, 0xBE65B88C, 0x1A0,      0x2C0,
-     0xBBC67E3C, 0x2B0,      0xBE685260, 0xB,        0x82F79E77, 0xBF463794,
-     NULL,       0x82F7B450, 0xF3,       0x7049E69C}};
+     0xBBC67E3C, 0x2B0,      0xBE685260, 0xB,        0x82F79E77, 0xBE64F80C,
+     0xD0,       0x82F7B450, 0xF3,       0x7049E69C}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 uint32_t RedDeadRedemptionGame::cached_carriage_x_address = 0;
@@ -221,39 +221,38 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
     static int32_t mouseisMoving = 0;
     mouseisMoving = +input_state.mouse.y_delta + input_state.mouse.x_delta;
     // static uint32_t saved_fovscale_address = 0;
-    float divisor;
+    static float divisor = 850.5f;
     if (supported_builds[game_build_].fovscale_base_address != NULL) {
       xe::be<uint32_t>* fovscale_address =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               supported_builds[game_build_].fovscale_base_address);
-      /* if (fovscale_address && *fovscale_address >= 0xA0000000 &&
-              *fovscale_address < 0xC0000000 ||
-          saved_fovscale_address > 0xA0000000) {
-        saved_fovscale_address = *fovscale_address;
-      }*/
-      // printf("saved_fovscale_address: %08X\n",
-      // (uint32_t)saved_fovscale_address); xe::be<uint32_t> fovscale_result =
-      // fovscale_address;
-      // printf("fovscale_result: %08X\n", (uint32_t)fovscale_result);
       xe::be<float>* fovscale =
           kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].fovscale_base_address);
-      float fov = *fovscale;
-      if (fov <= 0.5f || fov > 35.f) {
-        fov = 1.f;
+              *fovscale_address +
+              supported_builds[game_build_].fovscale_offset);
+      xe::be<uint16_t>* fovscale_sanity =
+          kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
+              *fovscale_address +
+              supported_builds[game_build_].fovscale_offset - 0x38);
+
+      if (*fovscale_sanity == 0x0000) {
+        float fov = *fovscale;
+        if (fov <= 0.5f || fov > 35.f) {
+          fov = 1.f;
+        }
+        const float a = (float)cvars::fov_sensitivity;
+        if (fov >= 0.96f) {
+          fov = a * fov + (1 - a) * (fov * fov);
+        }
+
+        divisor = 850.5f * fov;
+
+        // printf("fov: %f divisor: %f\n", fov, divisor);
       }
-      const float a = (float)cvars::fov_sensitivity;
-      if (fov >= 0.96f) {
-        fov = a * fov + (1 - a) * (fov * fov);
+
+      else {
+        divisor = 850.5f;
       }
-
-      divisor = 850.5f * fov;
-
-      // printf("fov: %f divisor: %f\n", fov, divisor);
-    }
-
-    else {
-      divisor = 850.5f;
     }
     if (supported_builds[game_build_].cover_base_address != NULL) {
       uint8_t cam_type = GetCamType();
