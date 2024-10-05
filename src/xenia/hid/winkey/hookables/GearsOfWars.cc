@@ -43,7 +43,8 @@ struct GameBuildAddrs {
   uint32_t check_addr;
   uint32_t check_value;
   uint32_t title_id;
-  const char* title_version;
+  uint32_t hook_moment_address;
+  uint32_t hook_moment_address_alt;  // incase first one doesn't work
   uint32_t camera_base_address;
   uint32_t x_offset;
   uint32_t y_offset;
@@ -52,29 +53,29 @@ struct GameBuildAddrs {
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
-     {0x8317A198, 0x47656172, kTitleIdGearsOfWars2, "5.0.6", 0x40874800, 0x66,
-      0x62, 0x404E8840}},
+     {0x8317A198, 0x47656172, kTitleIdGearsOfWars2, 0x830F6DF6, 0x830F0835,
+      0x40874800, 0x66, 0x62, 0x404E8840}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
-     {0x831574EA, 0x47656172, kTitleIdGearsOfWars2, "5.0", 0x408211C0, 0x66,
-      0x62, 0x405294C0}},
+     {0x831574EA, 0x47656172, kTitleIdGearsOfWars2, 0x83105B23, 0x8312384F,
+      0x408211C0, 0x66, 0x62, 0x405294C0}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
-     {0x834776EE, 0x47656172, kTitleIdGearsOfWars3, "11.0", 0x43F6F340, 0x66,
-      0x62, 0x404E4054}},
+     {0x834776EE, 0x47656172, kTitleIdGearsOfWars3, 0x833A480E, 0x83429A3E,
+      0x43F6F340, 0x66, 0x62, 0x404E4054}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
-     {0x8348848A, 0x47656172, kTitleIdGearsOfWars3, "9.0.6", 0x42145D40, 0x66,
-      0x62, 0x40502254}},
+     {0x8348848A, 0x47656172, kTitleIdGearsOfWars3, 0x833B4FCE, 0x830042CF,
+      0x42145D40, 0x66, 0x62, 0x40502254}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
-     {0x8358ABEA, 0x47656172, kTitleIdGearsOfWarsJudgment, "9.0", 0x448F2840,
-      0x66, 0x62, 0x41DE7054}},
+     {0x8358ABEA, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x83551871,
+      0x83552939, 0x448F2840, 0x66, 0x62, 0x41DE7054}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
-     {0x8359C4AE, 0x47656172, kTitleIdGearsOfWarsJudgment, "9.0.4", 0x42943440,
-      0x66, 0x62, 0x41F2F754}},
+     {0x8359C4AE, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x830D00EF,
+      0x8356C392, 0x42943440, 0x66, 0x62, 0x41F2F754}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
-     {0x82C20CFA, 0x47656172, kTitleIdGearsOfWars1, "1.0", 0x49EAC460, 0xDE,
-      0xDA, 0x40BF0164}},
+     {0x82C20CFA, 0x47656172, kTitleIdGearsOfWars1, 0x82BBDD87, 0x82BD28A3,
+      0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
-     {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, "1.0.5", 0x4A1CBA60, 0xDE,
-      0xDA, 0x40BF9814}}};
+     {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, 0x82F9E99B, 0x82FDB677,
+      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
@@ -107,16 +108,13 @@ bool GearsOfWarsGame::IsGameSupported() {
 
       // Check if 15 seconds have passed before proceeding
       static bool bypass_conditions = false;
-      static auto start_time = std::chrono::steady_clock::now();
+      auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
+          supported_builds[game_build_].hook_moment_address);
+      auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
+          supported_builds[game_build_].hook_moment_address_alt);
 
-      if (!bypass_conditions) {
-        auto current_time = std::chrono::steady_clock::now();
-        auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
-            current_time - start_time);
-
-        if (elapsed_time.count() >= 25) {
-          bypass_conditions = true;
-        }
+      if (*hook_moment != 0 || *hook_moment_alt != 0) {
+        bypass_conditions = true;
       }
 
       if (bypass_conditions &&
@@ -151,9 +149,8 @@ bool GearsOfWarsGame::IsGameSupported() {
 
 bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                               X_INPUT_STATE* out_state) {
-  static bool bypass_conditions =
-      false;  // This will be set to true after some time.
-  static auto start_time = std::chrono::steady_clock::now();
+  static bool bypass_conditions = false;
+
   if (!IsGameSupported()) {
     return false;
   }
@@ -161,6 +158,7 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
+
   uint32_t title_id = kernel_state()->title_id();
   if (supported_builds[game_build_].LookRightScale_address &&
       ((cvars::use_right_stick_workaround_gears1and2 &&
@@ -229,11 +227,17 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
   if (!bypass_conditions) {
-    auto current_time = std::chrono::steady_clock::now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
-        current_time - start_time);
+    ;
+    auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].hook_moment_address);
+    auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].hook_moment_address_alt);
 
-    if (elapsed_time.count() >= 15) {
+    if (*hook_moment != 0 ||
+        *hook_moment_alt !=
+            0) {  // Some random addresses that's found by searching for 0 while
+                  // in intro then searching not 0 after some time or when it
+                  // creates the camera objects.
       bypass_conditions = true;
     }
   }
@@ -247,7 +251,7 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
             supported_builds[game_build_].camera_base_address);
     // printf("BASE ADDRESS: 0x%08X\n", base_address);
     if (base_address && base_address >= 0x40000000 &&
-        base_address < 0x50000000) {  // timer isn't enough, check location it's
+        base_address < 0x50000000) {
       // most likely between 40000000 - 50000000,
       // thanks Marine.
       degree_x = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
