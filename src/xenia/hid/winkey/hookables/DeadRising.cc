@@ -24,6 +24,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
@@ -37,14 +38,15 @@ struct GameBuildAddrs {
   uint32_t title_id;
   uint32_t x_address;
   uint32_t y_address;
+  uint32_t fovscale_address;
 };
 
 std::map<DeadRisingGame::GameBuild, GameBuildAddrs> supported_builds{
     {DeadRisingGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {DeadRisingGame::GameBuild::DeadRising2_CaseZero,
-     {kTitleIdDR2CZ, 0xAA4D2388, 0xAA4D238C}},
+     {kTitleIdDR2CZ, 0xAA4D2388, 0xAA4D238C, 0xA4B3F1B0}},
     {DeadRisingGame::GameBuild::DeadRising2_CaseWest,
-     {kTitleIdDR2CW, 0xA94DF458, 0xA94DF45C}}};
+     {kTitleIdDR2CW, 0xA94DF458, 0xA94DF45C, 0xA4167610}}};
 
 DeadRisingGame::~DeadRisingGame() = default;
 
@@ -96,20 +98,37 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   float degree_x = RadianstoDegree(*radian_x);
   float degree_y = RadianstoDegree(*radian_y);
+  static float divisor;
+  if (supported_builds[game_build_].fovscale_address) {
+    xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].fovscale_address);
+    float fov = *fovscale;
+    if (fov > 1.427999954f && fov <= 10.f) {
+      divisor = ((3.50142693372f * fov) * (1 / (float)cvars::fov_sensitivity) *
+                 1.5f);  // 3.50142693372 * 1.427989244(default) == 5.f
+    } else {
+      divisor = 5.f;
+    }
+  } else
+    divisor = 5.f;
 
   // X-axis = 0 to 360
   if (!cvars::invert_x) {
-    degree_x -= (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    degree_x -=
+        (input_state.mouse.x_delta / divisor) * (float)cvars::sensitivity;
   } else {
-    degree_x += (input_state.mouse.x_delta / 5.f) * (float)cvars::sensitivity;
+    degree_x +=
+        (input_state.mouse.x_delta / divisor) * (float)cvars::sensitivity;
   }
 
   *radian_x = DegreetoRadians(degree_x);
 
   if (!cvars::invert_y) {
-    degree_y += (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    degree_y +=
+        (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
   } else {
-    degree_y -= (input_state.mouse.y_delta / 5.f) * (float)cvars::sensitivity;
+    degree_y -=
+        (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
   }
 
   *radian_y = DegreetoRadians(degree_y);
