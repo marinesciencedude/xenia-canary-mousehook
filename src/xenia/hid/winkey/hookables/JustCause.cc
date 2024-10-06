@@ -63,13 +63,14 @@ bool JustCauseGame::IsGameSupported() {
   return false;
 }
 
-float JustCauseGame::DegreetoRadians(float degree) {
+/* float JustCauseGame::DegreetoRadians(float degree) {
   return (float)(degree * (M_PI / 180));
 }
 
 float JustCauseGame::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
+*/
 
 bool JustCauseGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                             X_INPUT_STATE* out_state) {
@@ -86,6 +87,16 @@ bool JustCauseGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (!current_thread) {
     return false;
   }
+
+  /*
+TODO: Vehicle Camera which is CMachineCamera
+and Possibly turrets which is CMountedGunCamera
+
+Some addresses used are in radians,
+Vehicle in-game camera is more closer to racing games cameras than a traditional
+GTA-styled freecam.
+
+*/
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
