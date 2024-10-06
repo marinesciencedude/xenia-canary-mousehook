@@ -218,8 +218,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       }
     }
 
-    static int32_t mouseisMoving = 0;
-    mouseisMoving = +input_state.mouse.y_delta + input_state.mouse.x_delta;
+
     // static uint32_t saved_fovscale_address = 0;
     static float divisor = 850.5f;
     if (supported_builds[game_build_].fovscale_base_address != NULL) {
@@ -289,7 +288,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
             auto* cover_center =
                 kernel_memory()->TranslateVirtual<uint8_t*>(cover_center_final);
 
-            if (*cover_center != 0 && mouseisMoving != 0 &&
+            if (*cover_center != 0 && IsMouseMoving(input_state) &&
                 *cover_sanity == shoul) {
               *cover_center = 0;
             } else if (cached_cover_center_final != 0 &&
@@ -298,7 +297,7 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
               cover_center_final = cached_cover_center_final;
               cover_center = kernel_memory()->TranslateVirtual<uint8_t*>(
                   cover_center_final);
-              if (*cover_center != 0 && mouseisMoving != 0) {
+              if (*cover_center != 0 && IsMouseMoving(input_state)) {
                 *cover_center = 0;
               }
             }
@@ -512,18 +511,17 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
           kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
 
       if (*mounting_center != 0 && *mounting_sanity == shoul &&
-          mouseisMoving != 0) {
+          IsMouseMoving(input_state)) {
         *mounting_center = 0;
       } else if (cached_mounting_center_final != 0) {
         // Use cached address if sanity check fails
         mounting_center_final = cached_mounting_center_final;
         mounting_center =
             kernel_memory()->TranslateVirtual<uint8_t*>(mounting_center_final);
-        if (*mounting_center != 0 && mouseisMoving != 0) {
+        if (*mounting_center != 0 && IsMouseMoving(input_state)) {
           *mounting_center = 0;
         }
       }
-      mouseisMoving = 0;
     }
   } else
     HandleRightStickEmulation(input_state, out_state);
@@ -549,7 +547,7 @@ bool RedDeadRedemptionGame::IsWeaponWheelShown() {
 }
 void RedDeadRedemptionGame::HandleWeaponWheelEmulation(
     RawInputState& input_state, X_INPUT_STATE* out_state) {
-  if (input_state.mouse.x_delta != 0 || input_state.mouse.x_delta != 0) {
+  if (IsMouseMoving(input_state)) {
     if (cvars::rdr_snappy_wheel) {
       static float xn = 0.0f;
       static float yn = 0.0f;
@@ -781,6 +779,27 @@ std::string RedDeadRedemptionGame::ChooseBinds() {
       return "Default";
   } else
     return "Default";
+}
+
+bool RedDeadRedemptionGame::IsMouseMoving(const RawInputState& input_state) {
+  static auto last_movement_time = std::chrono::steady_clock::now();
+  const long long movement_timeout_ms = 50;
+
+  if (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0) { // this if statement if used alone is unreliable, causes missed mouse inputs, need to hold the state of it thus the need for this function.
+    last_movement_time = std::chrono::steady_clock::now();
+    return true;
+  } else {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          now - last_movement_time)
+                          .count();
+
+    if (elapsed_ms < movement_timeout_ms) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,

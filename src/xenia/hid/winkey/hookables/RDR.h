@@ -57,6 +57,8 @@ class RedDeadRedemptionGame : public HookableGame {
 
   std::string ChooseBinds();
 
+  bool IsMouseMoving(const RawInputState& input_state);
+
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
 
