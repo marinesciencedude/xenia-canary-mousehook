@@ -218,7 +218,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       }
     }
 
-
     // static uint32_t saved_fovscale_address = 0;
     static float divisor = 850.5f;
     if (supported_builds[game_build_].fovscale_base_address != NULL) {
@@ -785,7 +784,11 @@ bool RedDeadRedemptionGame::IsMouseMoving(const RawInputState& input_state) {
   static auto last_movement_time = std::chrono::steady_clock::now();
   const long long movement_timeout_ms = 50;
 
-  if (input_state.mouse.x_delta != 0 || input_state.mouse.y_delta != 0) { // this if statement if used alone is unreliable, causes missed mouse inputs, need to hold the state of it thus the need for this function.
+  if (input_state.mouse.x_delta != 0 ||
+      input_state.mouse.y_delta !=
+          0) {  // this if statement if used alone is unreliable, causes missed
+                // mouse inputs, need to hold the state of it thus the need for
+                // this function.
     last_movement_time = std::chrono::steady_clock::now();
     return true;
   } else {
