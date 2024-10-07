@@ -35,6 +35,7 @@ const uint32_t kTitleIdGearsOfWars3 = 0x4D5308AB;
 const uint32_t kTitleIdGearsOfWars2 = 0x4D53082D;
 const uint32_t kTitleIdGearsOfWars1 = 0x4D5307D5;
 const uint32_t kTitleIdGearsOfWarsJudgment = 0x4D530A26;
+const uint32_t kTitleIdSection8 = 0x475007D4;
 
 namespace xe {
 namespace hid {
@@ -75,7 +76,10 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
       0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
      {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, 0x82F9E99B, 0x82FDB677,
-      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}}};
+      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}},
+    {GearsOfWarsGame::GameBuild::Section8_TU0,
+     {0x8323DCCF, 0x656E6769, kTitleIdSection8, 0x8326F1AF, 0x8326F1B3,
+      0x42231700, 0x66, 0x62, NULL}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
@@ -83,7 +87,8 @@ bool GearsOfWarsGame::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdGearsOfWars3 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars2 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars1 &&
-      kernel_state()->title_id() != kTitleIdGearsOfWarsJudgment) {
+      kernel_state()->title_id() != kTitleIdGearsOfWarsJudgment &&
+      kernel_state()->title_id() != kTitleIdSection8) {
     return false;
   }
   uint32_t title_id = kernel_state()->title_id();

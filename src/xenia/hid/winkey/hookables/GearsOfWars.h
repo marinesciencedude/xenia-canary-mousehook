@@ -28,7 +28,8 @@ class GearsOfWarsGame : public HookableGame {
     GearsOfWars3_TU0,
     GearsOfWars3_TU6,
     GearsOfWarsJudgment_TU0,
-    GearsOfWarsJudgment_TU4
+    GearsOfWarsJudgment_TU4,
+    Section8_TU0
   };
 
   ~GearsOfWarsGame() override;
