@@ -39,6 +39,8 @@ class GearsOfWarsGame : public HookableGame {
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
+  float FOVScale();
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,

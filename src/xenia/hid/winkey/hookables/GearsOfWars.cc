@@ -25,6 +25,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
@@ -50,6 +51,8 @@ struct GameBuildAddrs {
   uint32_t x_offset;
   uint32_t y_offset;
   uint32_t LookRightScale_address;
+  uint32_t fovscale_ptr_address;
+  uint32_t fovscale_offset;
 };
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
@@ -64,7 +67,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
       0x43F6F340, 0x66, 0x62, 0x404E4054}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
      {0x8348848A, 0x47656172, kTitleIdGearsOfWars3, 0x833B4FCE, 0x830042CF,
-      0x42145D40, 0x66, 0x62, 0x40502254}},
+      0x42145D40, 0x66, 0x62, 0x40502254, 0x42145D40, 0x3A8}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
      {0x8358ABEA, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x83551871,
       0x83552939, 0x448F2840, 0x66, 0x62, 0x41DE7054}},
@@ -79,7 +82,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
       0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}},
     {GearsOfWarsGame::GameBuild::Section8_TU0,
      {0x8323DCCF, 0x656E6769, kTitleIdSection8, 0x8326F1AF, 0x8326F1B3,
-      0x42231700, 0x66, 0x62, NULL}}};
+      0x42231700, 0x66, 0x62, NULL, 0x42231700, 0x470}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 
@@ -268,10 +271,11 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
           base_address + supported_builds[game_build_].y_offset);
       // printf("DEGREE_Y ADDRESS: 0x%08X\n",
       //        (base_address + supported_builds[game_build_].x_offset));
+      float divisor = 10.f * FOVScale();
       uint16_t x_delta = static_cast<uint16_t>(
-          (input_state.mouse.x_delta * 10) * cvars::sensitivity);
+          (input_state.mouse.x_delta * divisor) * cvars::sensitivity);
       uint16_t y_delta = static_cast<uint16_t>(
-          (input_state.mouse.y_delta * 10) * cvars::sensitivity);
+          (input_state.mouse.y_delta * divisor) * cvars::sensitivity);
       if (!cvars::invert_x) {
         *degree_x += x_delta;
       } else {
@@ -288,6 +292,33 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
   return true;
+}
+
+float GearsOfWarsGame::FOVScale() {
+  if (supported_builds[game_build_].fovscale_ptr_address) {
+    uint32_t fovscale_address =
+        *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].fovscale_ptr_address);
+    if (fovscale_address && fovscale_address >= 0x40000000 &&
+        fovscale_address < 0x50000000) {
+      float fovscale = *kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          fovscale_address + supported_builds[game_build_].fovscale_offset);
+      float calc_fovscale = fovscale;
+      if (calc_fovscale <= 0.f || calc_fovscale > 1.0f) {
+        return 1.0f;
+      }
+      const float a =
+          (float)cvars::fov_sensitivity;  // Quadratic scaling to make
+                                          // fovscale effect sens stronger
+      if (calc_fovscale != 1.f) {
+        calc_fovscale =
+            (1 - a) * (calc_fovscale * calc_fovscale) + a * calc_fovscale;
+        return calc_fovscale;
+      }
+      return calc_fovscale;
+    }
+  }
+  return 1.0f;
 }
 
 std::string GearsOfWarsGame::ChooseBinds() { return "Default"; }
