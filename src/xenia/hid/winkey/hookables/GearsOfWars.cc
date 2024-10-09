@@ -53,39 +53,41 @@ struct GameBuildAddrs {
   uint32_t LookRightScale_address;
   uint32_t fovscale_ptr_address;
   uint32_t fovscale_offset;
+  uint16_t max_up;
+  uint16_t max_down;
 };
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
-     {0x8317A198, 0x47656172, kTitleIdGearsOfWars2, 0x830F6DF6, 0x830F0835,
-      0x40874800, 0x66, 0x62, 0x404E8840}},
+     {0x8317A198, 0x47656172, kTitleIdGearsOfWars2, 0x830F6DF6, 0x8317016B,
+      0x40874800, 0x66, 0x62, 0x404E8840, 10000, 53530}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
      {0x831574EA, 0x47656172, kTitleIdGearsOfWars2, 0x83105B23, 0x8312384F,
-      0x408211C0, 0x66, 0x62, 0x405294C0}},
+      0x408211C0, 0x66, 0x62, 0x405294C0, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
      {0x834776EE, 0x47656172, kTitleIdGearsOfWars3, 0x833A480E, 0x83429A3E,
-      0x43F6F340, 0x66, 0x62, 0x404E4054}},
+      0x43F6F340, 0x66, 0x62, 0x404E4054, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
      {0x8348848A, 0x47656172, kTitleIdGearsOfWars3, 0x833B4FCE, 0x830042CF,
-      0x42145D40, 0x66, 0x62, 0x40502254, 0x42145D40, 0x3A8}},
+      0x42145D40, 0x66, 0x62, 0x40502254, 0x42145D40, 0x3A8, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
      {0x8358ABEA, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x83551871,
-      0x83552939, 0x448F2840, 0x66, 0x62, 0x41DE7054}},
+      0x83552939, 0x448F2840, 0x66, 0x62, 0x41DE7054, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
      {0x8359C4AE, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x830D00EF,
-      0x8356C392, 0x42943440, 0x66, 0x62, 0x41F2F754}},
+      0x8356C392, 0x42943440, 0x66, 0x62, 0x41F2F754, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
      {0x82C20CFA, 0x47656172, kTitleIdGearsOfWars1, 0x82BBDD87, 0x82BD28A3,
-      0x49EAC460, 0xDE, 0xDA, 0x40BF0164}},
+      0x49EAC460, 0xDE, 0xDA, 0x40BF0164, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
      {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, 0x82F9E99B, 0x82FDB677,
-      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814}},
+      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::Section8_TU0,
      {0x8323DCCF, 0x656E6769, kTitleIdSection8, 0x8326F1AF, 0x8326F1B3,
-      0x42231700, 0x66, 0x62, NULL, 0x42231700, 0x470}}};
+      0x42231700, 0x66, 0x62, NULL, 0x42231700, 0x470, 16383, 49152}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
-
+static bool bypass_conditions = false;
 bool GearsOfWarsGame::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdGearsOfWars3 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars2 &&
@@ -115,7 +117,7 @@ bool GearsOfWarsGame::IsGameSupported() {
       game_build_ = build.first;
 
       // Check if 15 seconds have passed before proceeding
-      static bool bypass_conditions = false;
+
       auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
           supported_builds[game_build_].hook_moment_address);
       auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
@@ -157,8 +159,6 @@ bool GearsOfWarsGame::IsGameSupported() {
 
 bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                               X_INPUT_STATE* out_state) {
-  static bool bypass_conditions = false;
-
   if (!IsGameSupported()) {
     return false;
   }
@@ -281,12 +281,16 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       } else {
         *degree_x -= x_delta;
       }
-
+      uint16_t degree_y_calc = *degree_y;
       if (!cvars::invert_y) {
-        *degree_y -= y_delta;
+        degree_y_calc -= y_delta;
       } else {
-        *degree_y += y_delta;
+        degree_y_calc += y_delta;
       }
+      if (supported_builds[game_build_].max_up)
+        ClampYAxis(degree_y_calc, supported_builds[game_build_].max_down,
+                   supported_builds[game_build_].max_up);
+      *degree_y = degree_y_calc;
     } else {
       return false;
     }
@@ -319,6 +323,31 @@ float GearsOfWarsGame::FOVScale() {
     }
   }
   return 1.0f;
+}
+
+void GearsOfWarsGame::ClampYAxis(uint16_t& value, uint16_t max_down,
+                                 uint16_t max_up) {
+  uint16_t upper_limit = (max_up + 5500) % 65536;
+  if (max_up < upper_limit) {
+    if (value >= max_up + 1 && value <= upper_limit) {
+      value = max_up;
+    }
+  } else {
+    if (value >= max_up + 1 || value <= upper_limit) {
+      value = max_up;
+    }
+  }
+
+  uint16_t lower_limit = (max_down + 65536 - 5500) % 65536;
+  if (lower_limit < max_down) {
+    if (value >= lower_limit && value <= max_down - 1) {
+      value = max_down;
+    }
+  } else {
+    if (value >= lower_limit || value <= max_down - 1) {
+      value = max_down;
+    }
+  }
 }
 
 std::string GearsOfWarsGame::ChooseBinds() { return "Default"; }

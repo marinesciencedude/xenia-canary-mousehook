@@ -41,6 +41,8 @@ class GearsOfWarsGame : public HookableGame {
 
   float FOVScale();
 
+  void ClampYAxis(uint16_t& value, uint16_t max_down, uint16_t max_up);
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
