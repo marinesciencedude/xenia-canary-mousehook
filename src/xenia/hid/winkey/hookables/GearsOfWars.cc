@@ -80,10 +80,10 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
       53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
      {0x82C20CFA, 0x47656172, kTitleIdGearsOfWars1, 0x82BBDD87, 0x82BD28A3,
-      0x49EAC460, 0xDE, 0xDA, 0x40BF0164, NULL, NULL, 10000, 53535}},
+      0x49EAC460, 0xDE, 0xDA, 0x40BF0164, 0x426AD3CC, 0x2D4, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
      {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, 0x82F9E99B, 0x82FDB677,
-      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814, NULL, NULL, 10000, 53535}},
+      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814, 0x42961700, 0x2D4, 10000, 53535}},
     {GearsOfWarsGame::GameBuild::Section8_TU0,
      {0x8323DCCF, 0x656E6769, kTitleIdSection8, 0x8326F1AF, 0x8326F1B3,
       0x42231700, 0x66, 0x62, NULL, 0x42231700, 0x470, 16383, 49152}}};
