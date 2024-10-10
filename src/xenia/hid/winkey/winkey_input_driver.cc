@@ -45,6 +45,13 @@ DEFINE_double(right_stick_hold_time_workaround, 33,
               "is detected. (Currently Saints Row 2 & Gears Of Wars series)",
               "MouseHook");
 
+DEFINE_int32(
+    ue3_use_timer_to_hook_workaround, 0,
+    "(in non-decimal seconds) Wait a set of amount of time before hooking into "
+    "Unreal Engine 3, do not change this unless UE3 games crash. 0 is disabled "
+    "and relies on when intro finishes loading.",
+    "MouseHook");
+
 DEFINE_bool(use_right_stick_workaround_gears1and2, true,
             "(Gears) Enables the use of the RS workaround for Gears 1 and 2. "
             "Recommended for Gears 3 & Judgement.",

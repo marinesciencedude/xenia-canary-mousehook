@@ -23,12 +23,12 @@
 #include "xenia/xbox.h"
 
 using namespace xe::kernel;
-
 DECLARE_double(sensitivity);
 DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_int32(ue3_use_timer_to_hook_workaround);
 DECLARE_bool(use_right_stick_workaround);
 DECLARE_bool(use_right_stick_workaround_gears1and2);
 
@@ -135,7 +135,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
       0x62,
       0x41DE7054,
       0x448F2840,
-      {0x6D4,0x154},
+      {0x6D4, 0x154},
       0x448F2840,
       0x3AC,
       10000,
@@ -234,18 +234,28 @@ bool GearsOfWarsGame::IsGameSupported() {
 
     if (*build_ptr == build.second.check_value) {
       game_build_ = build.first;
-
-      // Check if 15 seconds have passed before proceeding
-
-      auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
-          supported_builds[game_build_].hook_moment_address);
-      auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
-          supported_builds[game_build_].hook_moment_address_alt);
-
-      if (*hook_moment != 0 || *hook_moment_alt != 0) {
-        bypass_conditions = true;
+      static auto start_time = std::chrono::steady_clock::now();
+      if ((cvars::ue3_use_timer_to_hook_workaround > 0) && !bypass_conditions) {
+        if (!bypass_conditions) {
+          auto current_time = std::chrono::steady_clock::now();
+          auto elapsed_time = std::chrono::duration_cast<std::chrono::seconds>(
+              current_time - start_time);
+          if (elapsed_time.count() >= cvars::ue3_use_timer_to_hook_workaround) {
+            bypass_conditions = true;
+          }
+        }
       }
+      if ((cvars::ue3_use_timer_to_hook_workaround <= 0) &&
+          !bypass_conditions) {
+        auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
+            supported_builds[game_build_].hook_moment_address);
+        auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
+            supported_builds[game_build_].hook_moment_address_alt);
 
+        if (*hook_moment != 0 || *hook_moment_alt != 0) {
+          bypass_conditions = true;
+        }
+      }
       if (bypass_conditions &&
           supported_builds[game_build_].LookRightScale_address &&
           ((cvars::use_right_stick_workaround_gears1and2 &&
@@ -375,21 +385,6 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (!current_thread) {
     return false;
   }
-  if (!bypass_conditions) {
-    ;
-    auto* hook_moment = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].hook_moment_address);
-    auto* hook_moment_alt = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].hook_moment_address_alt);
-
-    if (*hook_moment != 0 ||
-        *hook_moment_alt !=
-            0) {  // Some random addresses that's found by searching for 0 while
-                  // in intro then searching not 0 after some time or when it
-                  // creates the camera objects.
-      bypass_conditions = true;
-    }
-  }
 
   if (bypass_conditions) {
     xe::be<uint16_t>* degree_x;
@@ -498,7 +493,7 @@ uint32_t GearsOfWarsGame::ResolveMultiPointer(
   for (const auto& offset : offsets) {
     if (!(live_base_address && live_base_address >= 0x40000000 &&
           live_base_address < 0x80000000)) {
-      return 0; 
+      return 0;
     }
 
     auto* next_value_ptr =
@@ -512,10 +507,10 @@ uint32_t GearsOfWarsGame::ResolveMultiPointer(
 
   if (!(live_base_address && live_base_address >= 0x40000000 &&
         live_base_address < 0x80000000)) {
-    return 0; 
+    return 0;
   }
 
-  return live_base_address; 
+  return live_base_address;
 }
 
 std::string GearsOfWarsGame::ChooseBinds() { return "Default"; }
