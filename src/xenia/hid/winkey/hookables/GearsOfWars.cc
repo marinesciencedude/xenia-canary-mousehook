@@ -269,44 +269,17 @@ bool GearsOfWarsGame::IsGameSupported() {
         }
         if (bypass_conditions &&
             supported_builds[game_build_].LookRightScale_live_address) {
-          // Start from the initial base address provided in the map
-          uint32_t live_base_address =
-              supported_builds[game_build_].LookRightScale_live_address;
+          uint32_t live_base_address = ResolveMultiPointer(
+              supported_builds[game_build_].LookRightScale_live_address,
+              supported_builds[game_build_].LookRightScale_live_pointers);
 
-          // Resolve the pointer chain
-          for (const auto& offset :
-               supported_builds[game_build_].LookRightScale_live_pointers) {
-            if (!(live_base_address && live_base_address >= 0x40000000 &&
-                  live_base_address < 0x80000000)) {
-              break; 
-            }
-
-            // Translate the current live_base_address to get the actual pointer
-            // value
-            auto* next_value_ptr =
-                kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                    live_base_address);
-            if (!next_value_ptr) {
-              live_base_address = 0; 
-              break;
-            }
-
-            // Update live_base_address with the dereferenced value
-            live_base_address = *next_value_ptr + offset;
-          }
-
-
-          if (live_base_address && live_base_address >= 0x40000000 &&
-              live_base_address < 0x80000000) {
-
+          if (live_base_address) {
             xe::be<float>* LookRightScale_live =
                 kernel_memory()->TranslateVirtual<xe::be<float>*>(
                     live_base_address);
             xe::be<float>* LookUpScale_live =
                 kernel_memory()->TranslateVirtual<xe::be<float>*>(
                     live_base_address + 0x4);
-
-
 
             if (LookRightScale_live && *LookRightScale_live != 0.05f) {
               *LookRightScale_live = 0.05f;
@@ -520,24 +493,29 @@ void GearsOfWarsGame::ClampYAxis(uint16_t& value, uint16_t max_down,
 
 uint32_t GearsOfWarsGame::ResolveMultiPointer(
     uint32_t base_address, const std::vector<uint32_t>& offsets) {
-  uint32_t current_address = base_address;
-  for (size_t i = 0; i < offsets.size(); ++i) {
-    if (!(current_address && current_address >= 0x40000000 &&
-          current_address < 0x80000000)) {
-      printf("Invalid address at step %zu: 0x%08X\n", i, current_address);
+  uint32_t live_base_address = base_address;
+
+  for (const auto& offset : offsets) {
+    if (!(live_base_address && live_base_address >= 0x40000000 &&
+          live_base_address < 0x80000000)) {
+      return 0; 
+    }
+
+    auto* next_value_ptr =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(live_base_address);
+    if (!next_value_ptr) {
       return 0;
     }
-    uint32_t next_address = current_address + offsets[i];
-    auto* p_value =
-        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(next_address);
-    if (!p_value) {
-      printf("Failed to translate virtual address at step %zu: 0x%08X\n", i,
-             next_address);
-      return 0;
-    }
-    current_address = *p_value;
+
+    live_base_address = *next_value_ptr + offset;
   }
-  return current_address;
+
+  if (!(live_base_address && live_base_address >= 0x40000000 &&
+        live_base_address < 0x80000000)) {
+    return 0; 
+  }
+
+  return live_base_address; 
 }
 
 std::string GearsOfWarsGame::ChooseBinds() { return "Default"; }
