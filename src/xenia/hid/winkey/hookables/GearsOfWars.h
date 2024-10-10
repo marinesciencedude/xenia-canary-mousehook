@@ -43,6 +43,9 @@ class GearsOfWarsGame : public HookableGame {
 
   void ClampYAxis(uint16_t& value, uint16_t max_down, uint16_t max_up);
 
+  uint32_t ResolveMultiPointer(uint32_t base_address,
+                               const std::vector<uint32_t>& offsets);
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,

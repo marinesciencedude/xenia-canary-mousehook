@@ -51,6 +51,8 @@ struct GameBuildAddrs {
   uint32_t x_offset;
   uint32_t y_offset;
   uint32_t LookRightScale_address;
+  uint32_t LookRightScale_live_address;
+  std::vector<uint32_t> LookRightScale_live_pointers;
   uint32_t fovscale_ptr_address;
   uint32_t fovscale_offset;
   uint16_t max_up;
@@ -59,34 +61,149 @@ struct GameBuildAddrs {
 
 std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU6,
-     {0x8317A198, 0x47656172, kTitleIdGearsOfWars2, 0x830F6DF6, 0x8317016B,
-      0x40874800, 0x66, 0x62, 0x404E8840, 0x40874800, 0x390, 10000, 53530}},
+     {0x8317A198,
+      0x47656172,
+      kTitleIdGearsOfWars2,
+      0x830F6DF6,
+      0x8317016B,
+      0x40874800,
+      0x66,
+      0x62,
+      0x404E8840,
+      NULL,
+      {},
+      0x40874800,
+      0x390,
+      10000,
+      53530}},
     {GearsOfWarsGame::GameBuild::GearsOfWars2_TU0,
-     {0x831574EA, 0x47656172, kTitleIdGearsOfWars2, 0x83105B23, 0x8312384F,
-      0x408211C0, 0x66, 0x62, 0x405294C0, 0x408211C0, 0x390, 10000, 53535}},
+     {0x831574EA,
+      0x47656172,
+      kTitleIdGearsOfWars2,
+      0x83105B23,
+      0x8312384F,
+      0x408211C0,
+      0x66,
+      0x62,
+      0x405294C0,
+      NULL,
+      {},
+      0x408211C0,
+      0x390,
+      10000,
+      53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU0,
-     {0x834776EE, 0x47656172, kTitleIdGearsOfWars3, 0x833A480E, 0x83429A3E,
-      0x43F6F340, 0x66, 0x62, 0x404E4054, 0x43F6F340, 0x3A8, 10000, 53535}},
+     {0x834776EE,
+      0x47656172,
+      kTitleIdGearsOfWars3,
+      0x833A480E,
+      0x83429A3E,
+      0x43F6F340,
+      0x66,
+      0x62,
+      0x404E4054,
+      NULL,
+      {},
+      0x43F6F340,
+      0x3A8,
+      10000,
+      53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars3_TU6,
-     {0x8348848A, 0x47656172, kTitleIdGearsOfWars3, 0x833B4FCE, 0x830042CF,
-      0x42145D40, 0x66, 0x62, 0x40502254, 0x42145D40, 0x3A8, 10000, 53535}},
+     {0x8348848A,
+      0x47656172,
+      kTitleIdGearsOfWars3,
+      0x833B4FCE,
+      0x830042CF,
+      0x42145D40,
+      0x66,
+      0x62,
+      0x40502254,
+      NULL,
+      {},
+      0x42145D40,
+      0x3A8,
+      10000,
+      53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU0,
-     {0x8358ABEA, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x83551871,
-      0x83552939, 0x448F2840, 0x66, 0x62, 0x41DE7054, 0x448F2840, 0x3AC, 10000,
+     {0x8358ABEA,
+      0x47656172,
+      kTitleIdGearsOfWarsJudgment,
+      0x83551871,
+      0x83552939,
+      0x448F2840,
+      0x66,
+      0x62,
+      0x41DE7054,
+      0x448F2840,
+      {0x6D4,0x154},
+      0x448F2840,
+      0x3AC,
+      10000,
       53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWarsJudgment_TU4,
-     {0x8359C4AE, 0x47656172, kTitleIdGearsOfWarsJudgment, 0x830D00EF,
-      0x8356C392, 0x42943440, 0x66, 0x62, 0x41F2F754, 0x42943440, 0x3AC, 10000,
+     {0x8359C4AE,
+      0x47656172,
+      kTitleIdGearsOfWarsJudgment,
+      0x830D00EF,
+      0x8356C392,
+      0x42943440,
+      0x66,
+      0x62,
+      0x41F2F754,
+      NULL,
+      {},
+      0x42943440,
+      0x3AC,
+      10000,
       53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU0,
-     {0x82C20CFA, 0x47656172, kTitleIdGearsOfWars1, 0x82BBDD87, 0x82BD28A3,
-      0x49EAC460, 0xDE, 0xDA, 0x40BF0164, 0x426AD3CC, 0x2D4, 10000, 53535}},
+     {0x82C20CFA,
+      0x47656172,
+      kTitleIdGearsOfWars1,
+      0x82BBDD87,
+      0x82BD28A3,
+      0x49EAC460,
+      0xDE,
+      0xDA,
+      0x40BF0164,
+      NULL,
+      {},
+      0x426AD3CC,
+      0x2D4,
+      10000,
+      53535}},
     {GearsOfWarsGame::GameBuild::GearsOfWars1_TU5,
-     {0x8300235A, 0x47656172, kTitleIdGearsOfWars1, 0x82F9E99B, 0x82FDB677,
-      0x4A1CBA60, 0xDE, 0xDA, 0x40BF9814, 0x42961700, 0x2D4, 10000, 53535}},
+     {0x8300235A,
+      0x47656172,
+      kTitleIdGearsOfWars1,
+      0x82F9E99B,
+      0x82FDB677,
+      0x4A1CBA60,
+      0xDE,
+      0xDA,
+      0x40BF9814,
+      NULL,
+      {},
+      0x42961700,
+      0x2D4,
+      10000,
+      53535}},
     {GearsOfWarsGame::GameBuild::Section8_TU0,
-     {0x8323DCCF, 0x656E6769, kTitleIdSection8, 0x8326F1AF, 0x8326F1B3,
-      0x42231700, 0x66, 0x62, NULL, 0x42231700, 0x470, 16383, 49152}}};
+     {0x8323DCCF,
+      0x656E6769,
+      kTitleIdSection8,
+      0x8326F1AF,
+      0x8326F1B3,
+      0x42231700,
+      0x66,
+      0x62,
+      NULL,
+      NULL,
+      {},
+      0x42231700,
+      0x470,
+      16383,
+      49152}}};
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 static bool bypass_conditions = false;
@@ -149,6 +266,55 @@ bool GearsOfWarsGame::IsGameSupported() {
           // If it does not equal 0.1, set LookRightScale and LookUpScale to 0.1
           *LookRightScale = 0.05f;
           *LookUpScale = 0.05f;
+        }
+        if (bypass_conditions &&
+            supported_builds[game_build_].LookRightScale_live_address) {
+          // Start from the initial base address provided in the map
+          uint32_t live_base_address =
+              supported_builds[game_build_].LookRightScale_live_address;
+
+          // Resolve the pointer chain
+          for (const auto& offset :
+               supported_builds[game_build_].LookRightScale_live_pointers) {
+            if (!(live_base_address && live_base_address >= 0x40000000 &&
+                  live_base_address < 0x80000000)) {
+              break; 
+            }
+
+            // Translate the current live_base_address to get the actual pointer
+            // value
+            auto* next_value_ptr =
+                kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                    live_base_address);
+            if (!next_value_ptr) {
+              live_base_address = 0; 
+              break;
+            }
+
+            // Update live_base_address with the dereferenced value
+            live_base_address = *next_value_ptr + offset;
+          }
+
+
+          if (live_base_address && live_base_address >= 0x40000000 &&
+              live_base_address < 0x80000000) {
+
+            xe::be<float>* LookRightScale_live =
+                kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                    live_base_address);
+            xe::be<float>* LookUpScale_live =
+                kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                    live_base_address + 0x4);
+
+
+
+            if (LookRightScale_live && *LookRightScale_live != 0.05f) {
+              *LookRightScale_live = 0.05f;
+            }
+            if (LookUpScale_live && *LookUpScale_live != 0.05f) {
+              *LookUpScale_live = 0.05f;
+            }
+          }
         }
       }
 
@@ -350,6 +516,28 @@ void GearsOfWarsGame::ClampYAxis(uint16_t& value, uint16_t max_down,
       value = max_down;
     }
   }
+}
+
+uint32_t GearsOfWarsGame::ResolveMultiPointer(
+    uint32_t base_address, const std::vector<uint32_t>& offsets) {
+  uint32_t current_address = base_address;
+  for (size_t i = 0; i < offsets.size(); ++i) {
+    if (!(current_address && current_address >= 0x40000000 &&
+          current_address < 0x80000000)) {
+      printf("Invalid address at step %zu: 0x%08X\n", i, current_address);
+      return 0;
+    }
+    uint32_t next_address = current_address + offsets[i];
+    auto* p_value =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(next_address);
+    if (!p_value) {
+      printf("Failed to translate virtual address at step %zu: 0x%08X\n", i,
+             next_address);
+      return 0;
+    }
+    current_address = *p_value;
+  }
+  return current_address;
 }
 
 std::string GearsOfWarsGame::ChooseBinds() { return "Default"; }
