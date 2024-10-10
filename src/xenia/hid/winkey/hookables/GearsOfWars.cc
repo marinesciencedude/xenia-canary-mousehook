@@ -144,7 +144,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
      {0x8359C4AE,
       0x47656172,
       kTitleIdGearsOfWarsJudgment,
-      0x830D00EF,
+      0x8356C392,
       0x8356C392,
       0x42943440,
       0x66,
