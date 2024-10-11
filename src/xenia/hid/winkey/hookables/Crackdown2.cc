@@ -83,11 +83,6 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  // Don't constantly write if there is no mouse movement.
-  if (input_state.mouse.x_delta == 0 || input_state.mouse.y_delta == 0) {
-    return false;
-  }
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
@@ -118,7 +113,7 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_y = RadianstoDegree(*radian_y);
 
   // X-axis = 0 to 360
-  if (!cvars::invert_x) {
+  if (cvars::invert_x) {
     degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
     *radian_x = DegreetoRadians(degree_x);
   } else {
@@ -127,7 +122,7 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   // Y-axis = -90 to 90
-  if (!cvars::invert_y) {
+  if (cvars::invert_y) {
     degree_y += (input_state.mouse.y_delta / 50.f) * (float)cvars::sensitivity;
   } else {
     degree_y -= (input_state.mouse.y_delta / 50.f) * (float)cvars::sensitivity;
