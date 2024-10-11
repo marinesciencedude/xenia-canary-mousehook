@@ -1611,7 +1611,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
                              // AimAssist_UpdateLockOn, thanks to Andersson799,
                              // this doesn't disable Aim Assist in SP, which be
                              // can be disabled in the options.
-        uint8_t patch_type;  // 0: 4E800020, 1: 39600000
+        uint8_t patch_type;  // 0: 4E800020, 1: 60000000
       };
 
       std::vector<CODPatchOffsets> supported_builds = {
@@ -1627,26 +1627,50 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           // Call of Duty 4 Alpha 253 SP
           {0x8204EB24, 0x63675F66, 0x820924f8, 0},
 
+          // Call of Duty 4 Alpha 253 SP exe
+          {0x8200EAA4, 0x63675F66, 0x820f2a78, 0},
+
           // Call of Duty 4 Alpha 253 MP
           {0x82055EF4, 0x63675F66, 0x820a2558, 0},
+
+          // Call of Duty 4 Alpha 253 MP exe
+          {0x82011EF4, 0x63675F66, 0x821432a8, 0},
 
           // Call of Duty 4 Alpha 270 SP
           {0x8204E7FC, 0x63675F66, 0x820A21F0, 0},
 
+          // Call of Duty 4 Alpha 270 SP exe
+          {0x8200E4FC, 0x63675F66, 0x820f2ad8, 0},
+
           // Call of Duty 4 Alpha 270 MP
           {0x8205617C, 0x63675F66, 0x820a21e8, 0},
+
+          // Call of Duty 4 Alpha 270 MP exe
+          {0x82012114, 0x63675F66, 0x82143380, 0},
 
           // Call of Duty 4 Alpha 290 SP
           {0x8203ABE8, 0x63675F66, 0x82082390, 0},
 
+          // Call of Duty 4 Alpha 290 SP exe
+          {0x8200E9EC, 0x63675F66, 0x820e2d00, 0},
+
           // Call of Duty 4 Alpha 290 MP
           {0x82042588, 0x63675F66, 0x82092398, 0},
+
+          // Call of Duty 4 Alpha 290 MP exe
+          {0x82012624, 0x63675F66, 0x82143668, 0},
 
           // Call of Duty 4 Alpha 328 SP
           {0x82009C80, 0x63675F66, 0x820eb690, 0},
 
+          // Call of Duty 4 Alpha 328 SP exe
+          {0x8200EB58, 0x63675F66, 0x82103140, 0},
+
           // Call of Duty 4 Alpha 328 MP
           {0x8200BB2C, 0x63675F66, 0x820fb770, 0},
+
+          // Call of Duty 4 Alpha 328 MP exe
+          {0x82012664, 0x63675F66, 0x82143518, 0},
 
           // Call of Duty MW2 Alpha 482 SP
           {0x82007560, 0x63675F66, 0x820d7828, 0},
