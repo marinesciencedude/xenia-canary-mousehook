@@ -25,6 +25,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Crackdown 2 | TU0/TU5 |
 | Saints Row 2 | TU3 |
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer |
+| Far Cry Instincts: Predator | TU0 |
 
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
