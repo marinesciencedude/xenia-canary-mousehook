@@ -92,12 +92,6 @@ DEFINE_bool(sr2_better_handbrake_cam, true,
             "handbraking akin to SR1.",
             "MouseHook");
 
-DEFINE_double(right_stick_hold_time_workaround, 33,
-              "For games that move the right stick alongside the mouse, this "
-              "declares how long to hold in that direction when mouse movement "
-              "is detected. (Currently Saints Row 2)",
-              "MouseHook");
-
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
             "relative to game://. Used for "
