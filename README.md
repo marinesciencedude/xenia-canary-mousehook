@@ -25,6 +25,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Crackdown 2 | TU0/TU5 |
 | Saints Row 2 | TU3 |
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer |
+| Just Cause | TU0 |
 | Red Dead Redemption | Original TU0/TU9, Undead Nightmare (Platinum Hits) TU4 & Game Of The Year Edition Disk 1/2 TU0|
 | Far Cry Instincts: Predator | TU0 |
 | Dead Rising 2 Case West | TU0 |
