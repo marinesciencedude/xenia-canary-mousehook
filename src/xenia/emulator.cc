@@ -91,12 +91,6 @@ DEFINE_bool(sr2_better_handbrake_cam, true,
             "handbraking akin to SR1.",
             "MouseHook");
 
-DEFINE_double(right_stick_hold_time_workaround, 33,
-              "For games that move the right stick alongside the mouse, this "
-              "declares how long to hold in that direction when mouse movement "
-              "is detected. (Currently Saints Row 2)",
-              "MouseHook");
-
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
             "relative to game://. Used for "
@@ -1583,6 +1577,168 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       }
 
       break;
+    }
+  }
+
+  const uint32_t kTitleIdCODGhostsDEV = 0x4156088E;
+  const uint32_t kTitleIdCODNX1 = 0x4156089E;
+  const uint32_t kTitleIdCODBO2 = 0x415608C3;
+  const uint32_t kTitleIdCODMW3 = 0x415608CB;
+  const uint32_t kTitleIdCODMW2 = 0x41560817;
+  const uint32_t kTitleIdCODWaW = 0x4156081C;
+  const uint32_t kTitleIdCOD4 = 0x415607E6;
+  const uint32_t kTitleIdCOD3 = 0x415607E1;
+  if (cvars::disable_autoaim) {
+    if (module->title_id() == kTitleIdCOD4 ||
+        module->title_id() == kTitleIdCODMW2 ||
+        module->title_id() == kTitleIdCODMW3 ||
+        module->title_id() == kTitleIdCODBO2 ||
+        module->title_id() == kTitleIdCODNX1 ||
+        module->title_id() == kTitleIdCOD3 ||
+        module->title_id() == kTitleIdCODWaW ||
+        module->title_id() == kTitleIdCODGhostsDEV) {
+      struct CODPatchOffsets {
+        uint32_t cg_fov_address;
+        uint32_t cg_fov;
+        uint32_t
+            lockon_address;  // Usually this is AimAssist_ApplyLockOn /
+                             // AimAssist_UpdateLockOn, thanks to Andersson799,
+                             // this doesn't disable Aim Assist in SP, which be
+                             // can be disabled in the options.
+        uint8_t patch_type;  // 0: 4E800020, 1: 60000000
+      };
+
+      std::vector<CODPatchOffsets> supported_builds = {
+          // Call of Duty 4 SP
+          {0x82044468, 0x63675F66, 0x82308D68, 0},
+
+          // Call of Duty 4 TU0 MP
+          {0x82BAD56C, 0x63675F66, 0x8233F508, 0},
+
+          // Call of Duty 4 TU4 MP
+          {0x82051048, 0x63675F66, 0x82347D58, 0},
+
+          // Call of Duty 4 Alpha 253 SP
+          {0x8204EB24, 0x63675F66, 0x820924f8, 0},
+
+          // Call of Duty 4 Alpha 253 SP exe
+          {0x8200EAA4, 0x63675F66, 0x820f2a78, 0},
+
+          // Call of Duty 4 Alpha 253 MP
+          {0x82055EF4, 0x63675F66, 0x820a2558, 0},
+
+          // Call of Duty 4 Alpha 253 MP exe
+          {0x82011EF4, 0x63675F66, 0x821432a8, 0},
+
+          // Call of Duty 4 Alpha 270 SP
+          {0x8204E7FC, 0x63675F66, 0x820A21F0, 0},
+
+          // Call of Duty 4 Alpha 270 SP exe
+          {0x8200E4FC, 0x63675F66, 0x820f2ad8, 0},
+
+          // Call of Duty 4 Alpha 270 MP
+          {0x8205617C, 0x63675F66, 0x820a21e8, 0},
+
+          // Call of Duty 4 Alpha 270 MP exe
+          {0x82012114, 0x63675F66, 0x82143380, 0},
+
+          // Call of Duty 4 Alpha 290 SP
+          {0x8203ABE8, 0x63675F66, 0x82082390, 0},
+
+          // Call of Duty 4 Alpha 290 SP exe
+          {0x8200E9EC, 0x63675F66, 0x820e2d00, 0},
+
+          // Call of Duty 4 Alpha 290 MP
+          {0x82042588, 0x63675F66, 0x82092398, 0},
+
+          // Call of Duty 4 Alpha 290 MP exe
+          {0x82012624, 0x63675F66, 0x82143668, 0},
+
+          // Call of Duty 4 Alpha 328 SP
+          {0x82009C80, 0x63675F66, 0x820eb690, 0},
+
+          // Call of Duty 4 Alpha 328 SP exe
+          {0x8200EB58, 0x63675F66, 0x82103140, 0},
+
+          // Call of Duty 4 Alpha 328 MP
+          {0x8200BB2C, 0x63675F66, 0x820fb770, 0},
+
+          // Call of Duty 4 Alpha 328 MP exe
+          {0x82012664, 0x63675F66, 0x82143518, 0},
+
+          // Call of Duty MW2 Alpha 482 SP
+          {0x82007560, 0x63675F66, 0x820d7828, 0},
+
+          // Call of Duty MW2 Alpha 482 MP
+          {0x8200FF48, 0x63675F66, 0x820f5f98, 0},
+
+          // Call of Duty MW2 TU0 SP
+          {0x82020954, 0x63675F66, 0x820D7838, 0},
+          // I found COD3's Aim Assist thanks to Garungorp's Mouse Injector
+          // https://github.com/garungorp/MouseInjectorDolphinDuck/blob/e9af92296038f82968a222a7eb2aef88b8d18c82/games/ps2_cod3.c#L28
+          // Call of Duty 3 SP TU0
+          {0x8248C6D4, 0xC0C70008, 0x8248DE8C, 1},
+
+          // Call of Duty 3 SP TU3
+          {0x8248C6D4, 0x38210160, 0x8248D43C, 1},
+
+          // Call of Duty 3 MP TU0
+          {0x82078614, 0x63675F66, 0x824AC7A0, 1},
+
+          // Call of Duty 3 MP TU3
+          {0x8206E994, 0x63675F66, 0x82471D70, 1},
+
+          // New Moon Patched XEX (Black Ops 2 Alpha)
+          {0x82004860, 0x63675F66, 0x82137D50, 0},
+
+          // Call of Duty MW3 TU0 MP
+          {0x8200C558, 0x63675F66, 0x820D4710, 0},
+
+          // Call of Duty MW2 TU0 MP
+          {0x820102D8, 0x63675F66, 0x820F5FB0, 0},
+
+          // Call of Duty NX1 Nightly SP Maps
+          {0x82021104, 0x63675F66, 0x820F9390, 0},
+
+          // Call of Duty NX1 SP
+          {0x8200FC1C, 0x63675F66, 0x82183d90, 0},
+
+          // Call of Duty NX1 MP Demo
+          {0x82012228, 0x63675F66, 0x820F9310, 0},
+
+          // Call of Duty NX1 MP
+          {0x8201E584, 0x63675F66, 0x821d5180, 0},
+
+          // Call of Duty NX1 Nightly MP Maps
+          {0x8201DD04, 0x63675F66, 0x821c7a68, 0},
+
+          // Call Of Duty World At War TU7 SP
+          {0x82055874, 0x63675F66, 0x820E1E50, 0},
+
+          // Call Of Duty World At War TU7 MP
+          {0x82012704, 0x63675F66, 0x82124C10, 0},
+          // CallOfDutyGhosts_IW6_DEV_2iw6mp
+          {0x820BB320, 0x63675F66, 0x82293F50, 0},
+          // CallOfDutyGhosts_IW6_DEV_1iw6sp
+          {0x82032648, 0x63675F66, 0x82224b10, 0},
+      };
+
+      for (auto& build : supported_builds) {
+        auto* fov_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
+            build.cg_fov_address);
+        if (*fov_addr != build.cg_fov) {
+          continue;
+        }
+
+        if (build.lockon_address) {
+          uint32_t patch_value =
+              (build.patch_type == 0) ? 0x4E800020 : 0x60000000;
+          (build.patch_type == 0) ? 0x4E800020 : 0x60000000;
+          patch_addr(build.lockon_address, patch_value);
+        }
+
+        break;
+      }
     }
   }
 
