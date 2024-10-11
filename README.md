@@ -32,7 +32,7 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Call Of Duty Future Warfare "NX1" | Nightly_SP_maps / nx1sp.xex / nx1mp_demo.xex / nx1mp.xex / NightlyMPmaps |
 | Call Of Duty Black Ops 2 Greenlight | ".xex only" |
 | Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" |
-| Call Of Duty Advanced Warfare | TU17 |
+| Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 |
 
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
