@@ -61,6 +61,7 @@ class CallOfDutyGame : public HookableGame {
     CallOfDutyGhosts_IW6_DEV_default,
     CallOfDutyAdvancedWarfare_TU17_SP,
     CallOfDutyAdvancedWarfare_TU17_MP,
+    Wolfenstein_TU0_SP,
   };
 
   ~CallOfDutyGame() override;

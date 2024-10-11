@@ -38,6 +38,7 @@ const uint32_t kTitleIdCODMW2 = 0x41560817;
 const uint32_t kTitleIdCODWaW = 0x4156081C;
 const uint32_t kTitleIdCOD4 = 0x415607E6;
 const uint32_t kTitleIdCOD3 = 0x415607E1;
+const uint32_t kTitleIdWolfenstein = 0x415607DE;
 
 namespace xe {
 namespace hid {
@@ -177,7 +178,10 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL, NULL}},
     {CallOfDutyGame::GameBuild::CallOfDutyAdvancedWarfare_TU17_MP,
      {0x82066D7C, 0x63675F66, kTitleIdCODAW, 0x356C, NULL, 0x82928CA4,
-      0x82B0D308, NULL}}};
+      0x82B0D308, NULL}},
+    {CallOfDutyGame::GameBuild::Wolfenstein_TU0_SP,
+     {0x820BA060, 0x666F7600, kTitleIdWolfenstein, 0x160c, NULL, 0x8315CC70,
+      0x830DE3A4, NULL}}};
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
@@ -188,7 +192,7 @@ bool CallOfDutyGame::IsGameSupported() {
       title_id != kTitleIdCODBO2 && title_id != kTitleIdCODMW2 &&
       title_id != kTitleIdCODMW3 && title_id != kTitleIdCODNX1 &&
       title_id != kTitleIdCODWaW && title_id != kTitleIdCODGhostsDEV &&
-      title_id != kTitleIdCODAW) {
+      title_id != kTitleIdCODAW && title_id != kTitleIdWolfenstein) {
     return false;
   }
 
