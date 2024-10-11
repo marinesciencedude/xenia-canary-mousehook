@@ -197,6 +197,9 @@ bool CallOfDutyGame::IsGameSupported() {
   }
 
   for (auto& build : supported_builds) {
+    if (build.second.title_id != title_id) {
+      continue;
+    }
     auto* build_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         build.second.cg_fov_address);
     // printf("Processing build: %d\n", static_cast<int>(build.first));
