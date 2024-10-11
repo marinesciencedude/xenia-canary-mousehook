@@ -9,7 +9,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/Crackdown2.h"
+#include "xenia/hid/winkey/hookables/Farcry.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -27,7 +27,7 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
-const uint32_t kTitleIdCrackdown2 = 0x4D5308BC;
+const uint32_t kTitleIdFarCry = 0x555307DC;
 
 namespace xe {
 namespace hid {
@@ -39,16 +39,13 @@ struct GameBuildAddrs {
   uint32_t y_offset;
 };
 
-std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
-    {Crackdown2Game::GameBuild::Crackdown2_TU0,
-     {"1.0", 0x836C6520, 0x7EC, 0x7E8}},
-    {Crackdown2Game::GameBuild::Crackdown2_TU5,
-     {"1.0.5", 0x83800F88, 0x7EC, 0x7E8}}};
+std::map<FarCryGame::GameBuild, GameBuildAddrs> supported_builds{
+    {FarCryGame::GameBuild::FarCry_TU0, {"1.0", 0x829138B8, 0x3AC, 0x3A4}}};
 
-Crackdown2Game::~Crackdown2Game() = default;
+FarCryGame::~FarCryGame() = default;
 
-bool Crackdown2Game::IsGameSupported() {
-  if (kernel_state()->title_id() != kTitleIdCrackdown2) {
+bool FarCryGame::IsGameSupported() {
+  if (kernel_state()->title_id() != kTitleIdFarCry) {
     return false;
   }
 
@@ -65,16 +62,8 @@ bool Crackdown2Game::IsGameSupported() {
   return false;
 }
 
-float Crackdown2Game::DegreetoRadians(float degree) {
-  return (float)(degree * (M_PI / 180));
-}
-
-float Crackdown2Game::RadianstoDegree(float radians) {
-  return (float)(radians * (180 / M_PI));
-}
-
-bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
-                             X_INPUT_STATE* out_state) {
+bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
+                         X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -103,41 +92,41 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<uint32_t> y_address =
       *base_address + supported_builds[game_build_].y_offset;
 
-  xe::be<float>* radian_x =
+  xe::be<float>* degree_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
 
-  xe::be<float>* radian_y =
+  xe::be<float>* degree_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
 
-  float degree_x = RadianstoDegree(*radian_x);
-  float degree_y = RadianstoDegree(*radian_y);
+  float new_degree_x = *degree_x;
+  float new_degree_y = *degree_y;
 
-  // X-axis = 0 to 360
-  if (cvars::invert_x) {
-    degree_x += (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
-    *radian_x = DegreetoRadians(degree_x);
+  if (!cvars::invert_x) {
+    new_degree_x -=
+        (input_state.mouse.x_delta / 7.5f) * (float)cvars::sensitivity;
   } else {
-    degree_x -= (input_state.mouse.x_delta / 50.f) * (float)cvars::sensitivity;
-    *radian_x = DegreetoRadians(degree_x);
+    new_degree_x +=
+        (input_state.mouse.x_delta / 7.5f) * (float)cvars::sensitivity;
   }
+  *degree_x = new_degree_x;
 
-  // Y-axis = -90 to 90
-  if (cvars::invert_y) {
-    degree_y += (input_state.mouse.y_delta / 50.f) * (float)cvars::sensitivity;
+  if (!cvars::invert_y) {
+    new_degree_y +=
+        (input_state.mouse.y_delta / 7.5f) * (float)cvars::sensitivity;
   } else {
-    degree_y -= (input_state.mouse.y_delta / 50.f) * (float)cvars::sensitivity;
+    new_degree_y -=
+        (input_state.mouse.y_delta / 7.5f) * (float)cvars::sensitivity;
   }
-
-  *radian_y = DegreetoRadians(degree_y);
+  *degree_y = new_degree_y;
 
   return true;
 }
 
-std::string Crackdown2Game::ChooseBinds() { return "Default"; }
+std::string FarCryGame::ChooseBinds() { return "Default"; }
 
-bool Crackdown2Game::ModifierKeyHandler(uint32_t user_index,
-                                        RawInputState& input_state,
-                                        X_INPUT_STATE* out_state) {
+bool FarCryGame::ModifierKeyHandler(uint32_t user_index,
+                                    RawInputState& input_state,
+                                    X_INPUT_STATE* out_state) {
   return false;
 }
 }  // namespace winkey
