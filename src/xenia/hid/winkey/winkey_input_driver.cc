@@ -20,6 +20,7 @@
 
 #include "xenia/hid/winkey/hookables/CallOfDuty.h"
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
+#include "xenia/hid/winkey/hookables/DeadRising.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
@@ -33,7 +34,7 @@ DEFINE_bool(swap_wheel, false,
             "MouseHook");
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_double(fov_sensitivity, 0.9,
-              "Mouse scale when FOV is lowered (Currently for COD)",
+              "Mouse scale when FOV is lowered (Currently for COD,DR & RDR)",
               "MouseHook");
 DEFINE_bool(
     disable_autoaim, true,
@@ -401,6 +402,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
   hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<DeadRisingGame>()));
   hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
