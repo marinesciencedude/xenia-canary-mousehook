@@ -23,6 +23,7 @@
 #include "xenia/hid/winkey/hookables/DeadRising.h"
 #include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
+#include "xenia/hid/winkey/hookables/RDR.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
@@ -76,6 +77,15 @@ DEFINE_int32(walk_diagonal, 18421,
              "Joystick movement for diagonal shiftwalking, default 18421 "
              "equates to 134.99 h.u./s",
              "MouseHook");
+DEFINE_bool(rdr_turbo_gallop_horse, false,
+            "(Red Dead Redemption) Enables turbo galloping for horses and "
+            "coaches in Red Dead "
+            "Redemption (Bound to Modifier same as Turbo sprint)",
+            "MouseHook");
+DEFINE_bool(
+    rdr_snappy_wheel, true,
+    "(Red Dead Redemption) Snaps the Weapon Wheel in 45 degree increments",
+    "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \
@@ -428,6 +438,8 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
   hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
+  hookable_games_.push_back(
+      std::move(std::make_unique<RedDeadRedemptionGame>()));
   hookable_games_.push_back(std::move(std::make_unique<FarCryGame>()));
   hookable_games_.push_back(std::move(std::make_unique<GearsOfWarsGame>()));
   hookable_games_.push_back(std::move(std::make_unique<DeadRisingGame>()));
