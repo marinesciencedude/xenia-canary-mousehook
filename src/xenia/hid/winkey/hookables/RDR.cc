@@ -384,15 +384,15 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         }
 
         // Update x_address, y_address, z_address to the carriage addresses
-        xe::be<float>* degree_x_carriage =
+        xe::be<float>* cam_x_carriage =
             kernel_memory()->TranslateVirtual<xe::be<float>*>(
                 carriage_x_address);
 
-        xe::be<float>* degree_y_carriage =
+        xe::be<float>* cam_y_carriage =
             kernel_memory()->TranslateVirtual<xe::be<float>*>(
                 carriage_y_address);
 
-        xe::be<float>* degree_z_carriage =
+        xe::be<float>* cam_z_carriage =
             kernel_memory()->TranslateVirtual<xe::be<float>*>(
                 carriage_z_address);
 
@@ -401,8 +401,8 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
                 auto_center_strength_address_carriage);
 
         // Calculate the horizontal and vertical angles
-        float hor_angle = atan2(*degree_z_carriage, *degree_x_carriage);
-        float vert_angle = asin(*degree_y_carriage);
+        float hor_angle = atan2(*cam_z_carriage, *cam_x_carriage);
+        float vert_angle = asin(*cam_y_carriage);
         hor_angle -=
             invert_x_multiplier *
             ((input_state.mouse.x_delta * (float)cvars::sensitivity) / divisor);
@@ -414,9 +414,9 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
         // Calculate 3D camera vector |
         // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
-        *degree_x_carriage = cos(hor_angle) * cos(vert_angle);
-        *degree_z_carriage = sin(hor_angle) * cos(vert_angle);
-        *degree_y_carriage = sin(vert_angle);
+        *cam_x_carriage = cos(hor_angle) * cos(vert_angle);
+        *cam_z_carriage = sin(hor_angle) * cos(vert_angle);
+        *cam_y_carriage = sin(vert_angle);
 
         float auto_center_strength_c_f = *auto_center_strength_carriage;
 
@@ -435,13 +435,13 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
       }
     }
 
-    xe::be<float>* degree_x_act =
+    xe::be<float>* cam_x_act =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
 
-    xe::be<float>* degree_y_act =
+    xe::be<float>* cam_y_act =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
 
-    xe::be<float>* degree_z_act =
+    xe::be<float>* cam_z_act =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(z_address);
 
     xe::be<float>* auto_center_strength_act =
@@ -450,13 +450,13 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
     float auto_center_strength = *auto_center_strength_act;
 
-    float degree_x = *degree_x_act;
-    float degree_y = *degree_y_act;
-    float degree_z = *degree_z_act;
+    float cam_x = *cam_x_act;
+    float cam_y = *cam_y_act;
+    float cam_z = *cam_z_act;
 
     // Calculate the horizontal and vertical angles
-    float hor_angle = atan2(degree_z, degree_x);
-    float vert_angle = asin(degree_y);
+    float hor_angle = atan2(cam_z, cam_x);
+    float vert_angle = asin(cam_y);
 
     hor_angle -=
         invert_x_multiplier *
@@ -468,21 +468,21 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
 
     // Calculate 3D camera vector |
     // https://github.com/isJuhn/KAMI/blob/master/KAMI.Core/Cameras/HVVecCamera.cs
-    degree_x = cos(hor_angle) * cos(vert_angle);
-    degree_z = sin(hor_angle) * cos(vert_angle);
-    degree_y = sin(vert_angle);
+    cam_x = cos(hor_angle) * cos(vert_angle);
+    cam_z = sin(hor_angle) * cos(vert_angle);
+    cam_y = sin(vert_angle);
 
-    /* if (degree_y > 0.7153550260f)
-      degree_y = 0.7153550260f;
-    else if (degree_y < -0.861205390f)
-      degree_y = -0.861205390f;
+    /* if (cam_y > 0.7153550260f)
+      cam_y = 0.7153550260f;
+    else if (cam_y < -0.861205390f)
+      cam_y = -0.861205390f;
       */
     if (IsWeaponWheelShown()) {
       HandleWeaponWheelEmulation(input_state, out_state);
     } else {
-      *degree_x_act = degree_x;
-      *degree_y_act = degree_y;
-      *degree_z_act = degree_z;
+      *cam_x_act = cam_x;
+      *cam_y_act = cam_y;
+      *cam_z_act = cam_z;
     }
 
     if (supported_builds[game_build_].auto_center_strength_offset != NULL &&
@@ -675,11 +675,11 @@ void RedDeadRedemptionGame::HandleRightStickEmulation(
   out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
 }
 
-float RedDeadRedemptionGame::ClampVerticalAngle(float degree_y) {
+float RedDeadRedemptionGame::ClampVerticalAngle(float cam_y) {
   const float max_y_angle = 0.8f;
   const float min_y_angle = -1.1f;
 
-  return std::clamp(degree_y, min_y_angle, max_y_angle);
+  return std::clamp(cam_y, min_y_angle, max_y_angle);
 }
 
 static uint32_t cached_cam_type_address = 0;
