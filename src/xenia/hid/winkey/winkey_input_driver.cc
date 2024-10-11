@@ -18,7 +18,11 @@
 #include "xenia/ui/virtual_key.h"
 #include "xenia/ui/window.h"
 
+#include "xenia/hid/winkey/hookables/CallOfDuty.h"
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
+#include "xenia/hid/winkey/hookables/DeadRising.h"
+#include "xenia/hid/winkey/hookables/Farcry.h"
+#include "xenia/hid/winkey/hookables/GearsOfWars.h"
 #include "xenia/hid/winkey/hookables/RDR.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
@@ -34,11 +38,35 @@ DEFINE_bool(swap_wheel, false,
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_double(
     fov_sensitivity, 0.9,
-    "Mouse scale when FOV is lowered (Currently for COD & Red Dead Redemption)",
+    "Mouse scale when FOV is lowered (Currently for COD, DR, RDR & UE3 Games)",
     "MouseHook");
-DEFINE_bool(disable_autoaim, true,
-            "Disable autoaim in games that support it (currently GE,PD and SR)",
+
+DEFINE_double(right_stick_hold_time_workaround, 33,
+              "For games that move the right stick alongside the mouse, this "
+              "declares how long to hold in that direction when mouse movement "
+              "is detected. (Currently Saints Row 2 & Gears Of Wars series)",
+              "MouseHook");
+
+DEFINE_int32(
+    ue3_use_timer_to_hook_workaround, 0,
+    "(in non-decimal seconds) Wait a set of amount of time before hooking into "
+    "Unreal Engine 3, do not change this unless UE3 games crash. 0 is disabled "
+    "and relies on when intro finishes loading.",
+    "MouseHook");
+
+DEFINE_bool(use_right_stick_workaround_gears1and2, true,
+            "(Gears) Enables the use of the RS workaround for Gears 1 and 2. "
+            "Recommended for Gears 3 & Judgement.",
             "MouseHook");
+
+DEFINE_bool(use_right_stick_workaround, true,
+            "Enables the use of the RS workaround for games that use it. "
+            "Always enabled for Saints Row 2.",
+            "MouseHook");
+DEFINE_bool(
+    disable_autoaim, true,
+    "Disable autoaim in games that support it (currently GE,PD,SR and COD)",
+    "MouseHook");
 DEFINE_double(source_sniper_sensitivity, 0, "Source Sniper Sensitivity",
               "MouseHook");
 DEFINE_int32(walk_orthogonal, 22800,
@@ -412,6 +440,10 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
   hookable_games_.push_back(
       std::move(std::make_unique<RedDeadRedemptionGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<FarCryGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<GearsOfWarsGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<DeadRisingGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
