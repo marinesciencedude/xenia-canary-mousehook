@@ -25,6 +25,17 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Crackdown 2 | TU0/TU5 |
 | Saints Row 2 | TU3 |
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer |
+| Dead Rising 2 Case West | TU0 |
+| Dead Rising 2 Case Zero | TU0 |
+| Call Of Duty 3 | Singleplayer & Multiplayer TU0/TU3 |
+| Call Of Duty 4 | Singleplayer & Multiplayer TU0/TU4 / 253,270,290 & 328 alphas |
+| Call Of Duty World At War | Singleplayer & Multiplayer TU7 |
+| Call Of Duty Modern Warfare 2 | Singleplayer & Multiplayer TU0 / 482 alpha SP ".xex only" |
+| Call Of Duty Future Warfare "NX1" | Nightly_SP_maps / nx1sp.xex / nx1mp_demo.xex / nx1mp.xex / NightlyMPmaps |
+| Call Of Duty Black Ops 2 Greenlight | ".xex only" |
+| Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" |
+| Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 |
+| Wolfenstein | Singleplayer TU0 |
 | Gears Of Wars 1 | TU0/TU5 |
 | Gears Of Wars 2 | TU0/TU6 |
 | Gears Of Wars 3 | TU0/TU6 |
