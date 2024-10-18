@@ -28,6 +28,7 @@ DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(ge_gun_sway);
+DECLARE_bool(pdz_scale_base_fov_sens);
 
 const uint32_t kTitleIdPerfectDarkZero = 0x4D5307D3;
 
@@ -46,13 +47,14 @@ struct GameBuildAddrs {
                           // with a patch.
   uint32_t gun_x_offset;
   uint32_t fovscale_address;
+  uint32_t current_set_fov;  // Incase FOV is increased with a patch.
   uint32_t pause_offset;
 };
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
      {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x82D2AD38, 0x16A7, 0x150,
-      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82E1B930, 0x16A3}}};
+      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x820EC228, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -146,26 +148,42 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
   degree_y = (float)*cam_y;
 
-  xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].fovscale_address);
+  float set_fov_multiplier = 1.0f;
+  static float fovscale_l = 1.0f;
+  xe::be<uint32_t>* base_address_fov =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          supported_builds[game_build_].fovscale_address);
+  if (!base_address_fov || base_address_fov != NULL) {
+    xe::be<uint32_t> fovscale_address = *base_address_fov + 0x440;
+    xe::be<uint32_t> fovscale_sanity = *base_address_fov + 0x660;
 
-  const float a = (float)cvars::fov_sensitivity;
-  float fovscale_l = *fovscale;
+    xe::be<float>* set_fov = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].current_set_fov);
 
-  if (fovscale_l <= 1.006910563f)
-    fovscale_l = 1.006910563f;
-  else
-    fovscale_l = fovscale_l =
-        ((1 - a) * (fovscale_l * fovscale_l) + a * fovscale_l) *
-        1.1f;  //// Quadratic scaling to make fovscale effect sens stronger and
-               /// extra multiplier as it doesn't /feel/ enough.
+    xe::be<float>* fovscale =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(fovscale_address);
+
+    const float a = (float)cvars::fov_sensitivity;
+    fovscale_l = *fovscale;
+    if (cvars::pdz_scale_base_fov_sens && *set_fov != 58.f)
+      set_fov_multiplier = *set_fov / 58.f;
+
+    fovscale_l = (*set_fov / *fovscale);
+
+    if (fovscale_l > 1.f) {
+      fovscale_l =
+          (a * fovscale_l + (1 - a) * (fovscale_l * fovscale_l) * 1.1f);
+    }
+  }
 
   // X-axis = 0 to 360
   if (cvars::invert_x) {
-    degree_x += (input_state.mouse.x_delta / (8.405f * fovscale_l)) *
+    degree_x += ((input_state.mouse.x_delta / set_fov_multiplier) /
+                 (7.5f * fovscale_l)) *
                 (float)cvars::sensitivity;
   } else {
-    degree_x -= (input_state.mouse.x_delta / (8.405f * fovscale_l)) *
+    degree_x -= ((input_state.mouse.x_delta / set_fov_multiplier) /
+                 (7.5f * fovscale_l)) *
                 (float)cvars::sensitivity;
   }
 
@@ -179,10 +197,12 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
   // Y-axis = -90 to 90
   if (cvars::invert_y) {
-    degree_y -= (input_state.mouse.y_delta / (8.405f * fovscale_l)) *
+    degree_y -= ((input_state.mouse.y_delta / set_fov_multiplier) /
+                 (7.5f * fovscale_l)) *
                 (float)cvars::sensitivity;
   } else {
-    degree_y += (input_state.mouse.y_delta / (8.405f * fovscale_l)) *
+    degree_y += ((input_state.mouse.y_delta / set_fov_multiplier) /
+                 (7.5f * fovscale_l)) *
                 (float)cvars::sensitivity;
   }
   *cam_y = degree_y;

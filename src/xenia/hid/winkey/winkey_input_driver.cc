@@ -88,6 +88,10 @@ DEFINE_bool(
     rdr_snappy_wheel, true,
     "(Red Dead Redemption) Snaps the Weapon Wheel in 45 degree increments",
     "MouseHook");
+DEFINE_bool(pdz_scale_base_fov_sens, true,
+            "(Perfect Dark Zero) Scales base sentiviity if base FOV is "
+            "increased with a patch. ",
+            "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \
