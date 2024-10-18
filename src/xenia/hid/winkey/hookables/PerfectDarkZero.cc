@@ -46,12 +46,13 @@ struct GameBuildAddrs {
                           // with a patch.
   uint32_t gun_x_offset;
   uint32_t fovscale_address;
+  uint32_t pause_offset;
 };
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
      {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x82D2AD38, 0x16A7, 0x150,
-      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82E1B930}}};
+      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82E1B930, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -113,6 +114,8 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // Not in game
     return false;
   }
+
+  if (IsPaused()) return false;
   xe::be<uint32_t> x_address;
   bool in_cover = InCover();
 
@@ -253,6 +256,20 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     *gun_y = gun_y_val;
   }
   return true;
+}
+
+bool PerfectDarkZeroGame::IsPaused() {
+  xe::be<uint32_t>* base_address =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          supported_builds[game_build_].base_address);
+
+  uint8_t* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      *base_address + supported_builds[game_build_].pause_offset);
+  if (*pause_flag != 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool PerfectDarkZeroGame::InCover() {
