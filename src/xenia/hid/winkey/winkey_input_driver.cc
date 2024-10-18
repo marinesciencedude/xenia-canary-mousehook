@@ -24,6 +24,7 @@
 #include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 #include "xenia/hid/winkey/hookables/JustCause.h"
+#include "xenia/hid/winkey/hookables/PerfectDarkZero.h"
 #include "xenia/hid/winkey/hookables/RDR.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
@@ -87,6 +88,10 @@ DEFINE_bool(
     rdr_snappy_wheel, true,
     "(Red Dead Redemption) Snaps the Weapon Wheel in 45 degree increments",
     "MouseHook");
+DEFINE_bool(pdz_scale_base_fov_sens, true,
+            "(Perfect Dark Zero) Scales base sentiviity if base FOV is "
+            "increased with a patch. ",
+            "MouseHook");
 
 #define XE_HID_WINKEY_BINDING(button, description, cvar_name, \
                               cvar_default_value)             \
@@ -446,6 +451,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<GearsOfWarsGame>()));
   hookable_games_.push_back(std::move(std::make_unique<DeadRisingGame>()));
   hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<PerfectDarkZeroGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
