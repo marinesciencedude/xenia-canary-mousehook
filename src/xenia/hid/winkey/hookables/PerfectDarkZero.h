@@ -33,6 +33,8 @@ class PerfectDarkZeroGame : public HookableGame {
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
+  bool InCover();
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
@@ -40,6 +42,10 @@ class PerfectDarkZeroGame : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+
+  float centering_speed_ = 0.0125f;
+  bool start_centering_ = false;
+  bool disable_sway_ = false;  // temporarily prevents sway being applied
 };
 
 }  // namespace winkey
