@@ -158,7 +158,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     fovscale_l = fovscale_l =
         ((1 - a) * (fovscale_l * fovscale_l) + a * fovscale_l) *
         1.1f;  //// Quadratic scaling to make fovscale effect sens stronger and
-               ///extra multiplier as it doesn't /feel/ enough.
+               /// extra multiplier as it doesn't /feel/ enough.
 
   // X-axis = 0 to 360
   if (cvars::invert_x) {
