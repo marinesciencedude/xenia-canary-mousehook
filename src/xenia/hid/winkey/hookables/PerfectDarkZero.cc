@@ -173,6 +173,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     *cam_x = DegreetoRadians(
         degree_x);  // Convert degrees back to radians for normal aiming
   } else {
+    degree_x = std::clamp(degree_x, -68.0f, 68.0f);
     *cam_x = degree_x;  // Directly store degrees for cover aiming
   }
 
