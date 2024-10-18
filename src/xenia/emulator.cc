@@ -1952,6 +1952,30 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     }
   }
 
+  if (module->title_id() == 0x4D5307D3) {
+    struct PDZPatchOffsets {
+      const char* build_string;
+      uint32_t build_string_addr;
+      uint32_t gun_y_read_camera_address;
+      uint32_t gun_x_read_camera_address;
+    };
+
+    std::vector<PDZPatchOffsets> supported_builds{
+        {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x8253EDA0, 0x8253EDA8},
+    };
+    for (auto& build : supported_builds) {
+      const char* build_ptr = reinterpret_cast<const char*>(
+          module->memory()->TranslateVirtual(build.build_string_addr));
+      if (strcmp(build_ptr, build.build_string) != 0) {
+        continue;
+      }
+      // Gun sway is read from RS camera movement, we decouple it by moving it's
+      // pointer to +0xF9C for Y and + 0xFA10 for X.
+      patch_addr(build.gun_y_read_camera_address, 0xC0230F9C);
+      patch_addr(build.gun_x_read_camera_address, 0xC0230FA0);
+    }
+  }
+
   // Initializing the shader storage in a blocking way so the user doesn't
   // miss the initial seconds - for instance, sound from an intro video may
   // start playing before the video can be seen if doing this in parallel with
