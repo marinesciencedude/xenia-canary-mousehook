@@ -50,7 +50,7 @@ struct GameBuildAddrs {
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
-     {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x82D2AD38, 0x14BB, 0x150,
+     {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x82D2AD38, 0x16A7, 0x150,
       0x1674, 0x1670, 0xF9C, 0xFA0, 0x82E1B930}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
@@ -113,9 +113,15 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // Not in game
     return false;
   }
+  xe::be<uint32_t> x_address;
+  bool in_cover = InCover();
 
-  xe::be<uint32_t> x_address =
-      *radians_x_base + supported_builds[game_build_].x_offset;
+  if (!in_cover) {
+    x_address = *radians_x_base + supported_builds[game_build_].x_offset;
+  } else {
+    x_address = *base_address + supported_builds[game_build_].cover_x_offset;
+  }
+
   xe::be<uint32_t> y_address =
       *base_address + supported_builds[game_build_].y_offset;
 
@@ -125,8 +131,17 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
   xe::be<float>* cam_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
 
-  float degree_x = RadianstoDegree(*cam_x);
-  float degree_y = (float)*cam_y;
+  float degree_x, degree_y;
+
+  if (!in_cover) {
+    // Normal mode: convert radians to degrees
+    degree_x = RadianstoDegree(*cam_x);
+  } else {
+    // Cover mode: X-axis is already in degrees
+    degree_x = *cam_x;
+  }
+
+  degree_y = (float)*cam_y;
 
   xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].fovscale_address);
@@ -146,12 +161,17 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
   if (cvars::invert_x) {
     degree_x += (input_state.mouse.x_delta / (8.405f * fovscale_l)) *
                 (float)cvars::sensitivity;
-
   } else {
     degree_x -= (input_state.mouse.x_delta / (8.405f * fovscale_l)) *
                 (float)cvars::sensitivity;
   }
-  *cam_x = DegreetoRadians(degree_x);
+
+  if (!in_cover) {
+    *cam_x = DegreetoRadians(
+        degree_x);  // Convert degrees back to radians for normal aiming
+  } else {
+    *cam_x = degree_x;  // Directly store degrees for cover aiming
+  }
 
   // Y-axis = -90 to 90
   if (cvars::invert_y) {
@@ -162,79 +182,93 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                 (float)cvars::sensitivity;
   }
   *cam_y = degree_y;
+  if (cvars::ge_gun_sway) {
+    xe::be<uint32_t> gun_x_address =
+        *base_address + supported_builds[game_build_].gun_x_offset;
+    xe::be<uint32_t> gun_y_address =
+        *base_address + supported_builds[game_build_].gun_y_offset;
 
-  xe::be<uint32_t> gun_x_address =
-      *base_address + supported_builds[game_build_].gun_x_offset;
-  xe::be<uint32_t> gun_y_address =
-      *base_address + supported_builds[game_build_].gun_y_offset;
+    // revised gun sway from goldeneye.cc
+    xe::be<float>* gun_x =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(gun_x_address);
+    xe::be<float>* gun_y =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(gun_y_address);
 
-  // revised gun sway from goldeneye.cc
-  xe::be<float>* gun_x =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(gun_x_address);
-  xe::be<float>* gun_y =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(gun_y_address);
+    float gun_x_val = *gun_x;
+    float gun_y_val = *gun_y;
 
-  float gun_x_val = *gun_x;
-  float gun_y_val = *gun_y;
+    // Apply the mouse input to the gun sway
+    if (input_state.mouse.x_delta || input_state.mouse.y_delta) {
+      if (!cvars::invert_x) {
+        gun_x_val += ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
+                     (float)cvars::sensitivity;
+      } else {
+        gun_x_val -= ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
+                     (float)cvars::sensitivity;
+      }
 
-  // Apply the mouse input to the gun sway
-  if (input_state.mouse.x_delta || input_state.mouse.y_delta) {
-    if (!cvars::invert_x) {
-      gun_x_val += ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
-                   (float)cvars::sensitivity;
-    } else {
-      gun_x_val -= ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
-                   (float)cvars::sensitivity;
+      if (!cvars::invert_y) {
+        gun_y_val += ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
+                     (float)cvars::sensitivity;
+      } else {
+        gun_y_val -= ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
+                     (float)cvars::sensitivity;
+      }
+
+      // Bound the gun sway movement within a range to prevent excessive
+      // movement
+      gun_x_val = std::min(gun_x_val, 2.5f);
+      gun_x_val = std::max(gun_x_val, -2.5f);
+      gun_y_val = std::min(gun_y_val, 2.5f);
+      gun_y_val = std::max(gun_y_val, -2.5f);
+
+      // Set centering and disable sway flags
+      start_centering_ = true;
+      disable_sway_ = true;  // Disable sway until centering is complete
+    } else if (start_centering_) {
+      // Apply gun centering if no input is detected
+      float centering_speed = 0.05f;  // Adjust the speed of centering as needed
+
+      if (gun_x_val > 0) {
+        gun_x_val -= std::min(centering_speed, gun_x_val);
+      } else if (gun_x_val < 0) {
+        gun_x_val += std::min(centering_speed, -gun_x_val);
+      }
+
+      if (gun_y_val > 0) {
+        gun_y_val -= std::min(centering_speed, gun_y_val);
+      } else if (gun_y_val < 0) {
+        gun_y_val += std::min(centering_speed, -gun_y_val);
+      }
+
+      // Stop centering once the gun is centered
+      if (gun_x_val == 0 && gun_y_val == 0) {
+        start_centering_ = false;
+        disable_sway_ = false;  // Re-enable sway after centering
+      }
     }
 
-    if (!cvars::invert_y) {
-      gun_y_val += ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
-                   (float)cvars::sensitivity;
-    } else {
-      gun_y_val -= ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
-                   (float)cvars::sensitivity;
-    }
-
-    // Bound the gun sway movement within a range to prevent excessive movement
-    gun_x_val = std::min(gun_x_val, 2.5f);
-    gun_x_val = std::max(gun_x_val, -2.5f);
-    gun_y_val = std::min(gun_y_val, 2.5f);
-    gun_y_val = std::max(gun_y_val, -2.5f);
-
-    // Set centering and disable sway flags
-    start_centering_ = true;
-    disable_sway_ = true;  // Disable sway until centering is complete
-  } else if (start_centering_) {
-    // Apply gun centering if no input is detected
-    float centering_speed = 0.05f;  // Adjust the speed of centering as needed
-
-    if (gun_x_val > 0) {
-      gun_x_val -= std::min(centering_speed, gun_x_val);
-    } else if (gun_x_val < 0) {
-      gun_x_val += std::min(centering_speed, -gun_x_val);
-    }
-
-    if (gun_y_val > 0) {
-      gun_y_val -= std::min(centering_speed, gun_y_val);
-    } else if (gun_y_val < 0) {
-      gun_y_val += std::min(centering_speed, -gun_y_val);
-    }
-
-    // Stop centering once the gun is centered
-    if (gun_x_val == 0 && gun_y_val == 0) {
-      start_centering_ = false;
-      disable_sway_ = false;  // Re-enable sway after centering
-    }
+    // Write the updated values back to the gun_x and gun_y
+    *gun_x = gun_x_val;
+    *gun_y = gun_y_val;
   }
-
-  // Write the updated values back to the gun_x and gun_y
-  *gun_x = gun_x_val;
-  *gun_y = gun_y_val;
-
   return true;
 }
 
-bool PerfectDarkZeroGame::InCover() {}
+bool PerfectDarkZeroGame::InCover() {
+  xe::be<uint32_t>* base_address =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          supported_builds[game_build_].base_address);
+
+  uint8_t* cover_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      *base_address + supported_builds[game_build_].cover_flag_offset);
+
+  if (*cover_flag == 1) {
+    return true;
+  } else {
+    return false;
+  }
+}
 
 std::string PerfectDarkZeroGame::ChooseBinds() { return "Default"; }
 
