@@ -33,6 +33,8 @@ class PerfectDarkZeroGame : public HookableGame {
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
+  bool IsPaused();
+
   bool InCover();
 
   std::string ChooseBinds();
