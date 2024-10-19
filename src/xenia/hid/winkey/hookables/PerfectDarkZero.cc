@@ -119,12 +119,8 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(*base_address +
                                                            0xE4);
 
-  if (!base_address || *base_address == NULL) {
-    // Not in game
-    return false;
-  }
-
-    if (!radians_x_base || *radians_x_base == NULL) {
+  if ((!base_address || *base_address == NULL) ||
+      (!radians_x_base || *radians_x_base == NULL)) {
     // Not in game
     return false;
   }
