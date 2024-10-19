@@ -124,6 +124,11 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     return false;
   }
 
+    if (!radians_x_base || *radians_x_base == NULL) {
+    // Not in game
+    return false;
+  }
+
   if (!IsPaused()) {
     xe::be<uint32_t> x_address;
     bool in_cover = InCover();
@@ -160,7 +165,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t>* base_address_fov =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
             supported_builds[game_build_].fovscale_address);
-    if (!base_address_fov || base_address_fov != NULL) {
+    if (!base_address_fov || *base_address_fov != NULL) {
       xe::be<uint32_t> fovscale_address = *base_address_fov + 0x440;
       xe::be<uint32_t> fovscale_sanity = *base_address_fov + 0x660;
 
