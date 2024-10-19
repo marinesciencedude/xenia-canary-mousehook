@@ -18,10 +18,7 @@ namespace winkey {
 
 class PerfectDarkZeroGame : public HookableGame {
  public:
-  enum class GameBuild {
-    Unknown,
-    PerfectDarkZero_TU0,
-  };
+  enum class GameBuild { Unknown, PerfectDarkZero_TU0, PerfectDarkZero_TU3 };
 
   ~PerfectDarkZeroGame() override;
 

@@ -2060,7 +2060,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
 
     std::vector<PDZPatchOffsets> supported_builds{
         {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x8253EDA0, 0x8253EDA8},
-    };
+        {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BBF64, 0x8254E4D8, 0x8254E4E0}};
     for (auto& build : supported_builds) {
       const char* build_ptr = reinterpret_cast<const char*>(
           module->memory()->TranslateVirtual(build.build_string_addr));
@@ -2068,7 +2068,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         continue;
       }
       // Gun sway is read from RS camera movement, we decouple it by moving it's
-      // pointer to +0xF9C for Y and + 0xFA10 for X.
+      // pointer to +0xF9C for Y and + 0xFA0 for X.
       patch_addr(build.gun_y_read_camera_address, 0xC0230F9C);
       patch_addr(build.gun_x_read_camera_address, 0xC0230FA0);
     }

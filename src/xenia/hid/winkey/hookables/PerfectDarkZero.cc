@@ -54,7 +54,10 @@ struct GameBuildAddrs {
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
      {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x82D2AD38, 0x16A7, 0x150,
-      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x820EC228, 0x16A3}}};
+      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x820EC228, 0x16A3}},
+    {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
+     {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BBF64, 0x82D2B758, 0x16A7, 0x150,
+      0x1674, 0x1670, 0xF9C, 0xFA0, 0x82D69048, 0x820EAF40, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
