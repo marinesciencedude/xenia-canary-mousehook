@@ -155,7 +155,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
     degree_y = (float)*cam_y;
 
-  float set_fov_multiplier = 1.0f;
+    float set_fov_multiplier = 1.0f;
     static float fovscale_l = 1.0f;
     xe::be<uint32_t>* base_address_fov =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
@@ -164,7 +164,8 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       xe::be<uint32_t> fovscale_address = *base_address_fov + 0x440;
       xe::be<uint32_t> fovscale_sanity = *base_address_fov + 0x660;
 
-      xe::be<float>* set_fov = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      xe::be<float>* set_fov =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
               supported_builds[game_build_].current_set_fov);
 
       xe::be<float>* fovscale =
@@ -323,8 +324,8 @@ bool PerfectDarkZeroGame::InCover() {
   }
 }
 
-void PerfectDarkZeroGame::HandleRightStickEmulation(
-    RawInputState& input_state, X_INPUT_STATE* out_state) {
+void PerfectDarkZeroGame::HandleRightStickEmulation(RawInputState& input_state,
+                                                    X_INPUT_STATE* out_state) {
   auto now = std::chrono::steady_clock::now();
   auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_x_)

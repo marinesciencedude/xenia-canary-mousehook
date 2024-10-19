@@ -10,8 +10,8 @@
 #ifndef XENIA_HID_WINKEY_PerfectDarkZero_H_
 #define XENIA_HID_WINKEY_PerfectDarkZero_H_
 
-#include "xenia/hid/winkey/hookables/hookable_game.h"
 #include "xenia/base/chrono.h"
+#include "xenia/hid/winkey/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
@@ -52,7 +52,6 @@ class PerfectDarkZeroGame : public HookableGame {
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
   static xe::be<uint32_t> fovscale_address;
-
 };
 
 }  // namespace winkey
