@@ -11,6 +11,7 @@
 #define XENIA_HID_WINKEY_PerfectDarkZero_H_
 
 #include "xenia/hid/winkey/hookables/hookable_game.h"
+#include "xenia/base/chrono.h"
 
 namespace xe {
 namespace hid {
@@ -34,6 +35,9 @@ class PerfectDarkZeroGame : public HookableGame {
 
   bool InCover();
 
+  void HandleRightStickEmulation(RawInputState& input_state,
+                                 X_INPUT_STATE* out_state);
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
@@ -45,6 +49,10 @@ class PerfectDarkZeroGame : public HookableGame {
   float centering_speed_ = 0.0125f;
   bool start_centering_ = false;
   bool disable_sway_ = false;  // temporarily prevents sway being applied
+  std::chrono::steady_clock::time_point last_movement_time_x_;
+  std::chrono::steady_clock::time_point last_movement_time_y_;
+  static xe::be<uint32_t> fovscale_address;
+
 };
 
 }  // namespace winkey
