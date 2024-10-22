@@ -48,7 +48,9 @@ struct GameBuildAddrs {
                           // with a patch.
   uint32_t gun_x_offset;
   uint32_t fovscale_address;
-  uint32_t fovscale_alt_static_address;
+  uint32_t fovscale_alt_static_address;  // TODO: Check sanity of ptr fovscale
+                                         // address, if incorrect use static
+                                         // address instead
   uint32_t current_set_fov;  // Incase FOV is increased with a patch.
   uint32_t pause_offset;
 };
@@ -59,7 +61,10 @@ std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
       0xF9C, 0xFA0, 0x82D68320, 0x82E1B930, 0x820EC228, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
      {"19.09.06.0082", 0x820CD9E0, 0x82D2B758, 0x16A7, 0x150, 0x1674, 0x1670,
-      0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0, 0x820EAF40, 0x16A3}}};
+      0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0, 0x820EAF40, 0x16A3}},
+    {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
+     {"12.09.06.0081", 0x820CD9C0, 0x82D2B758, 0x16A7, 0x150, 0x1674, 0x1670,
+      0xF9C, 0xFA0, 0x82D69048, NULL, 0x820EAF20, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -133,6 +138,11 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       x_address = *base_address + supported_builds[game_build_].cover_x_offset;
     }
 
+    if (!(x_address && 0x0000000000000000 < x_address &&
+          x_address < 0x0000000000999999)) {
+      return false;
+    }
+
     xe::be<uint32_t> y_address =
         *base_address + supported_builds[game_build_].y_offset;
 
@@ -186,11 +196,11 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // X-axis = 0 to 360
     if (cvars::invert_x) {
       degree_x += ((input_state.mouse.x_delta / set_fov_multiplier) /
-                   (7.5f * fovscale_l)) *
+                   (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     } else {
       degree_x -= ((input_state.mouse.x_delta / set_fov_multiplier) /
-                   (7.5f * fovscale_l)) *
+                   (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     }
 
@@ -205,11 +215,11 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // Y-axis = -90 to 90
     if (cvars::invert_y) {
       degree_y -= ((input_state.mouse.y_delta / set_fov_multiplier) /
-                   (7.5f * fovscale_l)) *
+                   (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     } else {
       degree_y += ((input_state.mouse.y_delta / set_fov_multiplier) /
-                   (7.5f * fovscale_l)) *
+                   (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     }
     *cam_y = degree_y;
@@ -373,8 +383,25 @@ std::string PerfectDarkZeroGame::ChooseBinds() { return "Default"; }
 bool PerfectDarkZeroGame::ModifierKeyHandler(uint32_t user_index,
                                              RawInputState& input_state,
                                              X_INPUT_STATE* out_state) {
-  return false;
+  float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
+  float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
+
+  if (thumb_lx != 0 ||
+      thumb_ly !=
+          0) {  // Required otherwise stick is pushed to the right by default.
+    // Work out angle from the current stick values
+    float angle = atan2f(thumb_ly, thumb_lx);
+
+    // Sticks get set to SHRT_MAX if key pressed, use half of that
+    float distance = (float)SHRT_MAX;
+    distance /= 1.55f;
+
+    out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
+    out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
+  }
+  return true;
 }
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
