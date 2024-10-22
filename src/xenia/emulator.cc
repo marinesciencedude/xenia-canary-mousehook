@@ -2059,8 +2059,10 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     };
 
     std::vector<PDZPatchOffsets> supported_builds{
-        {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BD7A4, 0x8253EDA0, 0x8253EDA8},
-        {"CLIENT.Ph.Rare-PerfectDarkZero", 0x820BBF64, 0x8254E4D8, 0x8254E4E0}};
+        // TU0 Base version, compiled 9 November 2005
+        {"09.11.05.0052", 0x820CED70, 0x8253EDA0, 0x8253EDA8},
+        // TU3 Base version, compiled 19 September 2006
+        {"19.09.06.0082", 0x820CD9E0, 0x8254E4D8, 0x8254E4E0}};
     for (auto& build : supported_builds) {
       const char* build_ptr = reinterpret_cast<const char*>(
           module->memory()->TranslateVirtual(build.build_string_addr));
