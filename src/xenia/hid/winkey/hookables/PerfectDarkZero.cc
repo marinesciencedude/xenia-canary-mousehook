@@ -63,7 +63,7 @@ std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
      {"19.09.06.0082", 0x820CD9E0, 0x82D2B758, 0x16A7, 0x150, 0x1674, 0x1670,
       0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0, 0x820EAF40, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
-     {"12.09.06.0081", 0x820CD9C0, 0x82D2B758, 0x16A7, 0x150, 0x1674, 0x1670,
+     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x16A7, 0x150, 0x1674, 0x1670,
       0xF9C, 0xFA0, 0x82D69048, NULL, 0x820EAF20, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
@@ -136,11 +136,6 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       x_address = *radians_x_base + supported_builds[game_build_].x_offset;
     } else {
       x_address = *base_address + supported_builds[game_build_].cover_x_offset;
-    }
-
-    if (!(x_address && 0x0000000000000000 < x_address &&
-          x_address < 0x0000000000999999)) {
-      return false;
     }
 
     xe::be<uint32_t> y_address =
