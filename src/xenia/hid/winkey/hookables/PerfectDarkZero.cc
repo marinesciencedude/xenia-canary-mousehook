@@ -182,6 +182,9 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
       fovscale_l = (*set_fov / *fovscale);
 
+      if (fovscale_l >= 45.f)
+        fovscale_l /= 2.5;  // For snipers, otherwise it's too slow!
+
       if (fovscale_l > 1.f) {
         fovscale_l =
             (a * fovscale_l + (1 - a) * (fovscale_l * fovscale_l) * 1.1f);
