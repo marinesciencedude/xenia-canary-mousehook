@@ -4,8 +4,8 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 
 ## Supported Games
 
-| Game  | Notes  |
-|---|---|
+| Game  | Supported Versions  | Title ID | Mouse support | Issues|
+|---|---| --- | --- | --- |
 | Orange Box | All Games TU0 |
 | Portal Still Alive |
 | CSGO | |
