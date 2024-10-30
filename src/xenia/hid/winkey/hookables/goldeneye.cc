@@ -68,6 +68,8 @@ struct RareGameBuildAddrs {
   uint32_t player_offset_gun_y;
   uint32_t player_offset_aim_mode;
   uint32_t player_offset_aim_multiplier;
+  uint32_t player_offset_gun_left_x;
+  uint32_t player_offset_gun_left_y;
 };
 
 std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> supported_builds = {
@@ -91,24 +93,27 @@ std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> supported_builds = {
     // unfortunately gets triggered when health bar appears...
     {GoldeneyeGame::GameBuild::PerfectDark_Devkit_33,
      {0x825CBC59, 0x30303333, 0, 0, 0x82620E08, 0, 0x826284C4, 0x1A4C, 0x0,
-      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0x179C, 0x14A0,
+      0x14A4}},
     {GoldeneyeGame::GameBuild::PerfectDark_Release_52,
      {0x825EC0E5, 0x30303532, 0, 0, 0x826419C0, 0, 0x8264909C, 0x1A4C, 0x0,
-      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0x179C, 0x14A0,
+      0x14A4}},
     {GoldeneyeGame::GameBuild::PerfectDark_Devkit_102,
      {0x825EC0E5, 0x30313032, 0, 0, 0x82641A80, 0, 0x82649274, 0x1A4C, 0x0,
-      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}},
+      0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0x179C, 0x14A0,
+      0x14A4}},
     // TODO: test these!
     /*
     {
       GoldeneyeGame::GameBuild::PerfectDark_Release_104,
         {0x825EC0D5, 0x30313034, 0, 0, 0x82641A80, 0, 0x82649264, 0x1A4C, 0x0,
-    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
+    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0, 0x14A0, 0x14A4}
     },
     {
       GoldeneyeGame::GameBuild::PerfectDark_Release_107,
         {0x825FC25D, 0x30313037, 0, 0, 0x8265A200, 0, 0x826619E4, 0x1A4C, 0x0,
-    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0}
+    0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0, 0x14A0, 0x14A4}
     },*/
 };
 
@@ -139,7 +144,7 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (!IsGameSupported()) {
     return false;
   }
-
+  auto title_id = kernel_state()->title_id();
   auto& game_addrs = supported_builds[game_build_];
 
   // Move menu selection crosshair
@@ -290,6 +295,17 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<float>* player_gun_y =
       (xe::be<float>*)(player + game_addrs.player_offset_gun_y);
 
+  // PD Duel Wield
+
+  static xe::be<float>* player_gun_left_x;
+  static xe::be<float>* player_gun_left_y;
+  if (title_id == kTitleIdPerfectDark) {
+    player_gun_left_x =
+        (xe::be<float>*)(player + game_addrs.player_offset_gun_left_x);
+    player_gun_left_y =
+        (xe::be<float>*)(player + game_addrs.player_offset_gun_left_y);
+  }
+
   uint32_t player_aim_mode =
       *(xe::be<uint32_t>*)(player + game_addrs.player_offset_aim_mode);
 
@@ -298,6 +314,10 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       // Entering aim mode, reset gun position
       *player_gun_x = 0;
       *player_gun_y = 0;
+      if (title_id == kTitleIdPerfectDark) {
+        *player_gun_left_x = 0;
+        *player_gun_left_y = 0;
+      }
     }
     // Always reset crosshair after entering/exiting aim mode
     // Otherwise non-aim-mode will still fire toward it...
@@ -360,6 +380,10 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     *player_crosshair_y = chY;
     *player_gun_x = (chX * gun_multiplier);
     *player_gun_y = (chY * gun_multiplier);
+    if (title_id == kTitleIdPerfectDark) {
+      *player_gun_left_x = (chX * gun_multiplier);
+      *player_gun_left_y = (chY * gun_multiplier);
+    }
 
     // Turn camera when crosshair is past a certain point
     float camX = (float)*player_cam_x;
@@ -490,6 +514,11 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     *player_crosshair_y = (gY * crosshair_multiplier);
     *player_gun_x = gX;
     *player_gun_y = gY;
+
+    if (title_id == kTitleIdPerfectDark) {
+      *player_gun_left_x = gX;
+      *player_gun_left_y = gY;
+    }
   }
 
   return true;
@@ -528,16 +557,20 @@ bool GoldeneyeGame::ModifierKeyHandler(uint32_t user_index,
   float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
   float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
 
-  // Work out angle from the current stick values
-  float angle = atan2f(thumb_ly, thumb_lx);
+  if (thumb_lx != 0 ||
+      thumb_ly !=
+          0) {  // Required otherwise stick is pushed to the right by default.
 
-  // Sticks get set to SHRT_MAX if key pressed, use half of that
-  float distance = (float)SHRT_MAX;
-  distance /= 2;
+    // Work out angle from the current stick values
+    float angle = atan2f(thumb_ly, thumb_lx);
 
-  out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
-  out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
+    // Sticks get set to SHRT_MAX if key pressed, use half of that
+    float distance = (float)SHRT_MAX;
+    distance /= 2;
 
+    out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
+    out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
+  }
   // Return true to signal that we've handled the modifier, so default modifier
   // won't be used
   return true;
