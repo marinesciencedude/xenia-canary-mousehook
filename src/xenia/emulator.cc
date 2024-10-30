@@ -1637,8 +1637,10 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         0xD19F16A4,  // stfs      f12, 0x16A4(r31)
         0xD19F1690,  // stfs      f12, 0x1690(r31)
         0xD15F1694,  // stfs      f10, 0x1694(r31)
-        0xD0FF0CFC,  // stfs      f7, 0xCFC(r31)
-        0xD0BF0D00   // stfs      f5, 0xD00(r31)
+        0xD0FF0CFC,  // stfs      f7, 0xCFC(r31) // Right gun x
+        0xD0BF0D00,  // stfs      f5, 0xD00(r31) // Right gun y
+        0xD07F14A0,  // stfs      f3, 0x14A0(r31) // Left gun x
+        0xD05F14A4   // stfs      f2, 0x14A4(r31) // Left gun y
     };
 
     int patched = 0;
