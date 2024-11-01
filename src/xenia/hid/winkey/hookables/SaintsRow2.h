@@ -17,11 +17,11 @@ namespace xe {
 namespace hid {
 namespace winkey {
 
-class SaintsRowGame : public HookableGame {
+class SaintsRow2Game : public HookableGame {
  public:
   enum class GameBuild { Unknown, SaintsRow2_TU3 };
 
-  ~SaintsRowGame() override;
+  ~SaintsRow2Game() override;
 
   bool IsGameSupported();
 
@@ -35,6 +35,8 @@ class SaintsRowGame : public HookableGame {
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
+
+  void FixHavokFrameTime();
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;

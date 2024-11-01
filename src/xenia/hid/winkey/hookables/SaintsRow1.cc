@@ -9,7 +9,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/SR1.h"
+#include "xenia/hid/winkey/hookables/SaintsRow1.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -27,8 +27,9 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_bool(sr_havok_fix_frametime)
 
-const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
+    const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
 
 namespace xe {
 namespace hid {
@@ -40,7 +41,7 @@ struct GameBuildAddrs {
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t menu_status_address;
-  uint32_t currentFPS_address;
+  uint32_t havok_frametime_address;
   uint32_t current_frametime_address;  //       x_axis_addition =
                                        //       -(float)((float)_FP12 /
                                        //       current_frametime);
@@ -52,7 +53,7 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1", 0x827f9af8, 0x827F9B00, 0x836117D7, 0x8283CA7B, 0x835F27A3,
-      0x827CA750, 0x827CA69C, 0x827F9AD8, 0x827F9B58}}};
+      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -91,8 +92,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
-  xe::be<float>* currentFPS = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].currentFPS_address);
 
   // REMOVE THIS FOR RELEASE NEEDS TO BE A PATCH!
   xe::be<float>* ingamesens_x =
@@ -113,7 +112,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].current_frametime_address);
 
   float frametime = *ingame_frametime;
-
+  if (cvars::sr_havok_fix_frametime) FixHavokFrameTime(frametime);
   // float correctFrametime = 1 / *currentFPS;
 
   //*frametime = correctFrametime * 2;
@@ -229,6 +228,20 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   *radian_y = DegreetoRadians(degree_y);
   return true;
 }
+
+void SaintsRow1Game::FixHavokFrameTime(float frametime) {
+  xe::be<float>* havok_frametime =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].havok_frametime_address);
+
+  if (frametime < 0.03333333333f) {
+    frametime = frametime / 2.f;
+    if (*havok_frametime != frametime) *havok_frametime = frametime;
+  } else {
+    if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
+  }
+}
+
 std::string SaintsRow1Game::ChooseBinds() {
   auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_address);

@@ -9,7 +9,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/SaintsRow.h"
+#include "xenia/hid/winkey/hookables/SaintsRow2.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -28,6 +28,7 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_bool(sr_havok_fix_frametime);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
 
@@ -43,17 +44,19 @@ struct GameBuildAddrs {
   uint32_t menu_status_address;
   uint32_t sniper_status_address;
   uint32_t currentFOV_address;
+  uint32_t havok_frametime_address;
+  uint32_t current_frametime_address;
 };
 
-std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRowGame::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
-    {SaintsRowGame::GameBuild::SaintsRow2_TU3,
+std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
+    {SaintsRow2Game::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
+    {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
-      0x82BCBA78, 0x82B7A4BC}}};
+      0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518}}};
 
-SaintsRowGame::~SaintsRowGame() = default;
+SaintsRow2Game::~SaintsRow2Game() = default;
 
-bool SaintsRowGame::IsGameSupported() {
+bool SaintsRow2Game::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdSaintsRow2) {
     return false;
   }
@@ -71,16 +74,16 @@ bool SaintsRowGame::IsGameSupported() {
   return false;
 }
 
-float SaintsRowGame::DegreetoRadians(float degree) {
+float SaintsRow2Game::DegreetoRadians(float degree) {
   return (float)(degree * (M_PI / 180));
 }
 
-float SaintsRowGame::RadianstoDegree(float radians) {
+float SaintsRow2Game::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
 
-bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                            X_INPUT_STATE* out_state) {
+bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
+                             X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -96,6 +99,8 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_y_)
                        .count();
+
+  if (cvars::sr_havok_fix_frametime) FixHavokFrameTime();
 
   // Declare static variables for last deltas
   static int last_x_delta = 0;
@@ -202,7 +207,7 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
-std::string SaintsRowGame::ChooseBinds() {
+std::string SaintsRow2Game::ChooseBinds() {
   // Highest priority:
   auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].pressB_status_address);
@@ -243,9 +248,9 @@ std::string SaintsRowGame::ChooseBinds() {
   return "Default";
 }
 
-bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
-                                       RawInputState& input_state,
-                                       X_INPUT_STATE* out_state) {
+bool SaintsRow2Game::ModifierKeyHandler(uint32_t user_index,
+                                        RawInputState& input_state,
+                                        X_INPUT_STATE* out_state) {
   float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
   float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
 
@@ -265,6 +270,25 @@ bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
   // Return true to signal that we've handled the modifier, so default modifier
   // won't be used
   return true;
+}
+
+void SaintsRow2Game::FixHavokFrameTime() {
+  xe::be<float>* havok_frametime =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].havok_frametime_address);
+
+  xe::be<float>* current_frametime =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].current_frametime_address);
+
+  float frametime = *current_frametime;
+
+  if (frametime < 0.03333333333f) {
+    frametime = frametime / 2.f;
+    if (*havok_frametime != frametime) *havok_frametime = frametime;
+  } else {
+    if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
+  }
 }
 }  // namespace winkey
 }  // namespace hid
