@@ -25,6 +25,7 @@
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 #include "xenia/hid/winkey/hookables/JustCause.h"
 #include "xenia/hid/winkey/hookables/RDR.h"
+#include "xenia/hid/winkey/hookables/SR1.h"
 #include "xenia/hid/winkey/hookables/SaintsRow.h"
 #include "xenia/hid/winkey/hookables/SourceEngine.h"
 #include "xenia/hid/winkey/hookables/goldeneye.h"
@@ -439,6 +440,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<SourceEngine>()));
   hookable_games_.push_back(std::move(std::make_unique<Crackdown2Game>()));
   hookable_games_.push_back(std::move(std::make_unique<SaintsRowGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<SaintsRow1Game>()));
   hookable_games_.push_back(std::move(std::make_unique<JustCauseGame>()));
   hookable_games_.push_back(
       std::move(std::make_unique<RedDeadRedemptionGame>()));
