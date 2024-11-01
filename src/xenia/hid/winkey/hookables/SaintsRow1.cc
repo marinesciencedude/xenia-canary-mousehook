@@ -52,7 +52,7 @@ struct GameBuildAddrs {
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x836117D7, 0x8283CA7B, 0x835F27A3,
+     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x82932407, 0x8283CA7B, 0x835F27A3,
       0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
@@ -113,6 +113,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   float frametime = *ingame_frametime;
   if (cvars::sr_havok_fix_frametime) FixHavokFrameTime(frametime);
+
   // float correctFrametime = 1 / *currentFPS;
 
   //*frametime = correctFrametime * 2;
@@ -169,6 +170,12 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       elapsed_x >= hold_time && elapsed_y >= hold_time) {
     return false;
   }
+
+  // Stop mouse this late here to allow RS in menus and frametime fix to apply.
+  auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].menu_status_address);
+
+  if (*pause_flag != 2) return false;
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -250,13 +257,10 @@ std::string SaintsRow1Game::ChooseBinds() {
   auto* vehicle_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].vehicle_address);
 
-  if (*wheel_status == 1) {
+  if (*wheel_status == 1 || (menu_status && *menu_status != 2)) {
     return "Default";
   }
-  /* if (menu_status && *menu_status != 2) {
-   return "Menu";
- }*/
-  if (vehicle_status && *vehicle_status != 0) {
+  if (vehicle_status && *vehicle_status == 1) {
     return "Vehicle";
   }
 
