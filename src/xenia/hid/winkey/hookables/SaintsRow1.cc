@@ -237,7 +237,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
     fine_aim_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].fineaim_y_address);
-    degree_y = RadianstoDegree(*fine_aim_y);
     degree_x = RadianstoDegree(*fine_aim_x);
   }
 
@@ -267,17 +266,20 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   else if (*fine_aim_x != NULL)
     *fine_aim_x = DegreetoRadians(degree_x);
 
-  if (!cvars::invert_y) {
-    degree_y +=
-        (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
-  } else {
-    degree_y -=
-        (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
+  float delta_y =
+      (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
+
+  if (cvars::invert_y) {
+    delta_y = -delta_y;
   }
-  if (!(inFirstPerson() && isTervelPlugin()))
-    *radian_y = DegreetoRadians(degree_y);
-  else if (*fine_aim_y != NULL)
+
+  degree_y += delta_y;
+  *radian_y = DegreetoRadians(degree_y);
+  if ((inFirstPerson() && isTervelPlugin())) {
+    degree_y = RadianstoDegree(*fine_aim_y);
+    degree_y += delta_y;
     *fine_aim_y = DegreetoRadians(degree_y);
+  }
   return true;
 }
 
