@@ -47,13 +47,17 @@ struct GameBuildAddrs {
                                        //       current_frametime);
   uint32_t ingame_sens;
   uint32_t current_fov_address;
+  uint32_t isfirstperson_address;  // Unused game camera mode ; toggleable with
+                                   // a console command mostly usable with
+                                   // Tervel's sr1fineaim plugin.
+  uint32_t fineaim_y_address;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1", 0x827f9af8, 0x827F9B00, 0x82932407, 0x8283CA7B, 0x835F27A3,
-      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58}}};
+      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F9BA4}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -112,7 +116,8 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].current_frametime_address);
 
   float frametime = *ingame_frametime;
-  if (cvars::sr_havok_fix_frametime) FixHavokFrameTime(frametime);
+  if (cvars::sr_havok_fix_frametime && !isTervelPlugin())
+    FixHavokFrameTime(frametime);
 
   // float correctFrametime = 1 / *currentFPS;
 
@@ -126,51 +131,52 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  // Declare static variables for last deltas
-  static int last_x_delta = 0;
-  static int last_y_delta = 0;
+  if (!(inFirstPerson() && isTervelPlugin())) {
+    // Declare static variables for last deltas
+    static int last_x_delta = 0;
+    static int last_y_delta = 0;
 
-  const long long hold_time =
-      static_cast<long long>(cvars::right_stick_hold_time_workaround);
-  // Check for mouse movement and set thumbstick values
-  if (input_state.mouse.x_delta != 0) {
-    if (input_state.mouse.x_delta > 0) {
-      out_state->gamepad.thumb_rx = SHRT_MAX;
-    } else {
-      out_state->gamepad.thumb_rx = SHRT_MIN;
+    const long long hold_time =
+        static_cast<long long>(cvars::right_stick_hold_time_workaround);
+    // Check for mouse movement and set thumbstick values
+    if (input_state.mouse.x_delta != 0) {
+      if (input_state.mouse.x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
+      last_movement_time_x_ = now;
+      last_x_delta = input_state.mouse.x_delta;
+    } else if (elapsed_x < hold_time) {  // hold time
+      if (last_x_delta > 0) {
+        out_state->gamepad.thumb_rx = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_rx = SHRT_MIN;
+      }
     }
-    last_movement_time_x_ = now;
-    last_x_delta = input_state.mouse.x_delta;
-  } else if (elapsed_x < hold_time) {  // hold time
-    if (last_x_delta > 0) {
-      out_state->gamepad.thumb_rx = SHRT_MAX;
-    } else {
-      out_state->gamepad.thumb_rx = SHRT_MIN;
+
+    if (input_state.mouse.y_delta != 0) {
+      if (input_state.mouse.y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      }
+      last_movement_time_y_ = now;
+      last_y_delta = input_state.mouse.y_delta;
+    } else if (elapsed_y < hold_time) {  // hold time
+      if (last_y_delta > 0) {
+        out_state->gamepad.thumb_ry = SHRT_MIN;
+      } else {
+        out_state->gamepad.thumb_ry = SHRT_MAX;
+      }
+    }
+
+    // Return true if either X or Y delta is non-zero or if within the hold time
+    if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
+        elapsed_x >= hold_time && elapsed_y >= hold_time) {
+      return false;
     }
   }
-
-  if (input_state.mouse.y_delta != 0) {
-    if (input_state.mouse.y_delta > 0) {
-      out_state->gamepad.thumb_ry = SHRT_MAX;
-    } else {
-      out_state->gamepad.thumb_ry = SHRT_MIN;
-    }
-    last_movement_time_y_ = now;
-    last_y_delta = input_state.mouse.y_delta;
-  } else if (elapsed_y < hold_time) {  // hold time
-    if (last_y_delta > 0) {
-      out_state->gamepad.thumb_ry = SHRT_MIN;
-    } else {
-      out_state->gamepad.thumb_ry = SHRT_MAX;
-    }
-  }
-
-  // Return true if either X or Y delta is non-zero or if within the hold time
-  if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
-      elapsed_x >= hold_time && elapsed_y >= hold_time) {
-    return false;
-  }
-
   // Stop mouse this late here to allow RS in menus and frametime fix to apply.
   auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
@@ -200,6 +206,21 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float divider_y = 15.f;
   float divider_x = 1350.f;
 
+  xe::be<float>* fine_aim_x;
+  xe::be<float>* fine_aim_y;
+  if (inFirstPerson() && isTervelPlugin()) {
+    divider_x = 15.f;
+    frametime = 1.f;
+
+    fine_aim_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].fineaim_y_address + 0x4);
+
+    fine_aim_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].fineaim_y_address);
+    degree_y = RadianstoDegree(*fine_aim_y);
+    degree_x = RadianstoDegree(*fine_aim_x);
+  }
+
   if (fov < 60.f) {
     fov = 60.f / fov;
     divider_y = divider_y * fov;
@@ -221,8 +242,10 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
         frametime;
   }
-
-  *addition_x = degree_x;
+  if (!(inFirstPerson() && isTervelPlugin()))
+    *addition_x = degree_x;
+  else
+    *fine_aim_x = DegreetoRadians(degree_x);
 
   if (!cvars::invert_y) {
     degree_y +=
@@ -231,8 +254,10 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     degree_y -=
         (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
   }
-
-  *radian_y = DegreetoRadians(degree_y);
+  if (!(inFirstPerson() && isTervelPlugin()))
+    *radian_y = DegreetoRadians(degree_y);
+  else
+    *fine_aim_y = DegreetoRadians(degree_y);
   return true;
 }
 
@@ -247,6 +272,22 @@ void SaintsRow1Game::FixHavokFrameTime(float frametime) {
   } else {
     if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
   }
+}
+
+bool SaintsRow1Game::isTervelPlugin() {
+  if (kernel_state()->GetModule("sr1fineaim.xex"))
+    return true;
+  else
+    return false;
+}
+
+bool SaintsRow1Game::inFirstPerson() {
+  auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].isfirstperson_address);
+  if (*firstperson && *firstperson == 1)
+    return true;
+  else
+    return false;
 }
 
 std::string SaintsRow1Game::ChooseBinds() {
