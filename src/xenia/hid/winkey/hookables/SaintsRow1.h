@@ -43,6 +43,7 @@ class SaintsRow1Game : public HookableGame {
   // -Clippy95
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
+  uint8_t tervelplugin_status;
 };
 
 }  // namespace winkey

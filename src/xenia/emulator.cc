@@ -92,7 +92,7 @@ DEFINE_bool(sr2_better_handbrake_cam, true,
             "handbraking akin to SR1.",
             "MouseHook");
 
-DEFINE_bool(sr_havok_fix_frametime, true,
+DEFINE_bool(sr_havok_fix_frametime, false,
             "(Saints Row 1&2) Fixes cutscene object synchronization and doors "
             "teleporting on high fps, as seen in Juiced Patch. (Causes "
             "Performance loss at a higher FPSes.) ",

@@ -206,8 +206,8 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float divider_y = 15.f;
   float divider_x = 1350.f;
 
-  xe::be<float>* fine_aim_x;
-  xe::be<float>* fine_aim_y;
+  static xe::be<float>* fine_aim_x = NULL;
+  static xe::be<float>* fine_aim_y = NULL;
   if (inFirstPerson() && isTervelPlugin()) {
     divider_x = 15.f;
     frametime = 1.f;
@@ -232,7 +232,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   // sensitivity fluctuation due to framerate as that's what the game does at
   // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
   // stuttering might still occur due to framerates, as it's expected each
-  // frame? -= isn't ideal but that's the only way it works.
+  // frame? -= isn't ideal but that's the only way it works. - Clippy95
   if (!cvars::invert_x) {
     degree_x +=
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
@@ -244,7 +244,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   if (!(inFirstPerson() && isTervelPlugin()))
     *addition_x = degree_x;
-  else
+  else if (*fine_aim_x != NULL)
     *fine_aim_x = DegreetoRadians(degree_x);
 
   if (!cvars::invert_y) {
@@ -256,7 +256,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   if (!(inFirstPerson() && isTervelPlugin()))
     *radian_y = DegreetoRadians(degree_y);
-  else
+  else if (*fine_aim_y != NULL)
     *fine_aim_y = DegreetoRadians(degree_y);
   return true;
 }
@@ -275,10 +275,27 @@ void SaintsRow1Game::FixHavokFrameTime(float frametime) {
 }
 
 bool SaintsRow1Game::isTervelPlugin() {
-  if (kernel_state()->GetModule("sr1fineaim.xex"))
-    return true;
-  else
+  /* Although the fineaim option exists as a console command, realistically
+     users will be using a plugin to switch to it. DoHooks only checks
+     isTervelPlugin when supported game is loaded, we can't hog GetModule
+     otherwise it causes an impact performance according to SourceEngine.cc
+     */
+  if (tervelplugin_status == 0) {
+    if (kernel_state()->GetModule("sr1fineaim.xex")) {
+      tervelplugin_status = 1;
+      return true;
+    } else {
+      tervelplugin_status = 2;
+      return false;
+    }
     return false;
+  }
+  if (tervelplugin_status == 1) {
+    return true;
+  } else
+    return false;
+
+  return false;
 }
 
 bool SaintsRow1Game::inFirstPerson() {
