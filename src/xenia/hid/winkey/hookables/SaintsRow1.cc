@@ -51,13 +51,15 @@ struct GameBuildAddrs {
                                    // a console command mostly usable with
                                    // Tervel's sr1fineaim plugin.
   uint32_t fineaim_y_address;
+  uint32_t slow_pan_horizontal_multiplier_address;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1", 0x827f9af8, 0x827F9B00, 0x82932407, 0x8283CA7B, 0x835F27A3,
-      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F9BA4}}};
+      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F9BA4,
+      0x827F956C}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -98,9 +100,22 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   // REMOVE THIS FOR RELEASE NEEDS TO BE A PATCH!
+  // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].ingame_sens);
+
+  xe::be<float>* slow_pan_horizontal_multiplier =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].slow_pan_horizontal_multiplier_address);
+
+  xe::be<float>* slow_pan_vertical_multiplier =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].slow_pan_horizontal_multiplier_address +
+          0x4);
+
+  float slow_pan = *slow_pan_horizontal_multiplier;
+
   float x_sens = *ingamesens_x;
   xe::be<float>* ingamesens_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -109,6 +124,11 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (x_sens != 0.01999999955f) {
     *ingamesens_x = 0.01999999955f;
     *ingamesens_y = 0.01999999955f;
+  }
+
+  if (slow_pan != 0.00009999999747f) {
+    *slow_pan_horizontal_multiplier = 0.00009999999747f;
+    *slow_pan_vertical_multiplier = 0.00009999999747f;
   }
 
   xe::be<float>* ingame_frametime =
