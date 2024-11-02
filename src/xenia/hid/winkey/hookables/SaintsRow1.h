@@ -33,6 +33,7 @@ class SaintsRow1Game : public HookableGame {
   void FixHavokFrameTime(float frametime);
   bool isTervelPlugin();
   bool inFirstPerson();
+  bool isPaused();
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);

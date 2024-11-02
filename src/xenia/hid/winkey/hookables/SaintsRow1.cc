@@ -198,10 +198,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
   // Stop mouse this late here to allow RS in menus and frametime fix to apply.
-  auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
-
-  if (*pause_flag != 2) return false;
+  if (isPaused()) return false;
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -302,28 +299,41 @@ bool SaintsRow1Game::isTervelPlugin() {
      isTervelPlugin when supported game is loaded, we can't hog GetModule
      otherwise it causes an impact performance according to SourceEngine.cc
      */
-  if (tervelplugin_status == 0) {
-    if (kernel_state()->GetModule("sr1fineaim.xex")) {
-      tervelplugin_status = 1;
-      return true;
-    } else {
-      tervelplugin_status = 2;
+  if (!isPaused()) {
+    if (tervelplugin_status == 0) {
+      if (kernel_state()->GetModule("sr1fineaim.xex")) {
+        tervelplugin_status = 1;
+        return true;
+      } else {
+        tervelplugin_status = 2;
+        return false;
+      }
       return false;
     }
+    if (tervelplugin_status == 1) {
+      return true;
+    } else
+      return false;
+
     return false;
-  }
-  if (tervelplugin_status == 1) {
-    return true;
   } else
     return false;
-
-  return false;
 }
 
 bool SaintsRow1Game::inFirstPerson() {
   auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].isfirstperson_address);
   if (*firstperson && *firstperson == 1)
+    return true;
+  else
+    return false;
+}
+
+bool SaintsRow1Game::isPaused() {
+  auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].menu_status_address);
+
+  if (*pause_flag != 2)
     return true;
   else
     return false;
