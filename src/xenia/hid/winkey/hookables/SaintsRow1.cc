@@ -114,19 +114,17 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].slow_pan_horizontal_multiplier_address +
           0x4);
 
-  float slow_pan = *slow_pan_horizontal_multiplier;
-
-  float x_sens = *ingamesens_x;
   xe::be<float>* ingamesens_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].ingame_sens + 0x4);
 
-  if (x_sens != 0.01999999955f) {
+  if (*ingamesens_x != 0.01999999955f || *ingamesens_y != 0.01999999955f) {
     *ingamesens_x = 0.01999999955f;
     *ingamesens_y = 0.01999999955f;
   }
 
-  if (slow_pan != 0.00009999999747f) {
+  if (*slow_pan_vertical_multiplier != 0.00009999999747f ||
+      *slow_pan_horizontal_multiplier != 0.00009999999747f) {
     *slow_pan_horizontal_multiplier = 0.00009999999747f;
     *slow_pan_vertical_multiplier = 0.00009999999747f;
   }
