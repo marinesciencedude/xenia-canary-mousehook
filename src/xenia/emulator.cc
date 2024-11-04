@@ -82,9 +82,10 @@ DEFINE_bool(ge_remove_blur, false,
 DEFINE_bool(ge_debug_menu, false,
             "(GoldenEye) Enables the debug menu, accessible with LB/1",
             "MouseHook");
-DEFINE_bool(sr2_better_drive_cam, true,
-            "(Saints Row 2) unties X rotation from vehicles when "
-            "auto-centering is disabled akin to GTA IV.",
+DEFINE_bool(sr_better_drive_cam, true,
+            "(Saints Row 1&2) unties X rotation from vehicles when "
+            "auto-centering is disabled, this makes the camera similar to the "
+            "GTA series vehicle camera.",
             "MouseHook");
 
 DEFINE_bool(sr2_better_handbrake_cam, true,
@@ -1676,11 +1677,15 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
       uint32_t havok_write_frametime_address1;
       uint32_t havok_write_frametime_address2;
+      uint32_t vehicle_rotationXWrite_addr_start;  // lfs f0, (flt_827F9B04 -
+                                                   // 0x827F99A0)(r31) -- no
+                                                   // idea how I figured this,
+                                                   // or why/how it works.
     };
     std::vector<SR1PatchOffsets> supported_builds = {
         // TU1 Release build
         {0x82050304, 0x7361696E, 0x60000000, 0x8249db00, 0x8249dd28, 0x8249dd50,
-         0x82079cbc, 0x82195324, 0x8225BD8C},
+         0x82079cbc, 0x82195324, 0x8225BD8C, 0x8211D604},
     };
     for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
@@ -1700,6 +1705,14 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           build.havok_write_frametime_address2) {
         patch_addr(build.havok_write_frametime_address1, build.beNOP);
         patch_addr(build.havok_write_frametime_address2, build.beNOP);
+      }
+      if (cvars::sr_better_drive_cam &&
+          build.vehicle_rotationXWrite_addr_start) {
+        uint32_t addr = build.vehicle_rotationXWrite_addr_start;
+        for (int i = 0; i < 4; ++i) {
+          patch_addr(addr, build.beNOP);
+          addr += 0x4;
+        }
       }
 
       break;
@@ -1798,7 +1811,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       patch_addr(build.multiplierread_addr5, build.zero_patch1);
       patch_addr(build.sensYvalue_addr1, build.zero_patch1);
       patch_addr(build.sensXvalue_addr2, build.zero_patch1);
-      if (cvars::sr2_better_drive_cam && build.Vehicle_RotationXWrite_addr1) {
+      if (cvars::sr_better_drive_cam && build.Vehicle_RotationXWrite_addr1) {
         patch_addr(build.Vehicle_RotationXWrite_addr1, build.beNOP);
       }
 
