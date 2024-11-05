@@ -1828,8 +1828,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
-            if (cvars::sr_havok_fix_frametime &&
-          build.havok_write_frametime_address1)
+      if (cvars::sr_havok_fix_frametime && build.havok_write_frametime_address1)
         patch_addr(build.havok_write_frametime_address1, build.beNOP);
       break;
     }
