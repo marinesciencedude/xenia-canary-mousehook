@@ -104,6 +104,12 @@ DEFINE_bool(sr_havok_fix_frametime, false,
             "Performance loss at a higher FPSes.) ",
             "MouseHook");
 
+DEFINE_bool(
+    sr1_increase_vehicle_rotation_limit, true,
+    "(Saints Row 1) Patch vehicle vertical rotation limit to be the same "
+    "as on-foot.",
+    "MouseHook");
+
 DEFINE_bool(allow_game_relative_writes, false,
             "Not useful to non-developers. Allows code to write to paths "
             "relative to game://. Used for "
@@ -1686,11 +1692,18 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
                                                    // 0x827F99A0)(r31) -- no
                                                    // idea how I figured this,
                                                    // or why/how it works.
+      uint32_t vehicle_rotationYLimit_max_read_addr1;
+      uint32_t vehicle_rotationYLimit_max_read_addr2;
+      uint32_t vehicle_rotationYLimit_min_read_addr1;
+      uint32_t max_float_addr_lis1;
+      uint32_t max_float_addr_lis2;
+      uint32_t min_float_addr_lis1;
     };
     std::vector<SR1PatchOffsets> supported_builds = {
         // TU1 Release build
         {0x82050304, 0x7361696E, 0x60000000, 0x8249db00, 0x8249dd28, 0x8249dd50,
-         0x82079cbc, 0x82195324, 0x8225BD8C, 0x8211D604},
+         0x82079cbc, 0x82195324, 0x8225BD8C, 0x8211D604, 0x82772D90, 0x8211FC8C,
+         0x82772DB0, 0xC108C24C, 0xC00BC24C, 0xC0C8B850},
     };
     for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
@@ -1719,7 +1732,17 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           addr += 0x4;
         }
       }
-
+      if (cvars::sr1_increase_vehicle_rotation_limit &&
+          build.vehicle_rotationYLimit_max_read_addr1) {
+        // 827FA3F8 , 827FA3F4 for current rotation limit, maybe lower the max
+        // value because it clips into the vehicle?
+        patch_addr(build.vehicle_rotationYLimit_max_read_addr1,
+                   build.max_float_addr_lis1);
+        patch_addr(build.vehicle_rotationYLimit_max_read_addr2,
+                   build.max_float_addr_lis2);
+        patch_addr(build.vehicle_rotationYLimit_min_read_addr1,
+                   build.min_float_addr_lis1);
+      }
       break;
     }
   }
