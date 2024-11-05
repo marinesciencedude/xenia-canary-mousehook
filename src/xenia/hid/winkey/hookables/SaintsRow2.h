@@ -38,6 +38,9 @@ class SaintsRow2Game : public HookableGame {
 
   void FixHavokFrameTime();
 
+  uint64_t reset_fineaim(uint32_t function_address, uint32_t player_ptr,
+                         uint32_t a2, uint32_t a3);
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
 
@@ -45,6 +48,7 @@ class SaintsRow2Game : public HookableGame {
   // -Clippy95
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
+  uint32_t player_status;
 };
 
 }  // namespace winkey

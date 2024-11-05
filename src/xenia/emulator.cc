@@ -93,6 +93,11 @@ DEFINE_bool(sr2_better_handbrake_cam, true,
             "handbraking akin to SR1.",
             "MouseHook");
 
+DEFINE_bool(
+    sr2_hold_fine_aim, true,
+    "(Saints Row 2) Switches fineaim (ADS) from a toggle to hold press.",
+    "MouseHook");
+
 DEFINE_bool(sr_havok_fix_frametime, false,
             "(Saints Row 1&2) Fixes cutscene object synchronization and doors "
             "teleporting on high fps, as seen in Juiced Patch. (Causes "
@@ -1762,6 +1767,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t Vehicle_RotationXWrite_addr1;
       uint32_t Vehicle_RotationXWrite_addr2;  // Handbrake.
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
+      uint32_t havok_write_frametime_address1;
     };
 
     std::vector<SR2PatchOffsets> supported_builds = {
@@ -1771,7 +1777,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
          0x8247832c, 0x821a4b84, 0x824e6a68, 0x824e7f50, 0x824e6b8c, 0x82478934,
          0x824e6b2c, 0x82478330, 0x82478094, 0x821a4b88, 0x82B7A5AC, 0x82B7A5A8,
          0x82B77C04, 0x82B77C08, 0x82B77C0C, 0x82B77C08, 0x82B77C10, 0x821A4D20,
-         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0},
+         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0, 0x8221CEAC},
     };
 
     for (auto& build : supported_builds) {
@@ -1822,7 +1828,9 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
-
+            if (cvars::sr_havok_fix_frametime &&
+          build.havok_write_frametime_address1)
+        patch_addr(build.havok_write_frametime_address1, build.beNOP);
       break;
     }
   }

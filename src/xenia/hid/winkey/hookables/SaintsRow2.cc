@@ -29,6 +29,7 @@ DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(sr_havok_fix_frametime);
+DECLARE_bool(sr2_hold_fine_aim);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
 
@@ -46,13 +47,20 @@ struct GameBuildAddrs {
   uint32_t currentFOV_address;
   uint32_t havok_frametime_address;
   uint32_t current_frametime_address;
+  uint32_t RS_held_address;
+  uint32_t reset_fineaim_address;  // 0x826CBA60(TU3) seems to call this
+                                   // reset_fineaim_address with the same
+                                   // parameters, maybe use it instead? seems to
+                                   // manage player's fineaim.
+  uint32_t player_pointer_address;
 };
 
 std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow2Game::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
     {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
-      0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518}}};
+      0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518, 0x837B7BBB, 0x826CB818,
+      0x835BF42C}}};
 
 SaintsRow2Game::~SaintsRow2Game() = default;
 
@@ -141,21 +149,32 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  // Return true if either X or Y delta is non-zero or if within the hold time
-  if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
-      elapsed_x >= hold_time && elapsed_y >= hold_time) {
-    return false;
-  }
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
     return false;
   }
+
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
   if (*menu_status == 2) {  // Our paused check.
+    auto* holding_rs = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].RS_held_address);
 
+    player_status = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+        supported_builds[game_build_].player_status_address);
+    if (cvars::sr2_hold_fine_aim) {
+      if (player_status &&
+          (*holding_rs == 0 && (player_status == 16 || player_status == 17))) {
+        uint32_t player_ptr =
+            *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+                supported_builds[game_build_].player_pointer_address);
+        if (player_ptr != NULL) {
+          reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
+                        player_ptr, 144, 0);
+        }
+      }
+    }
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
 
@@ -229,10 +248,9 @@ std::string SaintsRow2Game::ChooseBinds() {
   }
 
   // Check the player status next
-  auto* player_status = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-      supported_builds[game_build_].player_status_address);
+
   if (player_status) {
-    switch (*player_status) {
+    switch (player_status) {
       case 3:
       case 5:
         return "Vehicle";
@@ -290,6 +308,30 @@ void SaintsRow2Game::FixHavokFrameTime() {
     if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
   }
 }
+
+uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
+                                       uint32_t player_ptr, uint32_t a2,
+                                       uint32_t a3) {
+  XThread* current_thread = XThread::GetCurrentThread();
+
+  if (function_address == NULL && player_ptr == NULL) {
+    return 0;
+  }
+
+  current_thread->thread_state()->context()->r[3] = player_ptr;
+  // Unknown what these mean or it's significance, PC port just expects player
+  // address, (0x9D9FD0)
+  current_thread->thread_state()->context()->r[4] = a2;
+  current_thread->thread_state()->context()->r[5] = a3;
+
+  kernel_state()->processor()->Execute(current_thread->thread_state(),
+                                       function_address);
+
+  uint64_t return_value = current_thread->thread_state()->context()->r[3];
+
+  return return_value != 0;
+}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
