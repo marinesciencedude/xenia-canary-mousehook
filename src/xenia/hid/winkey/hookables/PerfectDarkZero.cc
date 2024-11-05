@@ -29,7 +29,6 @@ DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(ge_gun_sway);
-DECLARE_bool(pdz_scale_base_fov_sens);
 
 const uint32_t kTitleIdPerfectDarkZero = 0x4D5307D3;
 
@@ -177,8 +176,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
       const float a = (float)cvars::fov_sensitivity;
       fovscale_l = *fovscale;
-      if (cvars::pdz_scale_base_fov_sens && *set_fov != 58.f)
-        set_fov_multiplier = *set_fov / 58.f;
+      if (*set_fov != 58.f) set_fov_multiplier = *set_fov / 58.f;
 
       fovscale_l = (*set_fov / *fovscale);
 
