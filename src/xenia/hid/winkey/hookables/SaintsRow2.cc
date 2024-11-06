@@ -9,7 +9,7 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/SaintsRow.h"
+#include "xenia/hid/winkey/hookables/SaintsRow2.h"
 
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
@@ -28,6 +28,8 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
+DECLARE_bool(sr_havok_fix_frametime);
+DECLARE_bool(sr2_hold_fine_aim);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
 
@@ -43,17 +45,27 @@ struct GameBuildAddrs {
   uint32_t menu_status_address;
   uint32_t sniper_status_address;
   uint32_t currentFOV_address;
+  uint32_t havok_frametime_address;
+  uint32_t current_frametime_address;
+  uint32_t RS_held_address;
+  uint32_t reset_fineaim_address;  // 0x826CBA60(TU3) seems to call this
+                                   // reset_fineaim_address with the same
+                                   // parameters, maybe use it instead? seems to
+                                   // manage player's fineaim.
+  uint32_t player_pointer_address;
+  uint32_t sniper_zoom_function_address;
 };
 
-std::map<SaintsRowGame::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRowGame::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
-    {SaintsRowGame::GameBuild::SaintsRow2_TU3,
+std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
+    {SaintsRow2Game::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
+    {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
-      0x82BCBA78, 0x82B7A4BC}}};
+      0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518, 0x837B7BBB, 0x826CB818,
+      0x835BF42C, 0x826CBB40}}};
 
-SaintsRowGame::~SaintsRowGame() = default;
+SaintsRow2Game::~SaintsRow2Game() = default;
 
-bool SaintsRowGame::IsGameSupported() {
+bool SaintsRow2Game::IsGameSupported() {
   if (kernel_state()->title_id() != kTitleIdSaintsRow2) {
     return false;
   }
@@ -71,16 +83,16 @@ bool SaintsRowGame::IsGameSupported() {
   return false;
 }
 
-float SaintsRowGame::DegreetoRadians(float degree) {
+float SaintsRow2Game::DegreetoRadians(float degree) {
   return (float)(degree * (M_PI / 180));
 }
 
-float SaintsRowGame::RadianstoDegree(float radians) {
+float SaintsRow2Game::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
 
-bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
-                            X_INPUT_STATE* out_state) {
+bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
+                             X_INPUT_STATE* out_state) {
   if (!IsGameSupported()) {
     return false;
   }
@@ -96,6 +108,10 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_y_)
                        .count();
+
+  if (cvars::sr_havok_fix_frametime) {
+    FixHavokFrameTime();
+  }
 
   // Declare static variables for last deltas
   static int last_x_delta = 0;
@@ -136,20 +152,41 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  // Return true if either X or Y delta is non-zero or if within the hold time
-  if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
-      elapsed_x >= hold_time && elapsed_y >= hold_time) {
-    return false;
-  }
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
     return false;
   }
+
+  auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].sniper_status_address);
+
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
   if (*menu_status == 2) {  // Our paused check.
+    auto* holding_rs = kernel_memory()->TranslateVirtual<uint8_t*>(
+        supported_builds[game_build_].RS_held_address);
+
+    player_status = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+        supported_builds[game_build_].player_status_address);
+    if (cvars::sr2_hold_fine_aim) {
+      uint32_t player_ptr =
+          *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              supported_builds[game_build_].player_pointer_address);
+      if (player_status && (*holding_rs == 0)) {
+        if (player_ptr != NULL) {
+          if (player_status == 16 || player_status == 17) {
+            reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
+                          player_ptr, 144, 0);
+          }
+          if (*sniper_status == 0) {
+            reset_fineaim(
+                supported_builds[game_build_].sniper_zoom_function_address,
+                player_ptr, 0, NULL);
+          }
+        }
+      }
+    }
 
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
@@ -165,17 +202,16 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     float degree_x = RadianstoDegree(*radian_x);
     float degree_y = RadianstoDegree(*radian_y);
 
-    auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].sniper_status_address);
-
-    float divisor;
+    float divisor = 7.5f;
     if (*sniper_status == 0) {
-      xe::be<float>* currentFOV =
-          kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].currentFOV_address);
-      divisor = (58.f / *currentFOV) * 10.0f;
-    } else {
-      divisor = 5.5f;
+      divisor = 10.f;
+    }
+
+    xe::be<float>* currentFOV =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].currentFOV_address);
+    if (*currentFOV < 58.f) {
+      divisor = (58.f / *currentFOV) * divisor;
     }
 
     // X-axis = 0 to 360
@@ -202,7 +238,7 @@ bool SaintsRowGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   return true;
 }
 
-std::string SaintsRowGame::ChooseBinds() {
+std::string SaintsRow2Game::ChooseBinds() {
   // Highest priority:
   auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].pressB_status_address);
@@ -224,10 +260,9 @@ std::string SaintsRowGame::ChooseBinds() {
   }
 
   // Check the player status next
-  auto* player_status = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-      supported_builds[game_build_].player_status_address);
+
   if (player_status) {
-    switch (*player_status) {
+    switch (player_status) {
       case 3:
       case 5:
         return "Vehicle";
@@ -243,9 +278,9 @@ std::string SaintsRowGame::ChooseBinds() {
   return "Default";
 }
 
-bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
-                                       RawInputState& input_state,
-                                       X_INPUT_STATE* out_state) {
+bool SaintsRow2Game::ModifierKeyHandler(uint32_t user_index,
+                                        RawInputState& input_state,
+                                        X_INPUT_STATE* out_state) {
   float thumb_lx = (int16_t)out_state->gamepad.thumb_lx;
   float thumb_ly = (int16_t)out_state->gamepad.thumb_ly;
 
@@ -266,6 +301,55 @@ bool SaintsRowGame::ModifierKeyHandler(uint32_t user_index,
   // won't be used
   return true;
 }
+
+void SaintsRow2Game::FixHavokFrameTime() {
+  xe::be<float>* havok_frametime =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].havok_frametime_address);
+
+  xe::be<float>* current_frametime =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].current_frametime_address);
+
+  float frametime = *current_frametime;
+
+  if (frametime < 0.03333333333f) {
+    frametime = frametime / 2.f;
+    if (*havok_frametime != frametime) {
+      *havok_frametime = frametime;
+    }
+  } else {
+    if (*havok_frametime != 0.01666666666f) {
+      *havok_frametime = 0.01666666666f;
+    }
+  }
+}
+
+uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
+                                       uint32_t player_ptr, uint32_t a2,
+                                       uint32_t a3) {
+  XThread* current_thread = XThread::GetCurrentThread();
+
+  if (function_address == NULL && player_ptr == NULL) {
+    return 0;
+  }
+
+  current_thread->thread_state()->context()->r[3] = player_ptr;
+  // Unknown what these mean or it's significance, PC port just expects player
+  // address, (0x9D9FD0)
+  current_thread->thread_state()->context()->r[4] = a2;
+  if (a3 != NULL) {
+    current_thread->thread_state()->context()->r[5] = a3;
+  }
+
+  kernel_state()->processor()->Execute(current_thread->thread_state(),
+                                       function_address);
+
+  uint64_t return_value = current_thread->thread_state()->context()->r[3];
+
+  return return_value != 0;
+}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
