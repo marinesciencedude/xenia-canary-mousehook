@@ -53,6 +53,7 @@ struct GameBuildAddrs {
                                    // parameters, maybe use it instead? seems to
                                    // manage player's fineaim.
   uint32_t player_pointer_address;
+  uint32_t sniper_zoom_function_address;
 };
 
 std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
@@ -60,7 +61,7 @@ std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
       0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518, 0x837B7BBB, 0x826CB818,
-      0x835BF42C}}};
+      0x835BF42C, 0x826CBB40}}};
 
 SaintsRow2Game::~SaintsRow2Game() = default;
 
@@ -155,6 +156,9 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
+  auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].sniper_status_address);
+
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
   if (*menu_status == 2) {  // Our paused check.
@@ -164,17 +168,24 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     player_status = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         supported_builds[game_build_].player_status_address);
     if (cvars::sr2_hold_fine_aim) {
-      if (player_status &&
-          (*holding_rs == 0 && (player_status == 16 || player_status == 17))) {
-        uint32_t player_ptr =
-            *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-                supported_builds[game_build_].player_pointer_address);
+      uint32_t player_ptr =
+          *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              supported_builds[game_build_].player_pointer_address);
+      if (player_status && (*holding_rs == 0)) {
         if (player_ptr != NULL) {
-          reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
-                        player_ptr, 144, 0);
+          if (player_status == 16 || player_status == 17) {
+            reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
+                          player_ptr, 144, 0);
+          }
+          if (*sniper_status == 0) {
+            reset_fineaim(
+                supported_builds[game_build_].sniper_zoom_function_address,
+                player_ptr, 0, NULL);
+          }
         }
       }
     }
+
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
 
@@ -188,9 +199,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
     float degree_x = RadianstoDegree(*radian_x);
     float degree_y = RadianstoDegree(*radian_y);
-
-    auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].sniper_status_address);
 
     float divisor = 7.5f;
     if (*sniper_status == 0) divisor = 10.f;
@@ -320,7 +328,7 @@ uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
   // Unknown what these mean or it's significance, PC port just expects player
   // address, (0x9D9FD0)
   current_thread->thread_state()->context()->r[4] = a2;
-  current_thread->thread_state()->context()->r[5] = a3;
+  if (a3 != NULL) current_thread->thread_state()->context()->r[5] = a3;
 
   kernel_state()->processor()->Execute(current_thread->thread_state(),
                                        function_address);
