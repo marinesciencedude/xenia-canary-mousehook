@@ -1,3 +1,4 @@
+#pragma once
 /**
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
@@ -7,9 +8,8 @@
  ******************************************************************************
  */
 
-#ifndef XENIA_HID_WINKEY_SaintsRow_H_
-#define XENIA_HID_WINKEY_SaintsRow_H_
-
+#ifndef XENIA_HID_WINKEY_SaintsRow1_H_
+#define XENIA_HID_WINKEY_SaintsRow1_H_
 #include <chrono>  // Include for chrono timing
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
@@ -17,11 +17,11 @@ namespace xe {
 namespace hid {
 namespace winkey {
 
-class SaintsRowGame : public HookableGame {
+class SaintsRow1Game : public HookableGame {
  public:
-  enum class GameBuild { Unknown, SaintsRow2_TU3 };
+  enum class GameBuild { Unknown, SaintsRow1_TU1 };
 
-  ~SaintsRowGame() override;
+  ~SaintsRow1Game() override;
 
   bool IsGameSupported();
 
@@ -30,23 +30,25 @@ class SaintsRowGame : public HookableGame {
 
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
-
+  void FixHavokFrameTime(float frametime);
+  bool isTervelPlugin();
+  bool inFirstPerson();
+  bool isPaused();
   std::string ChooseBinds();
-
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
-
   // Timer variables to hold the state for a while // this is probably not ideal
   // -Clippy95
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
+  uint8_t tervelplugin_status;
 };
 
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 
-#endif  // XENIA_HID_WINKEY_SaintsRow_H_
+#endif  // XENIA_HID_WINKEY_SaintsRow1_H_
