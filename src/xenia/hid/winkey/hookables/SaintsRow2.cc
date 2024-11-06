@@ -192,15 +192,13 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
         supported_builds[game_build_].sniper_status_address);
 
-    float divisor;
-    if (*sniper_status == 0) {
-      xe::be<float>* currentFOV =
-          kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].currentFOV_address);
-      divisor = (58.f / *currentFOV) * 10.0f;
-    } else {
-      divisor = 5.5f;
-    }
+    float divisor = 7.5f;
+    if (*sniper_status == 0) divisor = 10.f;
+
+    xe::be<float>* currentFOV =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].currentFOV_address);
+    if (*currentFOV < 58.f) divisor = (58.f / *currentFOV) * divisor;
 
     // X-axis = 0 to 360
     if (!cvars::invert_x) {
