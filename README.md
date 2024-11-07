@@ -2,7 +2,7 @@
 
 This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
 
-Mousehook implements native mouse input into games by injecting mouse input into game's memory.
+Mousehook implements native mouse input into games by injecting mouse input into game memory.
 
 ## Supported Games
 | Game  | Supported versions  | Title ID | Mouse support | Notes|
