@@ -111,6 +111,7 @@ that there are some major work areas still untouched:
 
 See more projects [good for contributors](https://github.com/xenia-canary/xenia-canary/labels/good%20first%20issue). It's a good idea to ask on Discord and check the issues page before beginning work on
 something.
+
 ## Disclaimer
 
 The goal of this project is to experiment, research, and educate on the topic
