@@ -3,48 +3,49 @@
 This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as originally [ported to Canary by Marcelo20XX](https://www.reddit.com/r/emulation/comments/qppb6d/goldeneye_xbla_with_updated_xenia_canary_mousehook/).
 
 ## Supported Games
-
-| Game  | Supported Versions  | Title ID | Mouse support | Issues|
+| Game  | Supported versions  | Title ID | Mouse support | Known issues|
 |---|---| --- | --- | --- |
-| Orange Box | All Games TU0 |
-| Portal Still Alive |
-| CSGO | |
-| CSGO Beta | |
-| Left 4 Dead 2 | TU0 |
-| Left 4 Dead | TU0, GOTY |
-| Portal 2 |  TU0 |
-| Team Fortress 2 | TU0 |
-| Bloody Good Time |
-| Postal III | |
-| GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' |
-| Perfect Dark XBLA | b33, b52 (TU0) & b102 |
-| Halo 3 | TU0/TU3 & 08172 'delta' |
-| Halo 3: ODST | |
-| Halo Reach | TU0/TU1 |
-| Halo 4 | TU0/TU8 |
-| Crackdown 2 | TU0/TU5 |
-| Saints Row | TU1 |
-| Saints Row 2 | TU3 |
-| Dark Messiah of Might and Magic | Singleplayer & Multiplayer |
-| Just Cause | TU0 |
-| Red Dead Redemption | Original TU0/TU9, Undead Nightmare (Platinum Hits) TU4 & Game Of The Year Edition Disk 1/2 TU0|
-| Far Cry Instincts: Predator | TU0 |
-| Dead Rising 2 Case West | TU0 |
-| Dead Rising 2 Case Zero | TU0 |
-| Call Of Duty 3 | Singleplayer & Multiplayer TU0/TU3 |
-| Call Of Duty 4 | Singleplayer & Multiplayer TU0/TU4 / 253,270,290 & 328 alphas |
-| Call Of Duty World At War | Singleplayer & Multiplayer TU7 |
-| Call Of Duty Modern Warfare 2 | Singleplayer & Multiplayer TU0 / 482 alpha SP ".xex only" |
-| Call Of Duty Future Warfare "NX1" | Nightly_SP_maps / nx1sp.xex / nx1mp_demo.xex / nx1mp.xex / NightlyMPmaps |
-| Call Of Duty Black Ops 2 Greenlight | ".xex only" |
-| Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" |
-| Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 |
-| Wolfenstein | Singleplayer TU0 |
-| Gears Of Wars 1 | TU0/TU5 |
-| Gears Of Wars 2 | TU0/TU6 |
-| Gears Of Wars 3 | TU0/TU6 |
-| Gears Of Wars Judgement | TU0/TU4|
+| Orange Box | All Games TU0 | 4541080F | Fair |
+| Portal Still Alive |  | 58410960 | Fair |
+| CSGO | | 5841125A | Fair |
+| CSGO Beta |  | 5841125A | Fair |
+| Left 4 Dead 2 | TU0 | 454108D4 | Fair |
+| Left 4 Dead | TU0, GOTY | 45410830 | Fair |
+| Portal 2 |  TU0 | 45410912 | Fair |
+| Team Fortress 2 | TU0 | 4541080F | Fair |
+| Bloody Good Time |  | 584109B3 | Fair |
+| Postal III | | 4541080F | Fair |
+| GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' | 584108A9 | Good | <sub> Camera X rotation might not work when using the tank in the Runway and Street level |
+| Perfect Dark XBLA | b33, b52 (TU0) & b102 | 584109C2 | Fair |<sub> Camera doesn't work with the camspy & no hook for bike roll. |
+| Halo 3 | TU0/TU3 & 08172 'delta' | 4D5307E6 | Fair |
+| Halo 3: ODST | | 4D530877 | Fair |
+| Halo Reach | TU0/TU1 | 4D53085B | Fair |
+| Halo 4 | TU0/TU8 | 4D530919 | Fair |
+| Crackdown 2 | TU0/TU5 | 4D5308BC | Poor | <sub>Only works on-foot |
+| Saints Row 1 | TU1 | 545107D1 | Fair[^1] | <sub> Camera can randomly flick to north when using the McManus sniper rilfe | 
+| Saints Row 2 | TU3 | 545107FC | Good[^1] | <sub> ***Some*** diversions/activities might not work great with mouse, use arrow keys binding for RS | 
+| Dark Messiah of Might and Magic | Singleplayer & Multiplayer | 55530804 | Fair|
+| Just Cause | TU0 | 534307D5 | Poor | <sub> Only works on-foot
+| Red Dead Redemption | Original TU0/TU9, Undead Nightmare (Platinum Hits) TU4 & Game Of The Year Edition Disk 1/2 TU0| 5454082B | Good | <sub> Duel crosshair isn't mousehooked, RS is emulated when in duels |
+| Far Cry Instincts: Predator | TU0 | 555307DC | Fair |
+| Dead Rising 2 Case West | TU0 | 58410B00 | Fair | Disable cam-chase in-game options. |
+| Dead Rising 2 Case Zero | TU0 | 58410A8D | Fair | Disable cam-chase in-game options. |
+| Call Of Duty 3 | Singleplayer & Multiplayer TU0/TU3 | 415607E1 | Fair | <sub> Quicktime events that use Right-stick doesn't work with mouse, have to use modifier binding to emulate RS Default: **Capslock**
+| Call Of Duty 4 | Singleplayer & Multiplayer TU0/TU4 / 253,270,290 & 328 alphas | 415607E6 | Fair |
+| Call Of Duty World At War | Singleplayer & Multiplayer TU7 | 4156081C | Fair |
+| Call Of Duty Modern Warfare 2 | Singleplayer & Multiplayer TU0 / 482 alpha SP ".xex only" | 41560817 | Fair |
+| Call Of Duty Future Warfare "NX1" | Nightly_SP_maps / nx1sp.xex / nx1mp_demo.xex / nx1mp.xex / NightlyMPmaps | 4156089E | Fair |
+| Call Of Duty Black Ops 2 Greenlight | ".xex only" | 415608C3 | Fair |
+| Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" | 4156088E | Fair |
+| Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 | 41560914 | Fair | <sub> Modifier bound to readback_resolve Default: **Capslock** |
+| Wolfenstein | Singleplayer TU0 | 415607DE | Fair |
+| Gears Of Wars 1 | TU0/TU5 | 4D5307D5 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Gears Of Wars 2 | TU0/TU6 | 4D53082D | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Gears Of Wars 3 | TU0/TU6 | 4D5308AB | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook. 
+| Gears Of Wars Judgement | TU0/TU4| 4D530A26 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Section 8 | TU0 | 475007D4 | Fair | <sub> -Might not work in languages other than in English, also some patches could break mousehook. - Guns models exhibit odd swaying. |
 
+[^1]: Mousehook implements a right-stick workaround for these games, it disables right-stick usage by slowing sensitivity to an extremly slow speed and tying mouse movement to it, this fixes several in-game camera modes ranging from vehicles, ADS, auto centering & more.
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
 <p align="center">
@@ -110,7 +111,6 @@ that there are some major work areas still untouched:
 
 See more projects [good for contributors](https://github.com/xenia-canary/xenia-canary/labels/good%20first%20issue). It's a good idea to ask on Discord and check the issues page before beginning work on
 something.
-
 ## Disclaimer
 
 The goal of this project is to experiment, research, and educate on the topic
