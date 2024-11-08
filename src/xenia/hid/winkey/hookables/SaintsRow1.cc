@@ -349,7 +349,7 @@ bool SaintsRow1Game::inMapScreen() {
   auto* in_map_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].in_map_screen_address);
 
-  if (*in_map_screen = 1 && isPaused())
+  if (*in_map_screen == 1 && isPaused())
     return true;
   else
     return false;
@@ -372,9 +372,12 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
 
   float map_zoom = *map_zoom_be;
 
-  map_x -= (input_state.mouse.x_delta / 0.75f) * (float)cvars::menu_sensitivity;
+  // 3.75 * 0.2 = 0.75 when zoomed out the farthest game allows.
+  map_x -= (input_state.mouse.x_delta / (3.75f * map_zoom)) *
+           (float)cvars::menu_sensitivity;
 
-  map_y -= (input_state.mouse.y_delta / 0.75f) * (float)cvars::menu_sensitivity;
+  map_y -= (input_state.mouse.y_delta / (3.75f * map_zoom)) *
+           (float)cvars::menu_sensitivity;
 
   if (!cvars::swap_wheel)
     map_zoom += (input_state.mouse.wheel_delta / 3250.f);
@@ -383,6 +386,7 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
   map_x = std::clamp(map_x, -1677.760498f, 1677.760498f);
   map_y = std::clamp(map_y, -2245.578369f, 2245.578369f);
 
+  // game default clamping, the game does allow to write outside of 0.2 and 1
   map_zoom = std::clamp(map_zoom, 0.2f, 1.f);
 
   *map_x_be = map_x;
