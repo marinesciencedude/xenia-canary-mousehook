@@ -34,6 +34,8 @@ class SaintsRow1Game : public HookableGame {
   bool isTervelPlugin();
   bool inFirstPerson();
   bool isPaused();
+  bool inMapScreen();
+  void MapCursor(RawInputState& input_state);
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);

@@ -43,6 +43,10 @@ DEFINE_double(
     "Mouse scale when FOV is lowered (Currently for COD, DR, RDR & UE3 Games)",
     "MouseHook");
 
+DEFINE_double(menu_sensitivity, 0.5f,
+              "(GoldenEye/Saints Row 1) Mouse sensitivity when in menus",
+              "MouseHook");
+
 DEFINE_double(right_stick_hold_time_workaround, 33,
               "For games that move the right stick alongside the mouse, this "
               "declares how long to hold in that direction when mouse movement "

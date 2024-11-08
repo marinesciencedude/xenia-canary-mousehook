@@ -27,9 +27,11 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr_havok_fix_frametime)
+DECLARE_bool(sr_havok_fix_frametime);
+DECLARE_bool(swap_wheel);
+DECLARE_double(menu_sensitivity);
 
-    const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
 
 namespace xe {
 namespace hid {
@@ -38,6 +40,10 @@ struct GameBuildAddrs {
   const char* title_version;
   uint32_t x_address;
   uint32_t y_address;
+  uint32_t fineaim_y_address;
+  uint32_t map_x_address;
+  uint32_t map_zoom_address;
+  uint32_t in_map_screen_address;
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t menu_status_address;
@@ -50,16 +56,16 @@ struct GameBuildAddrs {
   uint32_t isfirstperson_address;  // Unused game camera mode ; toggleable with
                                    // a console command mostly usable with
                                    // Tervel's sr1fineaim plugin.
-  uint32_t fineaim_y_address;
+
   uint32_t slow_pan_horizontal_multiplier_address;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x82932407, 0x8283CA7B, 0x835F27A3,
-      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F9BA4,
-      0x827F956C}}};
+     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x835F2B80, 0x827CF9CC,
+      0x834B34A6, 0x82932407, 0x8283CA7B, 0x835F27A3, 0x835F2684, 0x827CA69C,
+      0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -149,7 +155,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  if (!(inFirstPerson() && isTervelPlugin())) {
+  if (!(inFirstPerson() && isTervelPlugin()) && !inMapScreen()) {
     // Declare static variables for last deltas
     static int last_x_delta = 0;
     static int last_y_delta = 0;
@@ -196,7 +202,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
   // Stop mouse this late here to allow RS in menus and frametime fix to apply.
-  if (isPaused()) return false;
 
   XThread* current_thread = XThread::GetCurrentThread();
 
@@ -204,6 +209,9 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
+  if (inMapScreen()) MapCursor(input_state);
+
+  if (isPaused()) return false;
   xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
 
@@ -335,6 +343,51 @@ bool SaintsRow1Game::isPaused() {
     return true;
   else
     return false;
+}
+
+bool SaintsRow1Game::inMapScreen() {
+  auto* in_map_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].in_map_screen_address);
+
+  if (*in_map_screen = 1 && isPaused())
+    return true;
+  else
+    return false;
+}
+
+void SaintsRow1Game::MapCursor(RawInputState& input_state) {
+  xe::be<float>* map_x_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].map_x_address);
+
+  xe::be<float>* map_y_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].map_x_address + 0x4);
+
+  xe::be<float>* map_zoom_be =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].map_zoom_address);
+
+  float map_x = *map_x_be;
+
+  float map_y = *map_y_be;
+
+  float map_zoom = *map_zoom_be;
+
+  map_x -= (input_state.mouse.x_delta / 0.75f) * (float)cvars::menu_sensitivity;
+
+  map_y -= (input_state.mouse.y_delta / 0.75f) * (float)cvars::menu_sensitivity;
+
+  if (!cvars::swap_wheel)
+    map_zoom += (input_state.mouse.wheel_delta / 3250.f);
+  else
+    map_zoom -= (input_state.mouse.wheel_delta / 3250.f);
+  map_x = std::clamp(map_x, -1677.760498f, 1677.760498f);
+  map_y = std::clamp(map_y, -2245.578369f, 2245.578369f);
+
+  map_zoom = std::clamp(map_zoom, 0.2f, 1.f);
+
+  *map_x_be = map_x;
+  *map_y_be = map_y;
+  *map_zoom_be = map_zoom;
 }
 
 std::string SaintsRow1Game::ChooseBinds() {
