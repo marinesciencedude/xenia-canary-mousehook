@@ -387,9 +387,9 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
   map_y = std::clamp(map_y, -2245.578369f, 2245.578369f);
 
   // game default clamping is between 0.2 and 1, the game does allow to write
-  // outside of those, so I set the minimum to 0.05 as that feels more natural
-  // with a mouse?
-  map_zoom = std::clamp(map_zoom, 0.05f, 2.5f);
+  // outside of those, so I set the minimum a bit lower as that feels more
+  // natural with a mouse?
+  map_zoom = std::clamp(map_zoom, 0.1f, 2.5f);
 
   *map_x_be = map_x;
   *map_y_be = map_y;
