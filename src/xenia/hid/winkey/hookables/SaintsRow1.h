@@ -34,6 +34,7 @@ class SaintsRow1Game : public HookableGame {
   bool isTervelPlugin();
   bool inFirstPerson();
   bool isPaused();
+  void WeaponWheelScrollWheel(RawInputState& input_state);
   bool inMapScreen();
   void MapCursor(RawInputState& input_state);
   std::string ChooseBinds();
@@ -47,6 +48,7 @@ class SaintsRow1Game : public HookableGame {
   std::chrono::steady_clock::time_point last_movement_time_x_;
   std::chrono::steady_clock::time_point last_movement_time_y_;
   uint8_t tervelplugin_status;
+  uint8_t* wheel_status;
 };
 
 }  // namespace winkey

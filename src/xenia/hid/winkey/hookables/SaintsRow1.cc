@@ -43,9 +43,10 @@ struct GameBuildAddrs {
   uint32_t fineaim_y_address;
   uint32_t map_x_address;
   uint32_t map_zoom_address;
-  uint32_t in_map_screen_address;
+  uint32_t pause_screen_section_address;
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
+  uint32_t weapon_wheel_slot_address;
   uint32_t menu_status_address;
   uint32_t havok_frametime_address;
   uint32_t current_frametime_address;  //       x_axis_addition =
@@ -64,8 +65,8 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1", 0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x835F2B80, 0x827CF9CC,
-      0x834B34A6, 0x82932407, 0x8283CA7B, 0x835F27A3, 0x835F2684, 0x827CA69C,
-      0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C}}};
+      0x835F279B, 0x82932407, 0x8283CA7B, 0x835F2883, 0x835F27A3, 0x835F2684,
+      0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -196,10 +197,10 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
 
     // Return true if either X or Y delta is non-zero or if within the hold time
-    if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
+    /* if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
         elapsed_x >= hold_time && elapsed_y >= hold_time) {
       return false;
-    }
+    }*/
   }
   // Stop mouse this late here to allow RS in menus and frametime fix to apply.
 
@@ -283,6 +284,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     degree_y += delta_y;
     *fine_aim_y = DegreetoRadians(degree_y);
   }
+  if (*wheel_status == 1) WeaponWheelScrollWheel(input_state);
   return true;
 }
 
@@ -345,11 +347,28 @@ bool SaintsRow1Game::isPaused() {
     return false;
 }
 
-bool SaintsRow1Game::inMapScreen() {
-  auto* in_map_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].in_map_screen_address);
+void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
+  auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].weapon_wheel_slot_address);
 
-  if (*in_map_screen == 1 && isPaused())
+  int16_t slot = static_cast<int16_t>(*weapon_slot);
+
+  // one scroll of the wheel_delta seems to always return 120?
+  if (!cvars::swap_wheel)
+    slot += static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+  else
+    slot -= static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+
+  slot = slot % 8;
+
+  *weapon_slot = static_cast<uint8_t>(slot);
+}
+
+bool SaintsRow1Game::inMapScreen() {
+  auto* pause_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].pause_screen_section_address);
+
+  if (*pause_screen == 26 && isPaused())
     return true;
   else
     return false;
@@ -397,7 +416,7 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
 }
 
 std::string SaintsRow1Game::ChooseBinds() {
-  auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+  wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_address);
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
