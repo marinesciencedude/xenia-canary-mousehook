@@ -106,7 +106,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  // REMOVE THIS FOR RELEASE NEEDS TO BE A PATCH!
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -143,10 +142,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float frametime = *ingame_frametime;
   if (cvars::sr_havok_fix_frametime && !isTervelPlugin())
     FixHavokFrameTime(frametime);
-
-  // float correctFrametime = 1 / *currentFPS;
-
-  //*frametime = correctFrametime * 2;
 
   auto now = std::chrono::steady_clock::now();
   auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -253,17 +248,18 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   // X-axis = 0 to 360
   // division over 1350 is assuming if frametime is 1/30, this should fix
   // sensitivity fluctuation due to framerate as that's what the game does at
-  // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
-  // stuttering might still occur due to framerates, as it's expected each
-  // frame? -= isn't ideal but that's the only way it works. - Clippy95
-  if (!cvars::invert_x) {
-    degree_x +=
-        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
-        frametime;
-  } else {
-    degree_x -=
-        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
-        frametime;
+  // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime); -
+  // Clippy95
+  if (degree_x == 0.0f && input_state.mouse.x_delta) {
+    if (!cvars::invert_x) {
+      degree_x = ((input_state.mouse.x_delta / divider_x) *
+                  (float)cvars::sensitivity) /
+                 frametime;
+    } else {
+      degree_x = ((-input_state.mouse.x_delta / divider_x) *
+                  (float)cvars::sensitivity) /
+                 frametime;
+    }
   }
   if (!(inFirstPerson() && isTervelPlugin()))
     *addition_x = degree_x;
