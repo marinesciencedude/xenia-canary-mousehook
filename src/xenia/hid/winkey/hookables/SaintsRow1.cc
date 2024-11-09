@@ -203,13 +203,13 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }*/
   }
   // Stop mouse this late here to allow RS in menus and frametime fix to apply.
-
+  /*
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
     return false;
   }
-
+  */
   if (inMapScreen()) MapCursor(input_state);
 
   if (isPaused()) return false;
