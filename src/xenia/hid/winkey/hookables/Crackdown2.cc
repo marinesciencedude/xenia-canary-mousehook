@@ -83,12 +83,6 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
           supported_builds[game_build_].base_address);

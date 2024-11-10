@@ -80,12 +80,6 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-
   xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
 

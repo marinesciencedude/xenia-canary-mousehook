@@ -219,18 +219,6 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-  if (supported_builds[game_build_].Dvar_GetBool_address != NULL) {
-    if (!Dvar_GetBool("cl_ingame",
-                      supported_builds[game_build_].Dvar_GetBool_address)) {
-      return false;
-    }
-  }
-
   xe::be<float>* degree_x;
   xe::be<float>* degree_y;
 

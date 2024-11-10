@@ -158,10 +158,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
                        now - last_movement_time_y_)
                        .count();
 
-  XThread* current_thread = XThread::GetCurrentThread();
-  if (!current_thread) {
-    return false;
-  }
   if (IsPaused()) return false;
 
   xe::be<uint32_t>* base_address =
