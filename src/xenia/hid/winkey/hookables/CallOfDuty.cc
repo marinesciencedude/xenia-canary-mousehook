@@ -218,7 +218,9 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (!IsGameSupported()) {
     return false;
   }
-
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta))
+    return false;
   xe::be<float>* degree_x;
   xe::be<float>* degree_y;
 

@@ -72,6 +72,10 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta))
+    return false;
+
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
           supported_builds[game_build_].base_address);

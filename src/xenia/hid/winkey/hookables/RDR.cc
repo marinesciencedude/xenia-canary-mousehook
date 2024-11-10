@@ -330,7 +330,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         }
       }
     }
-
+    if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+         !input_state.mouse.wheel_delta))
+      return false;  // This late because want the pattern scans to occur during
+                     // loading screen.
     xe::be<uint32_t> x_address =
         *base_address - supported_builds[game_build_].x_offset;
     xe::be<uint32_t> y_address =
