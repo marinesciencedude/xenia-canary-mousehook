@@ -179,7 +179,9 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         }
       }
     }
-
+    if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+         !input_state.mouse.wheel_delta))
+      return false;
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
 
@@ -220,7 +222,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       degree_y -=
           (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
     }
-
     *radian_y = DegreetoRadians(degree_y);
   }
   return true;

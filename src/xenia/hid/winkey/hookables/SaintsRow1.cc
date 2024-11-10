@@ -190,21 +190,12 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         out_state->gamepad.thumb_ry = SHRT_MAX;
       }
     }
-
-    // Return true if either X or Y delta is non-zero or if within the hold time
-    /* if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
-        elapsed_x >= hold_time && elapsed_y >= hold_time) {
-      return false;
-    }*/
   }
-  // Stop mouse this late here to allow RS in menus and frametime fix to apply.
-  /*
-  XThread* current_thread = XThread::GetCurrentThread();
 
-  if (!current_thread) {
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta))
     return false;
-  }
-  */
+
   if (inMapScreen()) MapCursor(input_state);
 
   if (isPaused()) return false;
@@ -447,6 +438,7 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
     out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
     out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
   }
+
   // Return true to signal that we've handled the modifier, so default modifier
   // won't be used
   return true;
