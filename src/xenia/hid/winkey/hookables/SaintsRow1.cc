@@ -341,18 +341,19 @@ bool SaintsRow1Game::isPaused() {
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
+  if (input_state.mouse.wheel_delta) {
+    int16_t slot = static_cast<int16_t>(*weapon_slot);
 
-  int16_t slot = static_cast<int16_t>(*weapon_slot);
+    // one scroll of the wheel_delta seems to always return 120?
+    if (!cvars::swap_wheel)
+      slot += static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+    else
+      slot -= static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
 
-  // one scroll of the wheel_delta seems to always return 120?
-  if (!cvars::swap_wheel)
-    slot += static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
-  else
-    slot -= static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+    slot = slot % 8;
 
-  slot = slot % 8;
-
-  *weapon_slot = static_cast<uint8_t>(slot);
+    *weapon_slot = static_cast<uint8_t>(slot);
+  }
 }
 
 bool SaintsRow1Game::inMapScreen() {
