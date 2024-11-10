@@ -150,12 +150,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-
   auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].sniper_status_address);
 
@@ -319,6 +313,10 @@ uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
                                        uint32_t player_ptr, uint32_t a2,
                                        uint32_t a3) {
   XThread* current_thread = XThread::GetCurrentThread();
+
+  if (!current_thread) {
+    return 0;
+  }
 
   if (function_address == NULL && player_ptr == NULL) {
     return 0;
