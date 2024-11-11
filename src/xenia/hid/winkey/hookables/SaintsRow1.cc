@@ -27,9 +27,11 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr_havok_fix_frametime)
+DECLARE_bool(sr_havok_fix_frametime);
+DECLARE_bool(swap_wheel);
+DECLARE_double(menu_sensitivity);
 
-    const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
 
 namespace xe {
 namespace hid {
@@ -38,8 +40,13 @@ struct GameBuildAddrs {
   const char* title_version;
   uint32_t x_address;
   uint32_t y_address;
+  uint32_t fineaim_y_address;
+  uint32_t map_x_address;
+  uint32_t map_zoom_address;
+  uint32_t pause_screen_section_address;
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
+  uint32_t weapon_wheel_slot_address;
   uint32_t menu_status_address;
   uint32_t havok_frametime_address;
   uint32_t current_frametime_address;  //       x_axis_addition =
@@ -50,16 +57,16 @@ struct GameBuildAddrs {
   uint32_t isfirstperson_address;  // Unused game camera mode ; toggleable with
                                    // a console command mostly usable with
                                    // Tervel's sr1fineaim plugin.
-  uint32_t fineaim_y_address;
+
   uint32_t slow_pan_horizontal_multiplier_address;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x82932407, 0x8283CA7B, 0x835F27A3,
-      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F9BA4,
-      0x827F956C}}};
+     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x835F2B80, 0x827CF9CC,
+      0x835F279B, 0x82932407, 0x8283CA7B, 0x835F2883, 0x835F27A3, 0x835F2684,
+      0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -134,8 +141,9 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].current_frametime_address);
 
   float frametime = *ingame_frametime;
-  if (cvars::sr_havok_fix_frametime && !isTervelPlugin())
+  if (cvars::sr_havok_fix_frametime && !isTervelPlugin()) {
     FixHavokFrameTime(frametime);
+  }
 
   // float correctFrametime = 1 / *currentFPS;
 
@@ -149,7 +157,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  if (!(inFirstPerson() && isTervelPlugin())) {
+  if (!(inFirstPerson() && isTervelPlugin()) && !inMapScreen()) {
     // Declare static variables for last deltas
     static int last_x_delta = 0;
     static int last_y_delta = 0;
@@ -188,22 +196,20 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         out_state->gamepad.thumb_ry = SHRT_MAX;
       }
     }
-
-    // Return true if either X or Y delta is non-zero or if within the hold time
-    if (input_state.mouse.x_delta == 0 && input_state.mouse.y_delta == 0 &&
-        elapsed_x >= hold_time && elapsed_y >= hold_time) {
-      return false;
-    }
   }
-  // Stop mouse this late here to allow RS in menus and frametime fix to apply.
-  if (isPaused()) return false;
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta)) {
     return false;
   }
 
+  if (inMapScreen()) {
+    MapCursor(input_state);
+  }
+
+  if (isPaused()) {
+    return false;
+  }
   xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
 
@@ -256,10 +262,11 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
         frametime;
   }
-  if (!(inFirstPerson() && isTervelPlugin()))
+  if (!(inFirstPerson() && isTervelPlugin())) {
     *addition_x = degree_x;
-  else if (*fine_aim_x != NULL)
+  } else if (*fine_aim_x != NULL) {
     *fine_aim_x = DegreetoRadians(degree_x);
+  }
 
   float delta_y =
       (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
@@ -275,19 +282,30 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     degree_y += delta_y;
     *fine_aim_y = DegreetoRadians(degree_y);
   }
+  if (*wheel_status == 1) {
+    WeaponWheelScrollWheel(input_state);
+  }
   return true;
 }
 
 void SaintsRow1Game::FixHavokFrameTime(float frametime) {
+  XThread* current_thread = XThread::GetCurrentThread();
+  if (!current_thread) {
+    return;
+  }
   xe::be<float>* havok_frametime =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].havok_frametime_address);
 
   if (frametime < 0.03333333333f) {
     frametime = frametime / 2.f;
-    if (*havok_frametime != frametime) *havok_frametime = frametime;
+    if (*havok_frametime != frametime) {
+      *havok_frametime = frametime;
+    }
   } else {
-    if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
+    if (*havok_frametime != 0.01666666666f) {
+      *havok_frametime = 0.01666666666f;
+    }
   }
 }
 
@@ -310,35 +328,111 @@ bool SaintsRow1Game::isTervelPlugin() {
     }
     if (tervelplugin_status == 1) {
       return true;
-    } else
+    } else {
       return false;
+    }
 
     return false;
-  } else
+  } else {
     return false;
+  }
 }
 
 bool SaintsRow1Game::inFirstPerson() {
   auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].isfirstperson_address);
-  if (*firstperson && *firstperson == 1)
+  if (*firstperson && *firstperson == 1) {
     return true;
-  else
+  } else {
     return false;
+  }
 }
 
 bool SaintsRow1Game::isPaused() {
   auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
 
-  if (*pause_flag != 2)
+  if (*pause_flag != 2) {
     return true;
-  else
+  } else {
     return false;
+  }
+}
+
+void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
+  auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].weapon_wheel_slot_address);
+  if (input_state.mouse.wheel_delta) {
+    int16_t slot = static_cast<int16_t>(*weapon_slot);
+
+    // one scroll of the wheel_delta seems to always return 120?
+    if (!cvars::swap_wheel) {
+      slot += static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+    } else {
+      slot -= static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+    }
+
+    slot = slot % 8;
+
+    *weapon_slot = static_cast<uint8_t>(slot);
+  }
+}
+
+bool SaintsRow1Game::inMapScreen() {
+  auto* pause_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].pause_screen_section_address);
+
+  if (*pause_screen == 26 && isPaused()) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void SaintsRow1Game::MapCursor(RawInputState& input_state) {
+  xe::be<float>* map_x_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].map_x_address);
+
+  xe::be<float>* map_y_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].map_x_address + 0x4);
+
+  xe::be<float>* map_zoom_be =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].map_zoom_address);
+
+  float map_x = *map_x_be;
+
+  float map_y = *map_y_be;
+
+  float map_zoom = *map_zoom_be;
+
+  // 3.75 * 0.2 = 0.75 when zoomed out the farthest game allows.
+  map_x -= (input_state.mouse.x_delta / (3.75f * map_zoom)) *
+           (float)cvars::menu_sensitivity;
+
+  map_y -= (input_state.mouse.y_delta / (3.75f * map_zoom)) *
+           (float)cvars::menu_sensitivity;
+
+  if (!cvars::swap_wheel) {
+    map_zoom += (input_state.mouse.wheel_delta / (1000.f / map_zoom));
+  } else {
+    map_zoom -= (input_state.mouse.wheel_delta / (1000.f / map_zoom));
+  }
+  map_x = std::clamp(map_x, -1677.760498f, 1677.760498f);
+  map_y = std::clamp(map_y, -2245.578369f, 2245.578369f);
+
+  // game default clamping is between 0.2 and 1, the game does allow to write
+  // outside of those, so I set the minimum a bit lower as that feels more
+  // natural with a mouse?
+  map_zoom = std::clamp(map_zoom, 0.1f, 2.5f);
+
+  *map_x_be = map_x;
+  *map_y_be = map_y;
+  *map_zoom_be = map_zoom;
 }
 
 std::string SaintsRow1Game::ChooseBinds() {
-  auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+  wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_address);
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
@@ -373,6 +467,7 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
     out_state->gamepad.thumb_lx = (int16_t)(distance * cosf(angle));
     out_state->gamepad.thumb_ly = (int16_t)(distance * sinf(angle));
   }
+
   // Return true to signal that we've handled the modifier, so default modifier
   // won't be used
   return true;
