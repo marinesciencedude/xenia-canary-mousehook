@@ -35,7 +35,8 @@ DEFINE_bool(invert_y, false, "Invert mouse Y axis", "MouseHook");
 DEFINE_bool(invert_x, false, "Invert mouse X axis", "MouseHook");
 DEFINE_bool(swap_wheel, false,
             "Swaps binds for wheel, so wheel up will go to next weapon & down "
-            "will go to prev",
+            "will go to prev, also changes the weapon wheel & map zoom "
+            "direction in Saints Row 1.",
             "MouseHook");
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_double(
@@ -43,10 +44,14 @@ DEFINE_double(
     "Mouse scale when FOV is lowered (Currently for COD, DR, RDR & UE3 Games)",
     "MouseHook");
 
+DEFINE_double(menu_sensitivity, 0.5f,
+              "(GoldenEye/Saints Row 1) Mouse sensitivity when in menus",
+              "MouseHook");
+
 DEFINE_double(right_stick_hold_time_workaround, 33,
               "For games that move the right stick alongside the mouse, this "
               "declares how long to hold in that direction when mouse movement "
-              "is detected. (Currently Saints Row 2 & Gears Of Wars series)",
+              "is detected. (Currently Saints Row 1&2 & Gears Of Wars series)",
               "MouseHook");
 
 DEFINE_int32(
