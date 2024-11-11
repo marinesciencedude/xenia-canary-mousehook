@@ -24,8 +24,8 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Halo Reach | TU0/TU1 | 4D53085B | Fair |
 | Halo 4 | TU0/TU8 | 4D530919 | Fair |
 | Crackdown 2 | TU0/TU5 | 4D5308BC | Poor | <sub>Only works on-foot |
-| Saints Row 1 | TU1 | 545107D1 | Fair[^1] | <sub> Camera can randomly flick to north when using the McManus sniper rifle. <br/>X-axis might become more stuttery or jumpy at lower framerates than usual. | 
-| Saints Row 2 | TU3 | 545107FC | Good[^1] | <sub> ***Some*** diversions/activities might not work great with the mouse, use arrow keys binding for RS | 
+| Saints Row 1 | TU1 | 545107D1 | Fair[^1] | <sub> X-Axis can randomly flick to north when using the McManus sniper rifle. <br/><br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/><br/>X axis may stutter when moved while entering vehicles.| 
+| Saints Row 2 | TU3 | 545107FC | Good[^1] | <sub> ***Some*** diversions/activities might not work great with the mouse, use arrow keys binding for RS <br/><br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/><br/>X axis may stutter when moved while entering vehicles. <br/><br/>X-Axis camera in vehicles might not work without `sr_better_drive_cam` set to true (already defaulted to true) | 
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer | 55530804 | Fair|
 | Just Cause | TU0 | 534307D5 | Poor | <sub> Only works on-foot
 | Red Dead Redemption | Original TU0/TU9, Undead Nightmare (Platinum Hits) TU4 & Game Of The Year Edition Disk 1/2 TU0| 5454082B | Good | <sub> Duel crosshair isn't mousehooked, RS is emulated when in duels |
@@ -47,7 +47,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Gears Of Wars Judgement | TU0/TU4| 4D530A26 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
 | Section 8 | TU0 | 475007D4 | Fair | <sub> Might not work in languages other than in English, also some patches could break mousehook. <br/>Guns models exhibit odd swaying. |
 
-[^1]: Mousehook implements a right-stick workaround for these games, it disables right-stick usage by slowing sensitivity to an extremly slow speed and tying mouse movement to it, this fixes several in-game camera modes ranging from vehicles, ADS, auto centering & more.
+[^1]: Mousehook implements a right-stick workaround for these games, it disables right-stick usage by slowing sensitivity to an extremely slow speed and ties mouse movement to it, this fixes several in-game camera modes ranging from vehicles, ADS, auto centering & more.
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
 <p align="center">
