@@ -72,9 +72,8 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta)) {
     return false;
   }
 
