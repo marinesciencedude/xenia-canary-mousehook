@@ -21,15 +21,13 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
+DECLARE_double(menu_sensitivity);
 
 DEFINE_double(
     ge_aim_turn_distance, 0.4f,
     "(GoldenEye/Perfect Dark) Distance crosshair can move in aim-mode before "
     "turning the camera [range 0 - 1]",
     "MouseHook");
-
-DEFINE_double(ge_menu_sensitivity, 0.5f,
-              "(GoldenEye) Mouse sensitivity when in menus", "MouseHook");
 
 DEFINE_bool(ge_gun_sway, true,
             "(GoldenEye/Perfect Dark) Enable gun sway as camera is turned",
@@ -159,9 +157,9 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
       float menuY = *menuY_ptr;
 
       menuX += (((float)input_state.mouse.x_delta) / 5.f) *
-               (float)cvars::ge_menu_sensitivity;
+               (float)cvars::menu_sensitivity;
       menuY += (((float)input_state.mouse.y_delta) / 5.f) *
-               (float)cvars::ge_menu_sensitivity;
+               (float)cvars::menu_sensitivity;
 
       *menuX_ptr = menuX;
       *menuY_ptr = menuY;
