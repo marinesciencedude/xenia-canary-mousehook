@@ -152,12 +152,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-
   auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].sniper_status_address);
 
@@ -187,7 +181,10 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         }
       }
     }
-
+    if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+         !input_state.mouse.wheel_delta)) {
+      return false;
+    }
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
 
@@ -232,7 +229,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       degree_y -=
           (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
     }
-
     *radian_y = DegreetoRadians(degree_y);
   }
   return true;
@@ -303,6 +299,10 @@ bool SaintsRow2Game::ModifierKeyHandler(uint32_t user_index,
 }
 
 void SaintsRow2Game::FixHavokFrameTime() {
+  XThread* current_thread = XThread::GetCurrentThread();
+  if (!current_thread) {
+    return;
+  }
   xe::be<float>* havok_frametime =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].havok_frametime_address);
@@ -329,6 +329,10 @@ uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
                                        uint32_t player_ptr, uint32_t a2,
                                        uint32_t a3) {
   XThread* current_thread = XThread::GetCurrentThread();
+
+  if (!current_thread) {
+    return 0;
+  }
 
   if (function_address == NULL && player_ptr == NULL) {
     return 0;
