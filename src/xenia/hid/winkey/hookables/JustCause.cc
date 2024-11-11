@@ -89,7 +89,7 @@ bool JustCauseGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   /*
-TODO: Vehicle Camera which is CMachineCamera
+MOUSEHOOK TODO: Vehicle Camera which is CMachineCamera
 and Possibly turrets which is CMountedGunCamera
 
 Some addresses used are in radians,
@@ -117,6 +117,7 @@ GTA-styled freecam.
 
   xe::be<float>* add_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(y_address);
+  // MOUSEHOOK TODO do camx = and camy = instead of +=
 
   float camx = *add_x;
   float camy = *add_y;
