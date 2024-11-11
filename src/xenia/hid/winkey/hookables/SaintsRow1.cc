@@ -280,6 +280,8 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 }
 
 void SaintsRow1Game::FixHavokFrameTime(float frametime) {
+  XThread* current_thread = XThread::GetCurrentThread();
+  if (!current_thread) return;
   xe::be<float>* havok_frametime =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].havok_frametime_address);

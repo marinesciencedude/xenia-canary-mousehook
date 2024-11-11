@@ -292,6 +292,8 @@ bool SaintsRow2Game::ModifierKeyHandler(uint32_t user_index,
 }
 
 void SaintsRow2Game::FixHavokFrameTime() {
+  XThread* current_thread = XThread::GetCurrentThread();
+  if (!current_thread) return;
   xe::be<float>* havok_frametime =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
           supported_builds[game_build_].havok_frametime_address);
