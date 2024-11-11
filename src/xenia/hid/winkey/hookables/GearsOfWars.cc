@@ -274,12 +274,6 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
-    return false;
-  }
-
   if (bypass_conditions) {
     xe::be<uint16_t>* degree_x;
     xe::be<uint16_t>* degree_y;
