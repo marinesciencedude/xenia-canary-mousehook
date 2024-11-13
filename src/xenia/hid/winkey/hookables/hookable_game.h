@@ -10,6 +10,7 @@
 #ifndef XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 #define XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 
+#include <vector>
 #include "xenia/hid/input.h"
 #include "xenia/xbox.h"
 
@@ -40,7 +41,14 @@ class HookableGame {
   virtual bool ModifierKeyHandler(uint32_t user_index,
                                   RawInputState& input_state,
                                   X_INPUT_STATE* out_state) = 0;
+  virtual void WeaponSwitchHandler(uint32_t user_index,
+                                   RawInputState& input_state,
+                                   X_INPUT_STATE* out_state, int weapon,
+                                   uint16_t buttons) = 0;
 };
+
+xe::be<uint32_t>* multi_pointer(uint32_t base_address,
+                                std::vector<uint32_t> offsets);
 
 }  // namespace winkey
 }  // namespace hid

@@ -36,6 +36,10 @@ class SaintsRow2Game : public HookableGame {
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
 
+  void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
+                           X_INPUT_STATE* out_state, int weapon,
+                           uint16_t buttons);
+
   void FixHavokFrameTime();
 
   uint64_t reset_fineaim(uint32_t function_address, uint32_t player_ptr,
