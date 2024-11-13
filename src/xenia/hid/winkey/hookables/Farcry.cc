@@ -128,6 +128,12 @@ bool FarCryGame::ModifierKeyHandler(uint32_t user_index,
                                     X_INPUT_STATE* out_state) {
   return false;
 }
+
+void FarCryGame::WeaponSwitchHandler(uint32_t user_index,
+                                     RawInputState& input_state,
+                                     X_INPUT_STATE* out_state, int weapon,
+                                     uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

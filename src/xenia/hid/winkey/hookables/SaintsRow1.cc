@@ -448,6 +448,7 @@ std::string SaintsRow1Game::ChooseBinds() {
 
   return "Default";
 }
+
 bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
                                         RawInputState& input_state,
                                         X_INPUT_STATE* out_state) {
@@ -472,6 +473,12 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
   // won't be used
   return true;
 }
+
+void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
+                                         RawInputState& input_state,
+                                         X_INPUT_STATE* out_state, int weapon,
+                                         uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
