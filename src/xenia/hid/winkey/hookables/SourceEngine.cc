@@ -264,6 +264,11 @@ bool SourceEngine::ModifierKeyHandler(uint32_t user_index,
   return true;
 }
 
+void SourceEngine::WeaponSwitchHandler(uint32_t user_index,
+                                       RawInputState& input_state,
+                                       X_INPUT_STATE* out_state, int weapon,
+                                       uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
