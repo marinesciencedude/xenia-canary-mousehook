@@ -57,6 +57,17 @@
 
 #define XINPUT_BIND_MODIFIER (1 << 26)
 
+#define XINPUT_BIND_WEAPON1 ((uint64_t)1 << 54)
+#define XINPUT_BIND_WEAPON2 ((uint64_t)1 << 55)
+#define XINPUT_BIND_WEAPON3 ((uint64_t)1 << 56)
+#define XINPUT_BIND_WEAPON4 ((uint64_t)1 << 57)
+#define XINPUT_BIND_WEAPON5 ((uint64_t)1 << 58)
+#define XINPUT_BIND_WEAPON6 ((uint64_t)1 << 59)
+#define XINPUT_BIND_WEAPON7 ((uint64_t)1 << 60)
+#define XINPUT_BIND_WEAPON8 ((uint64_t)1 << 61)
+#define XINPUT_BIND_WEAPON9 ((uint64_t)1 << 62)
+#define XINPUT_BIND_WEAPON10 ((uint64_t)1 << 63)
+
 namespace xe {
 namespace hid {
 namespace winkey {
@@ -111,7 +122,7 @@ class WinKeyInputDriver final : public InputDriver {
                        const std::string_view description,
                        const std::string_view binding);
 
-  int ParseButtonCombination(const char* combo);
+  uint64_t ParseButtonCombination(const char* combo);
 
   void ParseCustomKeyBinding(const std::string_view bindings_file);
 
@@ -131,7 +142,7 @@ class WinKeyInputDriver final : public InputDriver {
   std::queue<MouseEvent> mouse_events_;
 
   uint8_t key_states_[256] = {};
-  std::map<uint32_t, std::map<std::string, std::map<ui::VirtualKey, uint32_t>>>
+  std::map<uint32_t, std::map<std::string, std::map<ui::VirtualKey, uint64_t>>>
       key_binds_;
 
   uint32_t packet_number_ = 1;
