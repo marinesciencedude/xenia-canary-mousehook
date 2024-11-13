@@ -2147,6 +2147,17 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     }
   }
 
+  if (module->title_id() == 0x584111F7) {  // Minecraft - Prevent game from
+                                           // writing to inventory cursor
+    std::map<std::string, uint32_t> supported_builds = {{"1.0.80", 0x827594EC}};
+    for (auto& build : supported_builds) {
+      if (build.first == title_version_) {
+        patch_addr(build.second, 0x60000000);
+        break;
+      }
+    }
+  }
+
   // Initializing the shader storage in a blocking way so the user doesn't
   // miss the initial seconds - for instance, sound from an intro video may
   // start playing before the video can be seen if doing this in parallel with
