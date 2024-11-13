@@ -24,6 +24,7 @@
 #include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 #include "xenia/hid/winkey/hookables/JustCause.h"
+#include "xenia/hid/winkey/hookables/Minecraft.h"
 #include "xenia/hid/winkey/hookables/RDR.h"
 #include "xenia/hid/winkey/hookables/SaintsRow1.h"
 #include "xenia/hid/winkey/hookables/SaintsRow2.h"
@@ -123,7 +124,7 @@ bool __inline IsKeyDown(ui::VirtualKey virtual_key) {
   return IsKeyDown(static_cast<uint8_t>(virtual_key));
 }
 
-static const std::unordered_map<std::string, uint32_t> kXInputButtons = {
+static const std::unordered_map<std::string, uint64_t> kXInputButtons = {
     {"up", XINPUT_BIND_UP},
     {"down", XINPUT_BIND_DOWN},
     {"left", XINPUT_BIND_LEFT},
@@ -156,7 +157,18 @@ static const std::unordered_map<std::string, uint32_t> kXInputButtons = {
     {"rs-left", XINPUT_BIND_RS_LEFT},
     {"rs-right", XINPUT_BIND_RS_RIGHT},
 
-    {"modifier", XINPUT_BIND_MODIFIER}};
+    {"modifier", XINPUT_BIND_MODIFIER},
+
+    {"weapon1", XINPUT_BIND_WEAPON1},
+    {"weapon2", XINPUT_BIND_WEAPON2},
+    {"weapon3", XINPUT_BIND_WEAPON3},
+    {"weapon4", XINPUT_BIND_WEAPON4},
+    {"weapon5", XINPUT_BIND_WEAPON5},
+    {"weapon6", XINPUT_BIND_WEAPON6},
+    {"weapon7", XINPUT_BIND_WEAPON7},
+    {"weapon8", XINPUT_BIND_WEAPON8},
+    {"weapon9", XINPUT_BIND_WEAPON9},
+    {"weapon10", XINPUT_BIND_WEAPON10}};
 // Lookup the value of key string
 static const std::map<std::string, ui::VirtualKey> kKeyMap = {
     {"lclick", ui::VirtualKey::kLButton},
@@ -305,10 +317,10 @@ void WinKeyInputDriver::ParseKeyBinding(ui::VirtualKey output_key,
   }
 }
 
-int WinKeyInputDriver::ParseButtonCombination(const char* combo) {
+uint64_t WinKeyInputDriver::ParseButtonCombination(const char* combo) {
   size_t len = strlen(combo);
 
-  int retval = 0;
+  uint64_t retval = 0;
   std::string cur_token;
 
   // Parse combo tokens into buttons bitfield (tokens seperated by any
@@ -316,7 +328,7 @@ int WinKeyInputDriver::ParseButtonCombination(const char* combo) {
   for (size_t i = 0; i < len; i++) {
     char c = combo[i];
 
-    if (!isalpha(c) && c != '-') {
+    if (!isalpha(c) && !isdigit(c) && c != '-') {
       if (cur_token.length() && kXInputButtons.count(cur_token))
         retval |= kXInputButtons.at(cur_token);
 
@@ -349,8 +361,8 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
   uint32_t prev_title_id = 0;
   std::string cur_type = "Default";
 
-  std::map<ui::VirtualKey, uint32_t> cur_binds;
-  std::map<std::string, std::map<ui::VirtualKey, uint32_t>> cur_title_binds;
+  std::map<ui::VirtualKey, uint64_t> cur_binds;
+  std::map<std::string, std::map<ui::VirtualKey, uint64_t>> cur_title_binds;
 
   std::string line;
   while (std::getline(binds, line)) {
@@ -453,6 +465,7 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<GearsOfWarsGame>()));
   hookable_games_.push_back(std::move(std::make_unique<DeadRisingGame>()));
   hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
+  hookable_games_.push_back(std::move(std::make_unique<MinecraftGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
@@ -505,6 +518,8 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
   int16_t thumb_rx = 0;
   int16_t thumb_ry = 0;
   bool modifier_pressed = false;
+  bool weapon_switch = false;
+  int weapon = 0;
 
   X_RESULT result = X_ERROR_SUCCESS;
 
@@ -526,7 +541,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
 
     for (int i = 0; i < sizeof(key_states_); i++) {
       if (key_states_[i]) {
-        std::map<ui::VirtualKey, uint32_t> binds;
+        std::map<ui::VirtualKey, uint64_t> binds;
 
         if (key_binds_.find(title_id) == key_binds_.end()) {
           binds = key_binds_.at(0).at("Default");
@@ -590,6 +605,47 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         if (binding & XINPUT_BIND_MODIFIER) {
           modifier_pressed = true;
         }
+
+        if (binding & XINPUT_BIND_WEAPON1) {
+          weapon_switch = true;
+          weapon = 1;
+        }
+        if (binding & XINPUT_BIND_WEAPON2) {
+          weapon_switch = true;
+          weapon = 2;
+        }
+        if (binding & XINPUT_BIND_WEAPON3) {
+          weapon_switch = true;
+          weapon = 3;
+        }
+        if (binding & XINPUT_BIND_WEAPON4) {
+          weapon_switch = true;
+          weapon = 4;
+        }
+        if (binding & XINPUT_BIND_WEAPON5) {
+          weapon_switch = true;
+          weapon = 5;
+        }
+        if (binding & XINPUT_BIND_WEAPON6) {
+          weapon_switch = true;
+          weapon = 6;
+        }
+        if (binding & XINPUT_BIND_WEAPON7) {
+          weapon_switch = true;
+          weapon = 7;
+        }
+        if (binding & XINPUT_BIND_WEAPON8) {
+          weapon_switch = true;
+          weapon = 8;
+        }
+        if (binding & XINPUT_BIND_WEAPON9) {
+          weapon_switch = true;
+          weapon = 9;
+        }
+        if (binding & XINPUT_BIND_WEAPON10) {
+          weapon_switch = true;
+          weapon = 10;
+        }
       }
     }
   }
@@ -612,6 +668,10 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         if (modifier_pressed) {
           game_modifier_handled =
               game->ModifierKeyHandler(user_index, state, out_state);
+        }
+        if (weapon_switch) {
+          game->WeaponSwitchHandler(user_index, state, out_state, weapon,
+                                    buttons);
         }
         break;
       }
