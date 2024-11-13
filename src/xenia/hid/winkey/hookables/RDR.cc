@@ -845,6 +845,12 @@ bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
     out_state->gamepad.buttons = buttons;
   return true;
 }
+
+void RedDeadRedemptionGame::WeaponSwitchHandler(uint32_t user_index,
+                                                RawInputState& input_state,
+                                                X_INPUT_STATE* out_state,
+                                                int weapon, uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
