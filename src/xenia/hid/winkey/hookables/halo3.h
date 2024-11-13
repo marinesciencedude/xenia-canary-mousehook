@@ -55,6 +55,9 @@ class Halo3Game : public HookableGame {
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
+  void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
+                           X_INPUT_STATE* out_state, int weapon,
+                           uint16_t buttons);
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;

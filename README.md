@@ -40,10 +40,11 @@ This is a fork of [emoose's Xenia build](https://github.com/emoose/xenia) as ori
 | Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" |
 | Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 |
 | Wolfenstein | Singleplayer TU0 |
-| Gears Of Wars 1 | TU0/TU5 |
-| Gears Of Wars 2 | TU0/TU6 |
-| Gears Of Wars 3 | TU0/TU6 |
-| Gears Of Wars Judgement | TU0/TU4|
+| Gears Of War 1 | TU0/TU5 |
+| Gears Of War 2 | TU0/TU6 |
+| Gears Of War 3 | TU0/TU6 |
+| Gears Of War Judgement | TU0/TU4|
+| Minecraft | TU75 (1.0.80) |
 
 ### [Netplay Mousehook](https://github.com/marinesciencedude/xenia-canary-mousehook/tree/netplay_canary_experimental)
 
