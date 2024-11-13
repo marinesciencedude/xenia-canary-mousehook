@@ -180,6 +180,10 @@ bool Halo3Game::ModifierKeyHandler(uint32_t user_index,
   return false;
 }
 
+void Halo3Game::WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
+                           X_INPUT_STATE* out_state, int weapon,
+                           uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
