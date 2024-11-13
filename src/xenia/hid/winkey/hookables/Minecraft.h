@@ -1,42 +1,30 @@
-#pragma once
 /**
  ******************************************************************************
  * Xenia : Xbox 360 Emulator Research Project                                 *
  ******************************************************************************
- * Copyright 2023 Ben Vanik. All rights reserved.                             *
+ * Copyright 2013 Ben Vanik. All rights reserved.                             *
  * Released under the BSD license - see LICENSE in the root for more details. *
  ******************************************************************************
  */
 
-#ifndef XENIA_HID_WINKEY_SaintsRow1_H_
-#define XENIA_HID_WINKEY_SaintsRow1_H_
-#include <chrono>  // Include for chrono timing
+#ifndef XENIA_HID_WINKEY_MINECRAFT_H_
+#define XENIA_HID_WINKEY_MINECRAFT_H_
+
 #include "xenia/hid/winkey/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
 namespace winkey {
 
-class SaintsRow1Game : public HookableGame {
+class MinecraftGame : public HookableGame {
  public:
-  enum class GameBuild { Unknown, SaintsRow1_TU1 };
+  enum class GameBuild { Unknown, TU75 };
 
-  ~SaintsRow1Game() override;
+  ~MinecraftGame() override;
 
   bool IsGameSupported();
-
-  float RadianstoDegree(float radians);
-  float DegreetoRadians(float degree);
-
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
-  void FixHavokFrameTime(float frametime);
-  bool isTervelPlugin();
-  bool inFirstPerson();
-  bool isPaused();
-  void WeaponWheelScrollWheel(RawInputState& input_state);
-  bool inMapScreen();
-  void MapCursor(RawInputState& input_state);
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
@@ -46,16 +34,10 @@ class SaintsRow1Game : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
-  // Timer variables to hold the state for a while // this is probably not ideal
-  // -Clippy95
-  std::chrono::steady_clock::time_point last_movement_time_x_;
-  std::chrono::steady_clock::time_point last_movement_time_y_;
-  uint8_t tervelplugin_status;
-  uint8_t* wheel_status;
 };
 
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
 
-#endif  // XENIA_HID_WINKEY_SaintsRow1_H_
+#endif  // XENIA_HID_WINKEY_MINECRAFT_H_
