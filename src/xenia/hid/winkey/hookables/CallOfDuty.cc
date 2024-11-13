@@ -321,6 +321,12 @@ bool CallOfDutyGame::ModifierKeyHandler(uint32_t user_index,
     return false;
   }
 }
+
+void CallOfDutyGame::WeaponSwitchHandler(uint32_t user_index,
+                                         RawInputState& input_state,
+                                         X_INPUT_STATE* out_state, int weapon,
+                                         uint16_t buttons) {}
+
 bool CallOfDutyGame::Dvar_GetBool(std::string dvar, uint32_t dvar_address) {
   XThread* current_thread = XThread::GetCurrentThread();
 
