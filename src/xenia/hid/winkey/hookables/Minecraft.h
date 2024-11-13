@@ -18,7 +18,7 @@ namespace winkey {
 
 class MinecraftGame : public HookableGame {
  public:
-  enum class GameBuild { Unknown, TU75 };
+  enum class GameBuild { Unknown, TU0, TU4, TU18, TU75 };
 
   ~MinecraftGame() override;
 
