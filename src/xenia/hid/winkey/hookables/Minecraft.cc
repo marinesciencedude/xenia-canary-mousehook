@@ -17,6 +17,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(menu_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
@@ -242,11 +243,11 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
           float inventoryX = *inventoryX_ptr;
           float inventoryY = *inventoryY_ptr;
 
-          inventoryX +=
-              (((float)input_state.mouse.x_delta)) * (float)cvars::sensitivity;
+          inventoryX += (((float)input_state.mouse.x_delta)) *
+                        ((float)cvars::menu_sensitivity * 2.f);
 
-          inventoryY +=
-              (((float)input_state.mouse.y_delta)) * (float)cvars::sensitivity;
+          inventoryY += (((float)input_state.mouse.y_delta)) *
+                        ((float)cvars::menu_sensitivity * 2.f);
 
           // Values are for edges of 16:9.
           inventoryX = std::clamp(inventoryX, -412.f, 846.f);
@@ -333,26 +334,8 @@ void MinecraftGame::WeaponSwitchHandler(uint32_t user_index,
   auto* hotbar_selection =
       multi_pointer(supported_builds[game_build_].hotbar_base_addr,
                     supported_builds[game_build_].hotbar_offsets);
-  if (hotbar_selection) {
-    if (weapon == 1) {
-      *hotbar_selection = 0;
-    } else if (weapon == 2) {
-      *hotbar_selection = 1;
-    } else if (weapon == 3) {
-      *hotbar_selection = 2;
-    } else if (weapon == 4) {
-      *hotbar_selection = 3;
-    } else if (weapon == 5) {
-      *hotbar_selection = 4;
-    } else if (weapon == 6) {
-      *hotbar_selection = 5;
-    } else if (weapon == 7) {
-      *hotbar_selection = 6;
-    } else if (weapon == 8) {
-      *hotbar_selection = 7;
-    } else if (weapon == 9) {
-      *hotbar_selection = 8;
-    }
+  if (hotbar_selection && (*hotbar_selection != weapon - 1)) {
+    *hotbar_selection = std::clamp(weapon - 1, 0, 8);
   }
 }
 
