@@ -17,6 +17,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(menu_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
@@ -63,13 +64,15 @@ struct GameBuildAddrs {
 
   uint32_t hotbar_base_addr;
   std::vector<uint32_t> hotbar_offsets;
+  uint32_t player_status_addr;
+  uint32_t player_status_offset;
 };
 
 std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
     {MinecraftGame::GameBuild::Unknown,
-     {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, {}}},
+     {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},   NULL,
+      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL, NULL, NULL, {},   NULL, NULL}},
     {MinecraftGame::GameBuild::TU0,
      {"1.0", 0x82A158E0, {0x4, 0x4, 0x20, 0x18, 0x28, 0x30},
       0x88,  0x8C,       NULL,
@@ -80,20 +83,22 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL,  NULL,       NULL,
       NULL,  NULL,       NULL,
       NULL,  NULL,       NULL,
-      NULL,  NULL,       {}}},
+      NULL,  NULL,       {},
+      NULL,  NULL}},
     {MinecraftGame::GameBuild::TU4,
-        {"1.0.4", 0x82A810BC, {0x4, 0x4, 0x20, 0x18, 0x28, 0x30},
-         0x88,    0x8C,       NULL,
-         NULL,    {},         NULL,
-         {},      NULL,       NULL,
-         NULL,    NULL,       NULL,
-         NULL,    NULL,       NULL,
-         NULL,    NULL,       NULL,
-         NULL,    NULL,       NULL,
-         NULL,    NULL,       NULL,
-         NULL,    NULL,       {}}}
+     {"1.0.4", 0x82A810BC, {0x4, 0x4, 0x20, 0x18, 0x28, 0x30},
+      0x88,    0x8C,       NULL,
+      NULL,    {},         NULL,
+      {},      NULL,       NULL,
+      NULL,    NULL,       NULL,
+      NULL,    NULL,       NULL,
+      NULL,    NULL,       NULL,
+      NULL,    NULL,       NULL,
+      NULL,    NULL,       NULL,
+      NULL,    NULL,       {},
+      NULL,    NULL}},
     {MinecraftGame::GameBuild::TU18,
-     {"1.0.21",     0x828FE758,
+     {"1.0.21",   0x828FE758,
       {0x30},     0x80,
       0x84,       NULL,
       NULL,       {},
@@ -107,7 +112,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL,       NULL,
       NULL,       NULL,
       NULL,       NULL,
-      NULL,       {}}},
+      NULL,       {},
+      NULL,       NULL}},
     {MinecraftGame::GameBuild::TU75, {"1.0.80",   0x82C8518C,
                                       {0x38},     0x148,
                                       0x14C,      0x82C84986,
@@ -122,7 +128,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
                                       0x2390,     0x2394,
                                       0x1A48,     0x1A4C,
                                       0x25FC,     0x2600,
-                                      0x82CCDB90, {0x34, 0x5F8, 0x6C}}}};
+                                      0x82CCDB90, {0x34, 0x5F8, 0x6C},
+                                      0x82CE4D44, 0x1EC}}};
 
 bool MinecraftGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
@@ -161,91 +168,97 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto* inventory_flag_ptr =
       multi_pointer(supported_builds[game_build_].inventory_flag_base,
                     supported_builds[game_build_].inventory_flag_offsets);
+  auto* inventory_ptr =
+      multi_pointer(supported_builds[game_build_].inventory_base_addr,
+                    supported_builds[game_build_].inventory_base_offsets);
+  invopen = false;
   if (inventory_flag_ptr) {
-    if (*inventory_flag_ptr) {
-      uint32_t x_offset;
-      uint32_t y_offset;
+    if (inventory_ptr && *inventory_ptr)
+      if (*inventory_flag_ptr) {
+        uint32_t x_offset;
+        uint32_t y_offset;
+        invopen = true;
+        switch (*inventory_flag_ptr) {
+          case 1: {
+            x_offset = supported_builds[game_build_].inventory_x_offset;
+            y_offset = supported_builds[game_build_].inventory_y_offset;
+            break;
+          }
+          case 37: {
+            x_offset = supported_builds[game_build_].workbench_x_offset;
+            y_offset = supported_builds[game_build_].workbench_y_offset;
+            break;
+          }
+          case 4: {
+            x_offset = supported_builds[game_build_].furnace_x_offset;
+            y_offset = supported_builds[game_build_].furnace_y_offset;
+            break;
+          }
+          case 10:  // normal/trapped/ender chests
+          case 11:  // dispenser/dropper
+          case 32:  // hopper
+          {
+            x_offset = supported_builds[game_build_].chest_x_offset;
+            y_offset = supported_builds[game_build_].chest_y_offset;
+            break;
+          }
+          case 27: {
+            x_offset = supported_builds[game_build_].anvil_x_offset;
+            y_offset = supported_builds[game_build_].anvil_y_offset;
+            break;
+          }
+          case 20: {
+            x_offset = supported_builds[game_build_].enchanting_x_offset;
+            y_offset = supported_builds[game_build_].enchanting_y_offset;
+            break;
+          }
+          case 18: {
+            x_offset = supported_builds[game_build_].brewing_x_offset;
+            y_offset = supported_builds[game_build_].brewing_y_offset;
+            break;
+          }
+          case 34: {
+            x_offset = supported_builds[game_build_].beacon_x_offset;
+            y_offset = supported_builds[game_build_].beacon_y_offset;
+            break;
+          }
+          case 14: {
+            x_offset = supported_builds[game_build_].creative_x_offset;
+            y_offset = supported_builds[game_build_].creative_y_offset;
+            break;
+          }
+          default:  // sometimes we need to check if offsets are being set at
+                    // all to make sure it doesn't crash when re-entering games
+            return false;
+        }
 
-      switch (*inventory_flag_ptr) {
-        case 1: {
-          x_offset = supported_builds[game_build_].inventory_x_offset;
-          y_offset = supported_builds[game_build_].inventory_y_offset;
-          break;
+        if (*inventory_ptr) {
+          auto* inventoryX_ptr =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(*inventory_ptr +
+                                                                x_offset);
+          auto* inventoryY_ptr =
+              kernel_memory()->TranslateVirtual<xe::be<float>*>(*inventory_ptr +
+                                                                y_offset);
+
+          float inventoryX = *inventoryX_ptr;
+          float inventoryY = *inventoryY_ptr;
+
+          inventoryX += (((float)input_state.mouse.x_delta)) *
+                        ((float)cvars::menu_sensitivity * 2.f);
+
+          inventoryY += (((float)input_state.mouse.y_delta)) *
+                        ((float)cvars::menu_sensitivity * 2.f);
+
+          // Values are for edges of 16:9.
+          inventoryX = std::clamp(inventoryX, -412.f, 846.f);
+          inventoryY = std::clamp(inventoryY, -130.f, 566.f);
+
+          *inventoryX_ptr = inventoryX;
+          *inventoryY_ptr = inventoryY;
+
+          return true;
         }
-        case 37: {
-          x_offset = supported_builds[game_build_].workbench_x_offset;
-          y_offset = supported_builds[game_build_].workbench_y_offset;
-          break;
-        }
-        case 4: {
-          x_offset = supported_builds[game_build_].furnace_x_offset;
-          y_offset = supported_builds[game_build_].furnace_y_offset;
-          break;
-        }
-        case 10:  // normal/trapped/ender chests
-        case 11:  // dispenser/dropper
-        case 32:  // hopper
-        {
-          x_offset = supported_builds[game_build_].chest_x_offset;
-          y_offset = supported_builds[game_build_].chest_y_offset;
-          break;
-        }
-        case 27: {
-          x_offset = supported_builds[game_build_].anvil_x_offset;
-          y_offset = supported_builds[game_build_].anvil_y_offset;
-          break;
-        }
-        case 20: {
-          x_offset = supported_builds[game_build_].enchanting_x_offset;
-          y_offset = supported_builds[game_build_].enchanting_y_offset;
-          break;
-        }
-        case 18: {
-          x_offset = supported_builds[game_build_].brewing_x_offset;
-          y_offset = supported_builds[game_build_].brewing_y_offset;
-          break;
-        }
-        case 34: {
-          x_offset = supported_builds[game_build_].beacon_x_offset;
-          y_offset = supported_builds[game_build_].beacon_y_offset;
-          break;
-        }
-        case 14: {
-          x_offset = supported_builds[game_build_].creative_x_offset;
-          y_offset = supported_builds[game_build_].creative_y_offset;
-          break;
-        }
-        default:  // sometimes we need to check if offsets are being set at all
-                  // to make sure it doesn't crash when re-entering games
-          return false;
       }
-
-      auto* inventory_ptr =
-          multi_pointer(supported_builds[game_build_].inventory_base_addr,
-                        supported_builds[game_build_].inventory_base_offsets);
-      if (*inventory_ptr) {
-        auto* inventoryX_ptr =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(*inventory_ptr +
-                                                              x_offset);
-        auto* inventoryY_ptr =
-            kernel_memory()->TranslateVirtual<xe::be<float>*>(*inventory_ptr +
-                                                              y_offset);
-
-        float inventoryX = *inventoryX_ptr;
-        float inventoryY = *inventoryY_ptr;
-
-        inventoryX +=
-            (((float)input_state.mouse.x_delta)) * (float)cvars::sensitivity;
-
-        inventoryY +=
-            (((float)input_state.mouse.y_delta)) * (float)cvars::sensitivity;
-
-        *inventoryX_ptr = inventoryX;
-        *inventoryY_ptr = inventoryY;
-
-        return true;
-      }
-    }
   }
 
   auto* input_base_addr =
@@ -258,6 +271,14 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     auto* player_cam_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         *input_base_addr + supported_builds[game_build_].camera_y_offset);
 
+    auto* player_disabled_addr =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].player_status_addr);
+
+    auto* player_disabled = kernel_memory()->TranslateVirtual<uint8_t*>(
+        *player_disabled_addr +
+        supported_builds[game_build_].player_status_offset);
+    if (*player_disabled == 1) return false;
     // Have to do weird things converting it to normal float otherwise
     // xe::be += treats things as int?
     float camX = (float)*player_cam_x;
@@ -295,14 +316,7 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 }
 
 std::string MinecraftGame::ChooseBinds() {
-  auto* inventory_flag_ptr =
-      multi_pointer(supported_builds[game_build_].inventory_flag_base,
-                    supported_builds[game_build_].inventory_flag_offsets);
-  if (inventory_flag_ptr) {
-    if (*inventory_flag_ptr) {
-      return "Inventory";
-    }
-  }
+  if (invopen) return "Inventory";
 
   return "Default";
 }
@@ -320,26 +334,8 @@ void MinecraftGame::WeaponSwitchHandler(uint32_t user_index,
   auto* hotbar_selection =
       multi_pointer(supported_builds[game_build_].hotbar_base_addr,
                     supported_builds[game_build_].hotbar_offsets);
-  if (hotbar_selection) {
-    if (weapon == 1) {
-      *hotbar_selection = 0;
-    } else if (weapon == 2) {
-      *hotbar_selection = 1;
-    } else if (weapon == 3) {
-      *hotbar_selection = 2;
-    } else if (weapon == 4) {
-      *hotbar_selection = 3;
-    } else if (weapon == 5) {
-      *hotbar_selection = 4;
-    } else if (weapon == 6) {
-      *hotbar_selection = 5;
-    } else if (weapon == 7) {
-      *hotbar_selection = 6;
-    } else if (weapon == 8) {
-      *hotbar_selection = 7;
-    } else if (weapon == 9) {
-      *hotbar_selection = 8;
-    }
+  if (hotbar_selection && (*hotbar_selection != weapon - 1)) {
+    *hotbar_selection = std::clamp(weapon - 1, 0, 8);
   }
 }
 
