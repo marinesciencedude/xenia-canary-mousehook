@@ -34,6 +34,7 @@ class MinecraftGame : public HookableGame {
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
+  bool invopen;
 };
 
 }  // namespace winkey
