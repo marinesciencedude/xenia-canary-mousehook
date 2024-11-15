@@ -63,13 +63,15 @@ struct GameBuildAddrs {
 
   uint32_t hotbar_base_addr;
   std::vector<uint32_t> hotbar_offsets;
+  uint32_t player_status_addr;
+  uint32_t player_status_offset;
 };
 
 std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
     {MinecraftGame::GameBuild::Unknown,
-     {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, {}}},
+     {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},   NULL,
+      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+      NULL, NULL, NULL, NULL, NULL, NULL, NULL, {},   NULL, NULL}},
     {MinecraftGame::GameBuild::TU0,
      {"1.0", 0x82A158E0, {0x4, 0x4, 0x20, 0x18, 0x28, 0x30},
       0x88,  0x8C,       NULL,
@@ -80,7 +82,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL,  NULL,       NULL,
       NULL,  NULL,       NULL,
       NULL,  NULL,       NULL,
-      NULL,  NULL,       {}}},
+      NULL,  NULL,       {},
+      NULL,  NULL}},
     {MinecraftGame::GameBuild::TU4,
      {"1.0.4", 0x82A810BC, {0x4, 0x4, 0x20, 0x18, 0x28, 0x30},
       0x88,    0x8C,       NULL,
@@ -91,7 +94,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL,    NULL,       NULL,
       NULL,    NULL,       NULL,
       NULL,    NULL,       NULL,
-      NULL,    NULL,       {}}},
+      NULL,    NULL,       {},
+      NULL,    NULL}},
     {MinecraftGame::GameBuild::TU18,
      {"1.0.21",   0x828FE758,
       {0x30},     0x80,
@@ -107,7 +111,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
       NULL,       NULL,
       NULL,       NULL,
       NULL,       NULL,
-      NULL,       {}}},
+      NULL,       {},
+      NULL,       NULL}},
     {MinecraftGame::GameBuild::TU75, {"1.0.80",   0x82C8518C,
                                       {0x38},     0x148,
                                       0x14C,      0x82C84986,
@@ -122,7 +127,8 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
                                       0x2390,     0x2394,
                                       0x1A48,     0x1A4C,
                                       0x25FC,     0x2600,
-                                      0x82CCDB90, {0x34, 0x5F8, 0x6C}}}};
+                                      0x82CCDB90, {0x34, 0x5F8, 0x6C},
+                                      0x82CE4D44, 0x1EC}}};
 
 bool MinecraftGame::IsGameSupported() {
   auto title_id = kernel_state()->title_id();
@@ -264,6 +270,14 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     auto* player_cam_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         *input_base_addr + supported_builds[game_build_].camera_y_offset);
 
+    auto* player_disabled_addr =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].player_status_addr);
+
+    auto* player_disabled = kernel_memory()->TranslateVirtual<uint8_t*>(
+        *player_disabled_addr +
+        supported_builds[game_build_].player_status_offset);
+    if (*player_disabled == 1) return false;
     // Have to do weird things converting it to normal float otherwise
     // xe::be += treats things as int?
     float camX = (float)*player_cam_x;
