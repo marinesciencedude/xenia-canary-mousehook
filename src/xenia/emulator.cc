@@ -83,9 +83,10 @@ DEFINE_bool(ge_remove_blur, false,
 DEFINE_bool(ge_debug_menu, false,
             "(GoldenEye) Enables the debug menu, accessible with LB/1",
             "MouseHook");
-DEFINE_bool(sr2_better_drive_cam, true,
-            "(Saints Row 2) unties X rotation from vehicles when "
-            "auto-centering is disabled akin to GTA IV.",
+DEFINE_bool(sr_better_drive_cam, true,
+            "(Saints Row 1&2) unties X rotation from vehicles when "
+            "auto-centering is disabled, this makes the camera similar to the "
+            "GTA series vehicle camera.",
             "MouseHook");
 
 DEFINE_bool(sr2_better_handbrake_cam, true,
@@ -115,6 +116,12 @@ DECLARE_int32(user_language);
 DECLARE_bool(allow_plugins);
 DECLARE_bool(disable_autoaim);
 
+DEFINE_int32(priority_class, 0,
+             "Forces Xenia to use different process priority than default one. "
+             "It might affect performance and cause unexpected bugs. Possible "
+             "values: 0 - Normal, 1 - Above normal, 2 - High",
+             "General");
+
 namespace xe {
 using namespace xe::literals;
 
@@ -143,6 +150,7 @@ Emulator::Emulator(const std::filesystem::path& command_line,
       display_window_(nullptr),
       memory_(),
       audio_system_(),
+      audio_media_player_(),
       graphics_system_(),
       input_system_(),
       export_resolver_(),
@@ -154,6 +162,13 @@ Emulator::Emulator(const std::filesystem::path& command_line,
       paused_(false),
       restoring_(false),
       restore_fence_() {
+  if (cvars::priority_class != 0) {
+    if (SetProcessPriorityClass(cvars::priority_class)) {
+      XELOGI("Higher priority class request: Successful. New priority: {}",
+             cvars::priority_class);
+    }
+  }
+
 #if XE_PLATFORM_WIN32 == 1
   // Show a disclaimer that links to the quickstart
   // guide the first time they ever open the emulator
@@ -192,6 +207,7 @@ Emulator::~Emulator() {
   input_system_.reset();
   graphics_system_.reset();
   audio_system_.reset();
+  audio_media_player_.reset();
 
   kernel_state_.reset();
   file_system_.reset();
@@ -327,6 +343,9 @@ X_STATUS Emulator::Setup(
     if (result) {
       return result;
     }
+    audio_media_player_ = std::make_unique<apu::AudioMediaPlayer>(
+        audio_system_.get(), kernel_state_.get());
+    audio_media_player_->Setup();
   }
 
   // Initialize emulator fallback exception handling last.
@@ -1563,8 +1582,10 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         0xD19F16A4,  // stfs      f12, 0x16A4(r31)
         0xD19F1690,  // stfs      f12, 0x1690(r31)
         0xD15F1694,  // stfs      f10, 0x1694(r31)
-        0xD0FF0CFC,  // stfs      f7, 0xCFC(r31)
-        0xD0BF0D00   // stfs      f5, 0xD00(r31)
+        0xD0FF0CFC,  // stfs      f7, 0xCFC(r31) // Right gun x
+        0xD0BF0D00,  // stfs      f5, 0xD00(r31) // Right gun y
+        0xD07F14A0,  // stfs      f3, 0x14A0(r31) // Left gun x
+        0xD05F14A4   // stfs      f2, 0x14A4(r31) // Left gun y
     };
 
     int patched = 0;
@@ -1830,7 +1851,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       patch_addr(build.multiplierread_addr5, build.zero_patch1);
       patch_addr(build.sensYvalue_addr1, build.zero_patch1);
       patch_addr(build.sensXvalue_addr2, build.zero_patch1);
-      if (cvars::sr2_better_drive_cam && build.Vehicle_RotationXWrite_addr1) {
+      if (cvars::sr_better_drive_cam && build.Vehicle_RotationXWrite_addr1) {
         patch_addr(build.Vehicle_RotationXWrite_addr1, build.beNOP);
       }
 
@@ -2045,6 +2066,17 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
           patch_addr(build.lockon_address, patch_value);
         }
 
+        break;
+      }
+    }
+  }
+
+  if (module->title_id() == 0x584111F7) {  // Minecraft - Prevent game from
+                                           // writing to inventory cursor
+    std::map<std::string, uint32_t> supported_builds = {{"1.0.80", 0x827594EC}};
+    for (auto& build : supported_builds) {
+      if (build.first == title_version_) {
+        patch_addr(build.second, 0x60000000);
         break;
       }
     }
