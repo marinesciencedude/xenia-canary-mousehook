@@ -561,7 +561,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         const auto vk_key = static_cast<ui::VirtualKey>(i);
 
         if (!binds.count(vk_key)) {
-          break;
+          continue;
         }
 
         const auto binding = binds.at(vk_key);
