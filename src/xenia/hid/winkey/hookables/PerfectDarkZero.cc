@@ -238,30 +238,41 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       if (input_state.mouse.x_delta || input_state.mouse.y_delta) {
         if (!cvars::invert_x) {
           gun_x_val +=
-              ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
+              ((float)input_state.mouse.x_delta / (20.f * fovscale_l)) *
               (float)cvars::sensitivity;
         } else {
           gun_x_val -=
-              ((float)input_state.mouse.x_delta / (10.f * fovscale_l)) *
+              ((float)input_state.mouse.x_delta / (20.f * fovscale_l)) *
               (float)cvars::sensitivity;
         }
 
         if (!cvars::invert_y) {
           gun_y_val +=
-              ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
+              ((float)input_state.mouse.y_delta / (20.f * fovscale_l)) *
               (float)cvars::sensitivity;
         } else {
           gun_y_val -=
-              ((float)input_state.mouse.y_delta / (10.f * fovscale_l)) *
+              ((float)input_state.mouse.y_delta / (20.f * fovscale_l)) *
               (float)cvars::sensitivity;
         }
 
         // Bound the gun sway movement within a range to prevent excessive
         // movement
-        gun_x_val = std::min(gun_x_val, 2.5f);
-        gun_x_val = std::max(gun_x_val, -2.5f);
-        gun_y_val = std::min(gun_y_val, 2.5f);
-        gun_y_val = std::max(gun_y_val, -2.5f);
+        float x_limit = 6.6f;
+        float y_limit = 1.8f;
+        xe::be<float>* gun_zoom =
+            kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                *base_address +
+                0x1910);  // unneeded but we're using this as our aim check.
+        if ((fovscale_l >= 1.05f) && *gun_zoom > 0.f) {
+          x_limit /= (fovscale_l * 2.5f);
+          y_limit /= (fovscale_l * 2.5f);
+        }
+
+        gun_x_val = std::min(gun_x_val, x_limit);
+        gun_x_val = std::max(gun_x_val, -x_limit);
+        gun_y_val = std::min(gun_y_val, y_limit);
+        gun_y_val = std::max(gun_y_val, -y_limit);
 
         // Set centering and disable sway flags
         start_centering_ = true;
