@@ -648,6 +648,12 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         }
       }
     }
+  } else {  // So keys don't get 'stuck' if they were held previously when
+            // tabbing in and out from the window
+    for (auto& state : key_states_) {
+      state = false;
+    }
+    mouse_events_ = {};
   }
 
   out_state->packet_number = packet_number_;
