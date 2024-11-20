@@ -282,6 +282,8 @@ class Window {
   // by the implementation (including from SetFullscreen itself).
   bool IsFullscreen() const { return fullscreen_; }
   void SetFullscreen(bool new_fullscreen);
+  bool IsMousehooklockingcursor() const { return mousehook_cursorlock; }
+  void Mousehook_lockcursor();
 
   // Desired state stored by the common Window, externally modifiable, read-only
   // in the implementation.
@@ -528,6 +530,9 @@ class Window {
   // closed window is always assumed to be not in focus).
   virtual void FocusImpl() {}
 
+  virtual void ToggleCursorLock(bool lock,
+                                bool mousehook_windowed_boundslimit = false) {}
+
   Presenter* presenter() const { return presenter_; }
   bool HasSurface() const { return presenter_surface_ != nullptr; }
   // If new_surface_potentially_exists is false, creation of the new surface for
@@ -706,6 +711,7 @@ class Window {
 
   bool fullscreen_ = false;
 
+  bool mousehook_cursorlock = false;
   std::string title_;
 
   std::unique_ptr<MenuItem> main_menu_;

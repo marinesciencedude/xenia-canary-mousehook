@@ -42,7 +42,8 @@ class Win32Window : public Window {
  protected:
   bool OpenImpl() override;
   void RequestCloseImpl() override;
-
+  void ToggleCursorLock(bool lock,
+                        bool mousehook_windowed_boundslimit = false) override;
   uint32_t GetLatestDpiImpl() const override;
 
   void ApplyNewFullscreen() override;
@@ -96,7 +97,6 @@ class Win32Window : public Window {
   static LRESULT CALLBACK WndProcThunk(HWND hWnd, UINT message, WPARAM wParam,
                                        LPARAM lParam);
 
-  void ToggleCursorLock(bool lock);
   // This can't handle messages sent during CreateWindow (hwnd_ still not
   // assigned to) or after nulling hwnd_ in closing / deleting.
   virtual LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam,

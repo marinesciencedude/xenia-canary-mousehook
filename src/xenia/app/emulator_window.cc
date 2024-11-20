@@ -868,6 +868,16 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     case ui::VirtualKey::kF6: {
       ToggleDisplayConfigDialog();
     } break;
+#ifdef RELEASE
+    case ui::VirtualKey::kF7: {
+      Mousehook_windowedcursor();
+    } break;
+#endif
+#ifdef DEBUG
+    case ui::VirtualKey::kHome: {
+      Mousehook_windowedcursor();
+    } break;
+#endif
     case ui::VirtualKey::kF11: {
       ToggleFullscreen();
     } break;
@@ -1387,13 +1397,32 @@ void EmulatorWindow::SetFullscreen(bool fullscreen) {
     return;
   }
   window_->SetFullscreen(fullscreen);
-  window_->SetCursorVisibility(fullscreen
-                                   ? ui::Window::CursorVisibility::kHidden
-                                   : ui::Window::CursorVisibility::kVisible);
+  if (!isMousehookcursorlocked())
+    window_->SetCursorVisibility(fullscreen
+                                     ? ui::Window::CursorVisibility::kHidden
+                                     : ui::Window::CursorVisibility::kVisible);
 }
 
 void EmulatorWindow::ToggleFullscreen() {
   SetFullscreen(!window_->IsFullscreen());
+}
+
+void EmulatorWindow::Mousehook_windowedcursor() {
+  if (!window_->IsFullscreen()) {
+    mousehook_cursorlock = !mousehook_cursorlock;
+    // Call ToggleCursorLock.
+    // win32_window->ToggleCursorLock(mousehook_cursorlock);
+    window_->Mousehook_lockcursor();
+    std::string notificationTitle = "Mousehook: Lock Cursor For Windowed Mode";
+    std::string notificationDesc =
+        window_->IsMousehooklockingcursor() ? "Enabled" : "Disabled";
+    if (!notificationTitle.empty()) {
+      app_context_.CallInUIThread([&]() {
+        new xe::ui::HostNotificationWindow(imgui_drawer(), notificationTitle,
+                                           notificationDesc, 0);
+      });
+    }
+  }
 }
 
 void EmulatorWindow::ToggleDisplayConfigDialog() {
