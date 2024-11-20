@@ -868,7 +868,7 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
     case ui::VirtualKey::kF6: {
       ToggleDisplayConfigDialog();
     } break;
-#ifdef RELEASE
+#ifdef NDEBUG
     case ui::VirtualKey::kF7: {
       Mousehook_windowedcursor();
     } break;
