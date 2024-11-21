@@ -1476,7 +1476,9 @@ void Win32Window::ToggleCursorLock(bool lock,
       int height = bounds.bottom - bounds.top;
 
       // Maybe shrink more depending on DPI scaling?
-      const float shrink_percentage = 0.9f;
+      // MOUSEHOOK TODO: if window is too small it'll still hit the title/window
+      // bar
+      const float shrink_percentage = 0.99990f;
 
       int width_reduction = static_cast<int>(width * shrink_percentage);
       int height_reduction = static_cast<int>(height * shrink_percentage);
