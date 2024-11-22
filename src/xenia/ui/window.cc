@@ -237,6 +237,14 @@ bool Window::Open() {
   return true;
 }
 
+void Window::Mousehook_lockcursor() {
+  mousehook_cursorlock = !mousehook_cursorlock;
+  ToggleCursorLock(mousehook_cursorlock, true);
+  SetCursorVisibility(mousehook_cursorlock
+                          ? ui::Window::CursorVisibility::kHidden
+                          : ui::Window::CursorVisibility::kVisible);
+}
+
 void Window::SetFullscreen(bool new_fullscreen) {
   if (fullscreen_ == new_fullscreen) {
     return;
