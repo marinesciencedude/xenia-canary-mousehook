@@ -38,7 +38,7 @@ class PerfectDarkZeroGame : public HookableGame {
 
   bool IsPaused();
 
-  bool InCover();
+  bool isSpecialCam(uint32_t special_cam_flag_offset);
 
   void HandleRightStickEmulation(RawInputState& input_state,
                                  X_INPUT_STATE* out_state);

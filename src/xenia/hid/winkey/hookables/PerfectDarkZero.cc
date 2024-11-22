@@ -42,6 +42,10 @@ struct GameBuildAddrs {
   uint32_t cover_flag_offset;
   uint32_t x_offset;
   uint32_t y_offset;
+  uint32_t turret_flag_offset;
+  uint32_t turret_base_offset;
+  uint32_t turret_x_offset;
+  uint32_t turret_y_offset;
   uint32_t cover_x_offset;
   uint32_t gun_y_offset;  // These in-game are tied to camera, we decouple them
                           // with a patch.
@@ -56,14 +60,17 @@ struct GameBuildAddrs {
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
-     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x16A7, 0x150, 0x1674, 0x1670,
-      0xF9C, 0xFA0, 0x82D68320, 0x82E1B930, 0x820EC228, 0x16A3}},
+     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x16B9, 0x150, 0x1674, 0x16AB,
+      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x82E1B930,
+      0x820EC228, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
-     {"19.09.06.0082", 0x820CD9E0, 0x82D2B758, 0x16A7, 0x150, 0x1674, 0x1670,
-      0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0, 0x820EAF40, 0x16A3}},
+     {"19.09.06.0082", 0x820CD9E0, 0x82D2B758, 0x16B9, 0x150, 0x1674, 0x16AB,
+      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0,
+      0x820EAF40, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
-     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x16A7, 0x150, 0x1674, 0x1670,
-      0xF9C, 0xFA0, 0x82D69048, NULL, 0x820EAF20, 0x16A3}}};
+     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x16B9, 0x150, 0x1674, 0x16AB,
+      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048, NULL, 0x820EAF20,
+      0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -129,16 +136,42 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
   if (!IsPaused()) {
     xe::be<uint32_t> x_address;
-    bool in_cover = InCover();
-
+    xe::be<uint32_t> y_address;
+    bool in_cover =
+        isSpecialCam(supported_builds[game_build_].cover_flag_offset);
+    bool in_turret = false;
+    bool in_turret2 = false;
+    if (supported_builds[game_build_].turret_flag_offset)
+      in_turret =
+          isSpecialCam(supported_builds[game_build_].turret_flag_offset);
     if (!in_cover) {
       x_address = *radians_x_base + supported_builds[game_build_].x_offset;
     } else {
       x_address = *base_address + supported_builds[game_build_].cover_x_offset;
     }
+    y_address = *base_address + supported_builds[game_build_].y_offset;
+    xe::be<uint32_t>* turret_base = NULL;
+    if (in_turret) {
+      xe::be<uint32_t>* turret_base =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              *base_address + supported_builds[game_build_].turret_base_offset);
 
-    xe::be<uint32_t> y_address =
-        *base_address + supported_builds[game_build_].y_offset;
+      if (*turret_base != NULL) {
+        // MOUSEHOOK TODO: use static turret base address instead, currently I
+        // use one the chains from the base address we have but it's points to
+        // something else for a frame or two thus the address check, this makes
+        // it easier to just copy and paste to other versions.
+
+        if (*turret_base && *turret_base >= 0x00100000 &&
+            *turret_base < 0x20000000) {
+          in_turret2 = true;
+          x_address =
+              *turret_base + supported_builds[game_build_].turret_x_offset;
+          y_address =
+              *turret_base + supported_builds[game_build_].turret_y_offset;
+        }
+      }
+    }
 
     xe::be<float>* cam_x =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
@@ -148,15 +181,17 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
     float degree_x, degree_y;
 
-    if (!in_cover) {
+    if (!in_cover || (in_turret2)) {
       // Normal mode: convert radians to degrees
       degree_x = RadianstoDegree(*cam_x);
     } else {
       // Cover mode: X-axis is already in degrees
       degree_x = *cam_x;
     }
-
-    degree_y = (float)*cam_y;
+    if (in_turret2)
+      degree_y = RadianstoDegree(*cam_y);
+    else
+      degree_y = (float)*cam_y;
 
     float set_fov_multiplier = 1.0f;
     static float fovscale_l = 1.0f;
@@ -200,10 +235,10 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                   (float)cvars::sensitivity;
     }
 
-    if (!in_cover) {
+    if (!in_cover || (in_turret2)) {
       *cam_x = DegreetoRadians(
           degree_x);  // Convert degrees back to radians for normal aiming
-    } else {
+    } else if (in_cover) {
       degree_x = std::clamp(degree_x, -68.0f, 68.0f);
       *cam_x = degree_x;  // Directly store degrees for cover aiming
     }
@@ -218,7 +253,10 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                    (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     }
-    *cam_y = degree_y;
+    if (in_turret2)
+      *cam_y = DegreetoRadians(degree_y);
+    else
+      *cam_y = degree_y;
     if (cvars::ge_gun_sway) {
       xe::be<uint32_t> gun_x_address =
           *base_address + supported_builds[game_build_].gun_x_offset;
@@ -325,15 +363,15 @@ bool PerfectDarkZeroGame::IsPaused() {
   }
 }
 
-bool PerfectDarkZeroGame::InCover() {
+bool PerfectDarkZeroGame::isSpecialCam(uint32_t special_cam_flag_offset) {
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
           supported_builds[game_build_].base_address);
 
-  uint8_t* cover_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      *base_address + supported_builds[game_build_].cover_flag_offset);
+  uint8_t* special_cam_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      *base_address + special_cam_flag_offset);
 
-  if (*cover_flag == 1) {
+  if (*special_cam_flag == 1) {
     return true;
   } else {
     return false;
