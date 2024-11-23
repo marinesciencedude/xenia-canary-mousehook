@@ -39,6 +39,7 @@ struct GameBuildAddrs {
   const char* build_string;
   uint32_t build_string_addr;
   uint32_t base_address;
+  uint32_t base_address_multi;
   uint32_t cover_flag_offset;
   uint32_t x_offset;
   uint32_t y_offset;
@@ -60,17 +61,17 @@ struct GameBuildAddrs {
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
-     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x16B9, 0x150, 0x1674, 0x16AB,
-      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x82E1B930,
+     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, NULL, 0x16B9, 0x150, 0x1674,
+      0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D68320, 0x82E1B930,
       0x820EC228, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
-     {"19.09.06.0082", 0x820CD9E0, 0x82D2B758, 0x16B9, 0x150, 0x1674, 0x16AB,
-      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048, 0x82D3EED0,
-      0x820EAF40, 0x16A3}},
+     {"19.09.06.0082", 0x820CD9E0, 0x82E3C3E8, 0x82E34224, 0x16B9, 0x150,
+      0x1674, 0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048,
+      0x82D3EED0, 0x820EAF40, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
-     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x16B9, 0x150, 0x1674, 0x16AB,
-      0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048, NULL, 0x820EAF20,
-      0x16A3}}};
+     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, NULL, 0x16B9, 0x150, 0x1674,
+      0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048, NULL,
+      0x820EAF20, 0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -123,6 +124,21 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
           supported_builds[game_build_].base_address);
+  if (supported_builds[game_build_].base_address_multi != NULL) {
+    // This multi pointer actually holds the LOCAL PLAYER rather than Joanna!
+    // base_address works fine in Missions / Combat Arena but will break for
+    // player2 on coop, player2 will attempt to control Joanna rather than their
+    // own player.
+
+    // Maybe implement sanity check and if fails use our base_address?
+    xe::be<uint32_t>* base_address_multi =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].base_address_multi);
+    if (*base_address_multi != NULL) {
+      base_address = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          *base_address_multi + 0x3C4);
+    }
+  }
 
   xe::be<uint32_t>* radians_x_base =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(*base_address +
@@ -134,16 +150,16 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     return false;
   }
 
-  if (!IsPaused()) {
+  if (!IsPaused(base_address)) {
     xe::be<uint32_t> x_address;
     xe::be<uint32_t> y_address;
-    bool in_cover =
-        isSpecialCam(supported_builds[game_build_].cover_flag_offset);
+    bool in_cover = isSpecialCam(
+        base_address, supported_builds[game_build_].cover_flag_offset);
     bool in_turret = false;
     bool in_turret2 = false;
     if (supported_builds[game_build_].turret_flag_offset)
-      in_turret =
-          isSpecialCam(supported_builds[game_build_].turret_flag_offset);
+      in_turret = isSpecialCam(
+          base_address, supported_builds[game_build_].turret_flag_offset);
     if (!in_cover) {
       x_address = *radians_x_base + supported_builds[game_build_].x_offset;
     } else {
@@ -349,13 +365,9 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
   return true;
 }
 
-bool PerfectDarkZeroGame::IsPaused() {
-  xe::be<uint32_t>* base_address =
-      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].base_address);
-
+bool PerfectDarkZeroGame::IsPaused(xe::be<uint32_t>* player) {
   uint8_t* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      *base_address + supported_builds[game_build_].pause_offset);
+      *player + supported_builds[game_build_].pause_offset);
   if (*pause_flag != 0) {
     return true;
   } else {
@@ -363,13 +375,10 @@ bool PerfectDarkZeroGame::IsPaused() {
   }
 }
 
-bool PerfectDarkZeroGame::isSpecialCam(uint32_t special_cam_flag_offset) {
-  xe::be<uint32_t>* base_address =
-      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].base_address);
-
+bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
+                                       uint32_t special_cam_flag_offset) {
   uint8_t* special_cam_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      *base_address + special_cam_flag_offset);
+      *player + special_cam_flag_offset);
 
   if (*special_cam_flag == 1) {
     return true;

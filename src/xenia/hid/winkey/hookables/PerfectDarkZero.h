@@ -36,9 +36,9 @@ class PerfectDarkZeroGame : public HookableGame {
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
-  bool IsPaused();
+  bool IsPaused(xe::be<uint32_t>* player);
 
-  bool isSpecialCam(uint32_t special_cam_flag_offset);
+  bool isSpecialCam(xe::be<uint32_t>* player, uint32_t special_cam_flag_offset);
 
   void HandleRightStickEmulation(RawInputState& input_state,
                                  X_INPUT_STATE* out_state);
