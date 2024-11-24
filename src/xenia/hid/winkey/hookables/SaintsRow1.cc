@@ -275,7 +275,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     degree_y += delta_y;
     *fine_aim_y = DegreetoRadians(degree_y);
   }
-  if (*wheel_status == 1) WeaponWheelScrollWheel(input_state);
+  WeaponWheelScrollWheel(input_state);
   return true;
 }
 
@@ -355,6 +355,8 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
     slot = slot % 8;
 
     *weapon_slot = static_cast<uint8_t>(slot);
+
+    call_argless_function(0x822AEB78);
   }
 }
 
@@ -409,6 +411,21 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
   *map_zoom_be = map_zoom;
 }
 
+uint64_t SaintsRow1Game::call_argless_function(uint32_t function_address) {
+  XThread* current_thread = XThread::GetCurrentThread();
+
+  if (!current_thread) {
+    return 0;
+  }
+
+  kernel_state()->processor()->Execute(current_thread->thread_state(),
+                                       function_address);
+
+  uint64_t return_value = current_thread->thread_state()->context()->r[3];
+
+  return return_value != 0;
+}
+
 std::string SaintsRow1Game::ChooseBinds() {
   wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_address);
@@ -455,7 +472,14 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
 void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
-                                         uint16_t buttons) {}
+                                         uint16_t buttons) {
+  auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].weapon_wheel_slot_address);
+  if (*weapon_slot && (*weapon_slot != weapon - 1)) {
+    *weapon_slot = std::clamp(weapon - 1, 0, 7);
+    call_argless_function(0x822AEB78);
+  }
+}
 
 }  // namespace winkey
 }  // namespace hid
