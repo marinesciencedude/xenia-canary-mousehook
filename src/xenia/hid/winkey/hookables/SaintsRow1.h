@@ -41,6 +41,8 @@ class SaintsRow1Game : public HookableGame {
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
+  bool isStatus(uint8_t type);
+  void SelectableWeaponsHack();
   void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
@@ -53,6 +55,14 @@ class SaintsRow1Game : public HookableGame {
   std::chrono::steady_clock::time_point last_movement_time_y_;
   uint8_t tervelplugin_status;
   uint8_t* wheel_status;
+  uint32_t player;
+  uint8_t vehicle_status;
+  enum animstatus {
+    JUMPING = 2,
+    PASSANGER = 10,
+    DRIVING = 11,
+
+  };
 };
 
 }  // namespace winkey

@@ -41,6 +41,7 @@ struct GameBuildAddrs {
   uint32_t x_address;
   uint32_t y_address;
   uint32_t fineaim_y_address;
+  uint32_t player_address;
   uint32_t map_x_address;
   uint32_t map_zoom_address;
   uint32_t pause_screen_section_address;
@@ -59,14 +60,18 @@ struct GameBuildAddrs {
                                    // Tervel's sr1fineaim plugin.
 
   uint32_t slow_pan_horizontal_multiplier_address;
+  uint32_t change_weapon_function_addr;
+  uint32_t limit_weapons_function_addr;
+  uint32_t allowable_weapons_melee_array;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1", 0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x835F2B80, 0x827CF9CC,
-      0x835F279B, 0x82932407, 0x8283CA7B, 0x835F2883, 0x835F27A3, 0x835F2684,
-      0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C}}};
+     {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
+      0x827CF9CC, 0x835F279B, 0x82932407, 0x8283CA7B, 0x835F2883, 0x835F27A3,
+      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C,
+      0x822AEB78, 0x822ADC10, 0x827D0484}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -196,11 +201,12 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       }
     }
   }
-
+  WeaponWheelScrollWheel(input_state);
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
        !input_state.mouse.wheel_delta))
     return false;
-
+  player = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].player_address);
   if (inMapScreen()) MapCursor(input_state);
 
   if (isPaused()) return false;
@@ -275,7 +281,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     degree_y += delta_y;
     *fine_aim_y = DegreetoRadians(degree_y);
   }
-  WeaponWheelScrollWheel(input_state);
+
   return true;
 }
 
@@ -341,22 +347,45 @@ bool SaintsRow1Game::isPaused() {
 }
 
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
+  if (player == NULL) return;
+
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
+  xe::be<uint32_t>* current_weapon =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          player + 0xDDC);  // CLIPPY TODO:  use player ptr + 0x914 for this.
+
   if (input_state.mouse.wheel_delta) {
-    int16_t slot = static_cast<int16_t>(*weapon_slot);
+    SelectableWeaponsHack();  // controls if we can use the 4
+                              // un-usable weapons,
+    // 827D0484, 827D04C0, 827D04D4, 827D04E8, calling it here
+    // doesn't work unless we at least open the wheel in a
+    // vehicle once, then it works expect for melees?
+    // call_argless_function(0x822ADD48);
+    int16_t original_slot = static_cast<int16_t>(*weapon_slot);
+    int16_t slot = original_slot;
 
-    // one scroll of the wheel_delta seems to always return 120?
-    if (!cvars::swap_wheel)
-      slot += static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
-    else
-      slot -= static_cast<int16_t>(input_state.mouse.wheel_delta / 120);
+    uint32_t old_weapon = *current_weapon;
+    bool weapon_switched = false;
 
-    slot = slot % 8;
+    int direction = (input_state.mouse.wheel_delta > 0) ? 1 : -1;
 
-    *weapon_slot = static_cast<uint8_t>(slot);
+    for (int attempts = 0; attempts < 8; ++attempts) {
+      slot = (slot + direction + 8) % 8;
 
-    call_argless_function(0x822AEB78);
+      *weapon_slot = static_cast<uint8_t>(slot);
+
+      call_argless_function(supported_builds[game_build_]
+                                .change_weapon_function_addr);  // set weapon
+
+      if (*current_weapon != old_weapon) {
+        weapon_switched = true;
+        break;
+      }
+    }
+    if (!weapon_switched) {
+      *weapon_slot = static_cast<uint8_t>(original_slot);
+    }
   }
 }
 
@@ -431,13 +460,13 @@ std::string SaintsRow1Game::ChooseBinds() {
       supported_builds[game_build_].weapon_wheel_address);
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].menu_status_address);
-  auto* vehicle_status = kernel_memory()->TranslateVirtual<uint8_t*>(
+  vehicle_status = *kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].vehicle_address);
 
   if (*wheel_status == 1 || (menu_status && *menu_status != 2)) {
     return "Default";
   }
-  if (vehicle_status && *vehicle_status == 1) {
+  if (vehicle_status && vehicle_status == 1) {
     return "Vehicle";
   }
 
@@ -469,15 +498,62 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
   return true;
 }
 
+bool SaintsRow1Game::isStatus(uint8_t type) {
+  if (player == NULL) return false;
+  auto* anim_status =
+      kernel_memory()->TranslateVirtual<uint8_t*>(player + 0x1FF);
+
+  if (*anim_status == type)
+    return true;
+  else
+    return false;
+}
+
+void SaintsRow1Game::SelectableWeaponsHack() {
+  call_argless_function(
+      supported_builds[game_build_]
+          .limit_weapons_function_addr);  // Ideally this should have done
+                                          // everything that this function does,
+                                          // but calling it doesn't seem to do
+                                          // the job fully??
+  auto* melee_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].allowable_weapons_melee_array);
+  auto* shotgun_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].allowable_weapons_melee_array + 0x3C);
+  auto* ar_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].allowable_weapons_melee_array + 0x50);
+  auto* rpg_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].allowable_weapons_melee_array + 0x64);
+
+  if (isStatus(animstatus::DRIVING)) {
+    *melee_slot = 1;
+    *shotgun_slot = 1;
+    *ar_slot = 1;
+    *rpg_slot = 1;
+  } else if (isStatus(animstatus::PASSANGER)) {
+    *melee_slot = 1;
+    *shotgun_slot = 0;
+    *ar_slot = 0;
+    *rpg_slot = 0;
+  } else {
+    *melee_slot = 0;
+    *shotgun_slot = 0;
+    *ar_slot = 0;
+    *rpg_slot = 0;
+  }
+}
+
 void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
-  if (*weapon_slot && (*weapon_slot != weapon - 1)) {
+  SelectableWeaponsHack();
+  if (weapon) {
     *weapon_slot = std::clamp(weapon - 1, 0, 7);
-    call_argless_function(0x822AEB78);
+    call_argless_function(
+        supported_builds[game_build_].change_weapon_function_addr);
   }
 }
 
