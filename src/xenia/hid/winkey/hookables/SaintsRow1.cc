@@ -45,6 +45,7 @@ struct GameBuildAddrs {
   uint32_t map_x_address;
   uint32_t map_zoom_address;
   uint32_t pause_screen_section_address;
+  uint32_t map_open_flag_address;
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t weapon_wheel_slot_address;
@@ -69,9 +70,9 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
-      0x827CF9CC, 0x835F279B, 0x82932407, 0x8283CA7B, 0x835F2883, 0x835F27A3,
-      0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C,
-      0x822AEB78, 0x822ADC10, 0x827D0484}}};
+      0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
+      0x835F27A3, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7,
+      0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -111,7 +112,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  // REMOVE THIS FOR RELEASE NEEDS TO BE A PATCH!
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -148,10 +148,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float frametime = *ingame_frametime;
   if (cvars::sr_havok_fix_frametime && !isTervelPlugin())
     FixHavokFrameTime(frametime);
-
-  // float correctFrametime = 1 / *currentFPS;
-
-  //*frametime = correctFrametime * 2;
 
   auto now = std::chrono::steady_clock::now();
   auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -207,9 +203,11 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   player = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
       supported_builds[game_build_].player_address);
-  if (inMapScreen()) MapCursor(input_state);
 
-  if (isPaused()) return false;
+  if (isPaused()) {
+    if (inMapScreen()) MapCursor(input_state);
+    return false;
+  }
   WeaponWheelScrollWheel(input_state);
   xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
@@ -252,8 +250,9 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   // division over 1350 is assuming if frametime is 1/30, this should fix
   // sensitivity fluctuation due to framerate as that's what the game does at
   // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
-  // stuttering might still occur due to framerates, as it's expected each
-  // frame? -= isn't ideal but that's the only way it works. - Clippy95
+  // stuttering might still occur due to framerates, as it's expected to be set
+  // frame? -= isn't the ideal method but doing = causes it be less accurate
+  // somehow. - Clippy95
   if (!cvars::invert_x) {
     degree_x +=
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
@@ -394,7 +393,11 @@ bool SaintsRow1Game::inMapScreen() {
   auto* pause_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].pause_screen_section_address);
 
-  if (*pause_screen == 26 && isPaused())
+  xe::be<uint16_t>* map_usable =
+      kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
+          supported_builds[game_build_].map_open_flag_address);
+
+  if ((*pause_screen == 26 || *map_usable == 0x82EE) && isPaused())
     return true;
   else
     return false;
