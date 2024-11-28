@@ -370,6 +370,10 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
 
     int direction = (input_state.mouse.wheel_delta > 0) ? 1 : -1;
 
+    if (cvars::swap_wheel) {
+      direction = -direction;
+    }
+
     for (int attempts = 0; attempts < 8; ++attempts) {
       slot = (slot + direction + 8) % 8;
 
@@ -444,30 +448,23 @@ void SaintsRow1Game::MapCursor(RawInputState& input_state) {
   *map_zoom_be = map_zoom;
 }
 
-uint64_t SaintsRow1Game::call_argless_function(uint32_t function_address) {
+void SaintsRow1Game::call_argless_function(uint32_t function_address) {
   XThread* current_thread = XThread::GetCurrentThread();
-
   if (!current_thread) {
-    return 0;
+    return;
   }
-
   kernel_state()->processor()->Execute(current_thread->thread_state(),
                                        function_address);
-
-  uint64_t return_value = current_thread->thread_state()->context()->r[3];
-
-  return return_value != 0;
+  return;
 }
 
 std::string SaintsRow1Game::ChooseBinds() {
   wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_address);
-  auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
   vehicle_status = *kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].vehicle_address);
 
-  if (*wheel_status == 1 || (menu_status && *menu_status != 2)) {
+  if (*wheel_status == 1 || isPaused()) {
     return "Default";
   }
   if (vehicle_status && vehicle_status == 1) {
