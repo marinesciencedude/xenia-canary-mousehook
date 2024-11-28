@@ -351,17 +351,51 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   if (player == NULL) return;
   auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(0x81A197E9);
   if (*canspinplayer != 1) return;
+  float mousex =
+      (input_state.mouse.x_delta / 7.5f) * (float)cvars::menu_sensitivity;
+  xe::be<float>* zoom_level =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(0x827F95B4);
 
+  // this is absoloute player rotation, this isn't fixed to the player
+  // customization screens
   xe::be<float>* player_x_sin =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(player + 0x40);
 
   xe::be<float>* player_x_cos =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(player + 0x38);
 
+  float min_zoom = 0.75f;
+  float max_zoom = 3.f;
+  if (vehicle_status == 1) {  // maybe read of rims jobs flags instead?
+                              // 828522D5,828527FD, 82852A91, 82852D25
+    min_zoom = 3.f;
+    max_zoom = 9.f;
+    xe::be<uint32_t>* rims_jobs_vehicle_pointer =
+        multi_pointer(0x837DD080, {0x20, 0x98});
+    if (*rims_jobs_vehicle_pointer == NULL) return;
+    player_x_sin = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        *rims_jobs_vehicle_pointer + 0x40);
+    player_x_cos = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        *rims_jobs_vehicle_pointer + 0x38);
+    mousex = std::clamp(mousex, -24.f,
+                        24.f);  // random value to limit mouse delta otherwise
+                                // the cars starts freaking out
+  }
+
+  float zoom = *zoom_level;
+  zoom = RadianstoDegree(zoom);  // probably not really in radians..
+  zoom -= input_state.mouse.wheel_delta / 7.5f;
+  zoom += (input_state.mouse.y_delta / 15.f) * (float)cvars::menu_sensitivity;
+  *zoom_level = std::clamp(DegreetoRadians(zoom), min_zoom, max_zoom);
   float x = atan2(*player_x_sin, *player_x_cos);
   x = RadianstoDegree(x);
 
-  x += input_state.mouse.x_delta / 15.f;
+  x += mousex;
+  if (x > 180.0f) {
+    x -= 360.0f;
+  } else if (x < -180.0f) {
+    x += 360.0f;
+  }
   x = DegreetoRadians(x);
   *player_x_sin = sin(x);
   *player_x_cos = cos(x);
@@ -373,8 +407,7 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
   xe::be<uint32_t>* current_weapon =
-      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          player + 0xDDC);  // CLIPPY TODO:  use player ptr + 0x914 for this.
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0xDDC);
 
   if (input_state.mouse.wheel_delta) {
     SelectableWeaponsHack();  // controls if we can use the 4
