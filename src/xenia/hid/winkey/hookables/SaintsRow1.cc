@@ -206,6 +206,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   if (isPaused()) {
     if (inMapScreen()) MapCursor(input_state);
+    RotatePlayerinCustomization(input_state);
     return false;
   }
   WeaponWheelScrollWheel(input_state);
@@ -344,6 +345,26 @@ bool SaintsRow1Game::isPaused() {
     return true;
   else
     return false;
+}
+
+void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
+  if (player == NULL) return;
+  auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(0x81A197E9);
+  if (*canspinplayer != 1) return;
+
+  xe::be<float>* player_x_sin =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(player + 0x40);
+
+  xe::be<float>* player_x_cos =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(player + 0x38);
+
+  float x = atan2(*player_x_sin, *player_x_cos);
+  x = RadianstoDegree(x);
+
+  x += input_state.mouse.x_delta / 15.f;
+  x = DegreetoRadians(x);
+  *player_x_sin = sin(x);
+  *player_x_cos = cos(x);
 }
 
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
