@@ -35,6 +35,7 @@ class SaintsRow1Game : public HookableGame {
   bool inFirstPerson();
   bool isPaused();
   void RotatePlayerinCustomization(RawInputState& input_state);
+  bool CantSwitchWeapons();
   void WeaponWheelScrollWheel(RawInputState& input_state);
   bool inMapScreen();
   void MapCursor(RawInputState& input_state);
@@ -42,7 +43,8 @@ class SaintsRow1Game : public HookableGame {
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
-  bool isStatus(uint8_t type);
+  bool isAnimStatus(uint8_t type);
+  bool IsPlayerStatus1(uint32_t type);
   void SelectableWeaponsHack();
   void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state, int weapon,
@@ -64,6 +66,17 @@ class SaintsRow1Game : public HookableGame {
     DRIVING = 11,
     DEAD = 7,
     RAGDOLL = 4,
+
+  };
+  enum playerstatus1 {
+    NORMAL = 4287,
+    SPRINTING = 178,
+    JUMPING1 = 8,
+    DRIVING1 = 4304,
+    STANDINGUP = 32,
+    // this could be from interacting with menus or opening doors, or getting in
+    // a car..
+    BUSY = 0,
 
   };
 };

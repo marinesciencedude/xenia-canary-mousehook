@@ -64,15 +64,21 @@ struct GameBuildAddrs {
   uint32_t change_weapon_function_addr;
   uint32_t limit_weapons_function_addr;
   uint32_t allowable_weapons_melee_array;
+  uint32_t can_spin_player_flag_addr;
+  uint32_t rims_jobs_address_ptr;
+  uint32_t customization_screen_zoom_level_addr;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
-      0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
-      0x835F27A3, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99C7,
-      0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484}}};
+     {
+         "1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04,
+         0x835F2B80, 0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407,
+         0x8283CA7B, 0x835F2883, 0x835F27A3, 0x835F2684, 0x827CA69C,
+         0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C, 0x822AEB78,
+         0x822ADC10, 0x827D0484, 0x835F1A58, 0x837DD080, 0x827F95B4,
+     }}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -209,7 +215,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     RotatePlayerinCustomization(input_state);
     return false;
   }
-  WeaponWheelScrollWheel(input_state);
+  if (input_state.mouse.wheel_delta) WeaponWheelScrollWheel(input_state);
   xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
 
@@ -349,12 +355,13 @@ bool SaintsRow1Game::isPaused() {
 
 void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   if (player == NULL) return;
-  auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(0x81A197E9);
+  auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].can_spin_player_flag_addr);
   if (*canspinplayer != 1) return;
   float mousex =
-      (input_state.mouse.x_delta / 7.5f) * (float)cvars::menu_sensitivity;
-  xe::be<float>* zoom_level =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(0x827F95B4);
+      (input_state.mouse.x_delta / 5.f) * (float)cvars::menu_sensitivity;
+  xe::be<float>* zoom_level = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].customization_screen_zoom_level_addr);
 
   // this is absoloute player rotation, this isn't fixed to the player
   // customization screens
@@ -370,8 +377,8 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
                               // 828522D5,828527FD, 82852A91, 82852D25
     min_zoom = 3.f;
     max_zoom = 9.f;
-    xe::be<uint32_t>* rims_jobs_vehicle_pointer =
-        multi_pointer(0x837DD080, {0x20, 0x98});
+    xe::be<uint32_t>* rims_jobs_vehicle_pointer = multi_pointer(
+        supported_builds[game_build_].rims_jobs_address_ptr, {0x20, 0x98});
     if (*rims_jobs_vehicle_pointer == NULL) return;
     player_x_sin = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         *rims_jobs_vehicle_pointer + 0x40);
@@ -385,7 +392,7 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   float zoom = *zoom_level;
   zoom = RadianstoDegree(zoom);  // probably not really in radians..
   zoom -= input_state.mouse.wheel_delta / 7.5f;
-  zoom += (input_state.mouse.y_delta / 15.f) * (float)cvars::menu_sensitivity;
+  zoom += (input_state.mouse.y_delta / 8.f) * (float)cvars::menu_sensitivity;
   *zoom_level = std::clamp(DegreetoRadians(zoom), min_zoom, max_zoom);
   float x = atan2(*player_x_sin, *player_x_cos);
   x = RadianstoDegree(x);
@@ -401,8 +408,24 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   *player_x_cos = cos(x);
 }
 
+bool SaintsRow1Game::CantSwitchWeapons() {
+  if (isAnimStatus(animstatus::DEAD) || isAnimStatus(animstatus::JUMPING) ||
+      isAnimStatus(animstatus::RAGDOLL) ||
+      IsPlayerStatus1(playerstatus1::BUSY) ||
+      IsPlayerStatus1(playerstatus1::SPRINTING) ||
+      IsPlayerStatus1(playerstatus1::STANDINGUP) ||
+      IsPlayerStatus1(playerstatus1::JUMPING1))
+    return true;
+  else
+    return false;
+}
+
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
-  if (player == NULL) return;
+  if (player == NULL || isAnimStatus(animstatus::DEAD)) return;
+  // This probably works fine but might need more testing, and It'd be more
+  // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
+  // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
+  // if (CantSwitchWeapons()) return;
 
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
@@ -455,6 +478,7 @@ bool SaintsRow1Game::inMapScreen() {
       kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
           supported_builds[game_build_].map_open_flag_address);
 
+  // current map usable is shared with rotating player menus, find a better one.
   if ((*pause_screen == 26 || *map_usable == 0x82EE) && isPaused())
     return true;
   else
@@ -553,12 +577,23 @@ bool SaintsRow1Game::ModifierKeyHandler(uint32_t user_index,
   return true;
 }
 
-bool SaintsRow1Game::isStatus(uint8_t type) {
+bool SaintsRow1Game::isAnimStatus(uint8_t type) {
   if (player == NULL) return false;
   auto* anim_status =
       kernel_memory()->TranslateVirtual<uint8_t*>(player + 0x1FF);
 
   if (*anim_status == type)
+    return true;
+  else
+    return false;
+}
+
+bool SaintsRow1Game::IsPlayerStatus1(uint32_t type) {
+  if (player == NULL) return false;
+  auto* player_status1 =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0x1180);
+
+  if (*player_status1 == type)
     return true;
   else
     return false;
@@ -583,12 +618,12 @@ void SaintsRow1Game::SelectableWeaponsHack() {
   auto* rpg_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].allowable_weapons_melee_array + 0x64);
 
-  if (isStatus(animstatus::DRIVING) && vehicle_status) {
+  if (isAnimStatus(animstatus::DRIVING) && vehicle_status) {
     *melee_slot = 1;
     *shotgun_slot = 1;
     *ar_slot = 1;
     *rpg_slot = 1;
-  } else if (isStatus(animstatus::PASSANGER) && vehicle_status) {
+  } else if (isAnimStatus(animstatus::PASSANGER) && vehicle_status) {
     *melee_slot = 1;
     *shotgun_slot = 0;
     *ar_slot = 0;
@@ -605,15 +640,18 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {
-  if (!isPaused()) {
-    auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].weapon_wheel_slot_address);
-    SelectableWeaponsHack();
-    if (weapon) {
-      *weapon_slot = std::clamp(weapon - 1, 0, 7);
-      call_argless_function(
-          supported_builds[game_build_].change_weapon_function_addr);
-    }
+  if (isPaused() || isAnimStatus(animstatus::DEAD)) return;
+  // This probably works fine but might need more testing, and It'd be more
+  // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
+  // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
+  // if (CantSwitchWeapons()) return;
+  auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].weapon_wheel_slot_address);
+  SelectableWeaponsHack();
+  if (weapon) {
+    *weapon_slot = std::clamp(weapon - 1, 0, 7);
+    call_argless_function(
+        supported_builds[game_build_].change_weapon_function_addr);
   }
 }
 
