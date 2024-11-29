@@ -50,6 +50,10 @@ struct GameBuildAddrs {
   uint32_t weapon_wheel_address;
   uint32_t weapon_wheel_slot_address;
   uint32_t menu_status_address;
+  // ACTUAL pause flag, menu_status_address acts more like if can player control
+  // (kind of the real player paused controls flag is at 0x8283CA7B, will need
+  // to use this if problems arise.)
+  uint32_t world_paused_address;
   uint32_t havok_frametime_address;
   uint32_t current_frametime_address;  //       x_axis_addition =
                                        //       -(float)((float)_FP12 /
@@ -73,11 +77,11 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {
-         "1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04,
-         0x835F2B80, 0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407,
-         0x8283CA7B, 0x835F2883, 0x835F27A3, 0x835F2684, 0x827CA69C,
-         0x827F9AD8, 0x827F9B58, 0x827F99C7, 0x827F956C, 0x822AEB78,
-         0x822ADC10, 0x827D0484, 0x835F1A58, 0x837DD080, 0x827F95B4,
+         "1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
+         0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
+         0x835F27A3, 0x835F2527, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58,
+         0x827F99C7, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
+         0x837DD080, 0x827F95B4,
      }}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
@@ -212,7 +216,14 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   if (isPaused()) {
     if (inMapScreen()) MapCursor(input_state);
-    RotatePlayerinCustomization(input_state);
+    if (*kernel_memory()->TranslateVirtual<uint8_t*>(
+            supported_builds[game_build_].world_paused_address) != 0) {
+      return false;
+    }
+    if (RotatePlayerinCustomization(input_state) == true) {
+      return false;
+    }
+
     return false;
   }
   if (input_state.mouse.wheel_delta) WeaponWheelScrollWheel(input_state);
@@ -353,11 +364,12 @@ bool SaintsRow1Game::isPaused() {
     return false;
 }
 
-void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
-  if (player == NULL) return;
+bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
+  if (player == NULL) return false;
   auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].can_spin_player_flag_addr);
-  if (*canspinplayer != 1) return;
+  if (*canspinplayer != 1) return false;
+
   float mousex =
       (input_state.mouse.x_delta / 5.f) * (float)cvars::menu_sensitivity;
   xe::be<float>* zoom_level = kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -379,7 +391,7 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
     max_zoom = 9.f;
     xe::be<uint32_t>* rims_jobs_vehicle_pointer = multi_pointer(
         supported_builds[game_build_].rims_jobs_address_ptr, {0x20, 0x98});
-    if (*rims_jobs_vehicle_pointer == NULL) return;
+    if (*rims_jobs_vehicle_pointer == NULL) return false;
     player_x_sin = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         *rims_jobs_vehicle_pointer + 0x40);
     player_x_cos = kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -406,6 +418,7 @@ void SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   x = DegreetoRadians(x);
   *player_x_sin = sin(x);
   *player_x_cos = cos(x);
+  return true;
 }
 
 bool SaintsRow1Game::CantSwitchWeapons() {

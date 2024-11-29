@@ -34,7 +34,7 @@ class SaintsRow1Game : public HookableGame {
   bool isTervelPlugin();
   bool inFirstPerson();
   bool isPaused();
-  void RotatePlayerinCustomization(RawInputState& input_state);
+  bool RotatePlayerinCustomization(RawInputState& input_state);
   bool CantSwitchWeapons();
   void WeaponWheelScrollWheel(RawInputState& input_state);
   bool inMapScreen();
