@@ -71,18 +71,18 @@ struct GameBuildAddrs {
   uint32_t can_spin_player_flag_addr;
   uint32_t rims_jobs_address_ptr;
   uint32_t customization_screen_zoom_level_addr;
+  uint32_t mp_flag_1;
+  uint32_t mp_flag_2;
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {
-         "1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
-         0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
-         0x835F27A3, 0x835F2527, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58,
-         0x827F99C7, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
-         0x837DD080, 0x827F95B4,
-     }}};
+     {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
+      0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
+      0x835F27A3, 0x835F2527, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58,
+      0x827F99C7, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
+      0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -141,7 +141,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].ingame_sens + 0x4);
 
   if (*ingamesens_x != 0.01999999955f || *ingamesens_y != 0.01999999955f) {
-    *ingamesens_x = 0.01999999955f;
+    *ingamesens_x = 0.01999999955f;  // 3CA3D70A
     *ingamesens_y = 0.01999999955f;
   }
 
@@ -293,10 +293,12 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   degree_y += delta_y;
+  degree_y = std::clamp(degree_y, -90.f, 90.f);
   *radian_y = DegreetoRadians(degree_y);
   if ((inFirstPerson() && isTervelPlugin())) {
     degree_y = RadianstoDegree(*fine_aim_y);
     degree_y += delta_y;
+    degree_y = std::clamp(degree_y, -90.f, 90.f);
     *fine_aim_y = DegreetoRadians(degree_y);
   }
 
@@ -349,6 +351,17 @@ bool SaintsRow1Game::inFirstPerson() {
   auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].isfirstperson_address);
   if (*firstperson && *firstperson == 1)
+    return true;
+  else
+    return false;
+}
+
+bool SaintsRow1Game::isMP() {
+  auto* mp1 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].mp_flag_1);
+  auto* mp2 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].mp_flag_2);
+  if (*mp2 == 1 || *mp1 == 1)
     return true;
   else
     return false;
@@ -438,7 +451,8 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
   // This probably works fine but might need more testing, and It'd be more
   // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
   // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
-  // if (CantSwitchWeapons()) return;
+  if (isMP())
+    if (CantSwitchWeapons()) return;
 
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
@@ -657,7 +671,8 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
   // This probably works fine but might need more testing, and It'd be more
   // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
   // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
-  // if (CantSwitchWeapons()) return;
+  if (isMP())
+    if (CantSwitchWeapons()) return;
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
   SelectableWeaponsHack();

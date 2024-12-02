@@ -33,6 +33,7 @@ class SaintsRow1Game : public HookableGame {
   void FixHavokFrameTime(float frametime);
   bool isTervelPlugin();
   bool inFirstPerson();
+  bool isMP();
   bool isPaused();
   bool RotatePlayerinCustomization(RawInputState& input_state);
   bool CantSwitchWeapons();
