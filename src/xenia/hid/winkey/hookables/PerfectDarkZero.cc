@@ -159,13 +159,19 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
   if (!IsPaused(base_address)) {
     xe::be<uint32_t> x_address;
     xe::be<uint32_t> y_address;
+    enum universal_addr_cam {
+      HOVERCRAFT = 2,
+      COVER = 3,
+      TURRET = 6,
+    };
     bool in_cover = isSpecialCam(
-        base_address, supported_builds[game_build_].cover_flag_offset);
+        base_address, supported_builds[game_build_].cover_flag_offset, true, 3);
     bool in_turret = false;
     bool in_turret2 = false;
     if (supported_builds[game_build_].turret_flag_offset)
-      in_turret = isSpecialCam(
-          base_address, supported_builds[game_build_].turret_flag_offset);
+      in_turret = isSpecialCam(base_address,
+                               supported_builds[game_build_].turret_flag_offset,
+                               true, 6);
     if (!in_cover) {
       x_address = *radians_x_base + supported_builds[game_build_].x_offset;
     } else {
@@ -382,14 +388,43 @@ bool PerfectDarkZeroGame::IsPaused(xe::be<uint32_t>* player) {
 }
 
 bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
-                                       uint32_t special_cam_flag_offset) {
-  uint8_t* special_cam_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      *player + special_cam_flag_offset);
+                                       uint32_t special_cam_flag_offset,
+                                       bool universal_addr, uint8_t cam_type) {
+  if (!universal_addr) {
+    uint8_t* special_cam_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+        *player + special_cam_flag_offset);
 
-  if (*special_cam_flag == 1) {
-    return true;
+    if (special_cam_flag && *special_cam_flag == 1) {
+      return true;
+    } else {
+      return false;
+    }
   } else {
-    return false;
+    xe::be<uint32_t>* base_address =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+            supported_builds[game_build_].fovscale_address);
+
+    if (!base_address || *base_address == 0) {
+      return false;
+    }
+
+    xe::be<uint32_t>* ptr1 =
+        kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(*base_address +
+                                                             0x53C);
+    if (!ptr1 || *ptr1 == 0) {
+      return false;
+    }
+
+    uint8_t* current_cam =
+        kernel_memory()->TranslateVirtual<uint8_t*>(*ptr1 + 0xB);
+    if (!current_cam) {
+      return false;
+    }
+    if (*current_cam == cam_type) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 
