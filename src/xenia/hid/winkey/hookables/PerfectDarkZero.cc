@@ -49,6 +49,8 @@ struct GameBuildAddrs {
   uint32_t turret_x_offset;
   uint32_t turret_y_offset;
   uint32_t cover_x_offset;
+  uint32_t hovercraft_base_offset;
+  uint32_t hovercraft_y_offset;
   uint32_t gun_y_offset;  // These in-game are tied to camera, we decouple them
                           // with a patch.
   uint32_t gun_x_offset;
@@ -62,17 +64,21 @@ struct GameBuildAddrs {
 
 std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
-     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x82E35468, 0x3B8, 0x16B9, 0x150,
-      0x1674, 0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D68320,
-      0x82E1B930, 0x820EC228, 0x16A3}},
+     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x82E35468, 0x3B8, 0x16B9,
+      0x150,           0x1674,     0x16AB,     0x5C,       0x3A0, 0x39C,
+      0x1670,          0x5C,       0xE54,      0xF9C,      0xFA0, 0x82D68320,
+      0x82E1B930,      0x820EC228, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
-     {"19.09.06.0082", 0x820CD9E0, 0x82E3C3E8, 0x82E34224, 0x3C4, 0x16B9, 0x150,
-      0x1674, 0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048,
-      0x82D3EED0, 0x820EAF40, 0x16A3}},
+     {"19.09.06.0082", 0x820CD9E0, 0x82E3C3E8, 0x82E34224, 0x3C4, 0x16B9,
+      0x150,           0x1674,     0x16AB,     0x5C,       0x3A0, 0x39C,
+      0x1670,          0x5C,       0xE54,      0xF9C,      0xFA0, 0x82D69048,
+      0x82D3EED0,      0x820EAF40, 0x16A3}},
     {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
-     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x82E3622C, 0x3C4, 0x16B9, 0x150,
-      0x1674, 0x16AB, 0x5C, 0x3A0, 0x39C, 0x1670, 0xF9C, 0xFA0, 0x82D69048,
-      NULL, 0x820EAF20, 0x16A3}}};
+     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x82E3622C, 0x3C4,
+      0x16B9,          0x150,      0x1674,     0x16AB,     0x5C,
+      0x3A0,           0x39C,      0x1670,     0x5C,       0xE54,
+      0xF9C,           0xFA0,      0x82D69048, NULL,       0x820EAF20,
+      0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -166,6 +172,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     };
     bool in_cover = isSpecialCam(
         base_address, supported_builds[game_build_].cover_flag_offset, true, 3);
+    bool in_hovercraft = isSpecialCam(base_address, NULL, true, HOVERCRAFT);
     bool in_turret = false;
     bool in_turret2 = false;
     if (supported_builds[game_build_].turret_flag_offset)
@@ -199,6 +206,15 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
               *turret_base + supported_builds[game_build_].turret_y_offset;
         }
       }
+    } else if (in_hovercraft) {
+      xe::be<uint32_t>* hovercraft_base =
+          kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+              *base_address +
+              supported_builds[game_build_].hovercraft_base_offset);
+      x_address = *hovercraft_base +
+                  supported_builds[game_build_].hovercraft_y_offset + 0x4;
+      y_address =
+          *hovercraft_base + supported_builds[game_build_].hovercraft_y_offset;
     }
 
     xe::be<float>* cam_x =
@@ -209,14 +225,14 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
     float degree_x, degree_y;
 
-    if (!in_cover || (in_turret2)) {
+    if (!in_cover || (in_turret2) || in_hovercraft) {
       // Normal mode: convert radians to degrees
       degree_x = RadianstoDegree(*cam_x);
     } else {
       // Cover mode: X-axis is already in degrees
       degree_x = *cam_x;
     }
-    if (in_turret2)
+    if (in_turret2 || in_hovercraft)
       degree_y = RadianstoDegree(*cam_y);
     else
       degree_y = (float)*cam_y;
@@ -263,7 +279,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                   (float)cvars::sensitivity;
     }
 
-    if (!in_cover || (in_turret2)) {
+    if (!in_cover || (in_turret2) || in_hovercraft) {
       *cam_x = DegreetoRadians(
           degree_x);  // Convert degrees back to radians for normal aiming
     } else if (in_cover) {
@@ -281,7 +297,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                    (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     }
-    if (in_turret2)
+    if (in_turret2 || in_hovercraft)
       *cam_y = DegreetoRadians(degree_y);
     else
       *cam_y = degree_y;
