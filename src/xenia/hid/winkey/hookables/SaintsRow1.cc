@@ -81,7 +81,7 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
       0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x835F27A3, 0x835F2527, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58,
-      0x827F99C7, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
+      0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
       0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
@@ -167,7 +167,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  if (!(inFirstPerson() && isTervelPlugin()) && !inMapScreen()) {
+  if (!(isTervelPlugin() && inFirstPerson()) && !inMapScreen()) {
     // Declare static variables for last deltas
     static int last_x_delta = 0;
     static int last_y_delta = 0;
@@ -246,7 +246,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   static xe::be<float>* fine_aim_x = NULL;
   static xe::be<float>* fine_aim_y = NULL;
-  if (inFirstPerson() && isTervelPlugin()) {
+  if (isTervelPlugin() && inFirstPerson()) {
     divider_x = 15.f;
     frametime = 1.f;
 
@@ -280,7 +280,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
         frametime;
   }
-  if (!(inFirstPerson() && isTervelPlugin()))
+  if (!(isTervelPlugin() && inFirstPerson()))
     *addition_x = degree_x;
   else if (*fine_aim_x != NULL)
     *fine_aim_x = DegreetoRadians(degree_x);
@@ -295,7 +295,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   degree_y += delta_y;
   degree_y = std::clamp(degree_y, -90.f, 90.f);
   *radian_y = DegreetoRadians(degree_y);
-  if ((inFirstPerson() && isTervelPlugin())) {
+  if ((isTervelPlugin() && inFirstPerson())) {
     degree_y = RadianstoDegree(*fine_aim_y);
     degree_y += delta_y;
     degree_y = std::clamp(degree_y, -90.f, 90.f);
@@ -350,7 +350,7 @@ bool SaintsRow1Game::isTervelPlugin() {
 bool SaintsRow1Game::inFirstPerson() {
   auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].isfirstperson_address);
-  if (*firstperson && *firstperson == 1)
+  if (*firstperson && *firstperson == 8)
     return true;
   else
     return false;
