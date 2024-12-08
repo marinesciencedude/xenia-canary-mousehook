@@ -28,7 +28,7 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr_havok_fix_frametime);
+DECLARE_bool(sr2_havok_fix_frametime);
 DECLARE_bool(sr2_hold_fine_aim);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
@@ -112,7 +112,7 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  if (cvars::sr_havok_fix_frametime) FixHavokFrameTime();
+  if (cvars::sr2_havok_fix_frametime) FixHavokFrameTime();
 
   // Declare static variables for last deltas
   static int last_x_delta = 0;

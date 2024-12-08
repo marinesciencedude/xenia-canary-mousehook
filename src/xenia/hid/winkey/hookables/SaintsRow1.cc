@@ -27,7 +27,6 @@ DECLARE_double(sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr_havok_fix_frametime);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
 
@@ -54,7 +53,6 @@ struct GameBuildAddrs {
   // (kind of the real player paused controls flag is at 0x8283CA7B, will need
   // to use this if problems arise.)
   uint32_t world_paused_address;
-  uint32_t havok_frametime_address;
   uint32_t current_frametime_address;  //       x_axis_addition =
                                        //       -(float)((float)_FP12 /
                                        //       current_frametime);
@@ -80,9 +78,9 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
       0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
-      0x835F27A3, 0x835F2527, 0x835F2684, 0x827CA69C, 0x827F9AD8, 0x827F9B58,
-      0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58,
-      0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
+      0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99A3,
+      0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58, 0x837DD080,
+      0x827F95B4, 0x835F33DF, 0x835F3522}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -156,8 +154,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
           supported_builds[game_build_].current_frametime_address);
 
   float frametime = *ingame_frametime;
-  if (cvars::sr_havok_fix_frametime && !isTervelPlugin())
-    FixHavokFrameTime(frametime);
 
   auto now = std::chrono::steady_clock::now();
   auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -303,21 +299,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   return true;
-}
-
-void SaintsRow1Game::FixHavokFrameTime(float frametime) {
-  XThread* current_thread = XThread::GetCurrentThread();
-  if (!current_thread) return;
-  xe::be<float>* havok_frametime =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].havok_frametime_address);
-
-  if (frametime < 0.03333333333f) {
-    frametime = frametime / 2.f;
-    if (*havok_frametime != frametime) *havok_frametime = frametime;
-  } else {
-    if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
-  }
 }
 
 bool SaintsRow1Game::isTervelPlugin() {
