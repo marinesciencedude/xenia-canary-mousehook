@@ -163,7 +163,8 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                        now - last_movement_time_y_)
                        .count();
 
-  if (!(isTervelPlugin() && inFirstPerson()) && !inMapScreen()) {
+  if (!(isTervelPlugin() && inFirstPerson()) && !inMapScreen() &&
+      !(canspinplayer && isPaused())) {
     // Declare static variables for last deltas
     static int last_x_delta = 0;
     static int last_y_delta = 0;
@@ -360,9 +361,9 @@ bool SaintsRow1Game::isPaused() {
 
 bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   if (player == NULL) return false;
-  auto* canspinplayer = kernel_memory()->TranslateVirtual<uint8_t*>(
+  canspinplayer = *kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].can_spin_player_flag_addr);
-  if (*canspinplayer != 1) return false;
+  if (canspinplayer != 1) return false;
 
   float mousex =
       (input_state.mouse.x_delta / 5.f) * (float)cvars::menu_sensitivity;

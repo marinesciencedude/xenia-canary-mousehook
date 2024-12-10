@@ -60,6 +60,7 @@ class SaintsRow1Game : public HookableGame {
   uint8_t* wheel_status;
   uint32_t player;
   uint8_t vehicle_status;
+  uint8_t canspinplayer;
   enum animstatus {
     JUMPING = 2,
     PASSANGER = 10,
