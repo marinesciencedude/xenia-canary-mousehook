@@ -28,7 +28,6 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr2_havok_fix_frametime);
 DECLARE_bool(sr2_hold_fine_aim);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
@@ -111,8 +110,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_y_)
                        .count();
-
-  if (cvars::sr2_havok_fix_frametime) FixHavokFrameTime();
 
   // Declare static variables for last deltas
   static int last_x_delta = 0;
@@ -311,27 +308,6 @@ void SaintsRow2Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {}
-
-void SaintsRow2Game::FixHavokFrameTime() {
-  XThread* current_thread = XThread::GetCurrentThread();
-  if (!current_thread) return;
-  xe::be<float>* havok_frametime =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].havok_frametime_address);
-
-  xe::be<float>* current_frametime =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].current_frametime_address);
-
-  float frametime = *current_frametime;
-
-  if (frametime < 0.03333333333f) {
-    frametime = frametime / 2.f;
-    if (*havok_frametime != frametime) *havok_frametime = frametime;
-  } else {
-    if (*havok_frametime != 0.01666666666f) *havok_frametime = 0.01666666666f;
-  }
-}
 
 uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
                                        uint32_t player_ptr, uint32_t a2,

@@ -98,12 +98,6 @@ DEFINE_bool(
     "(Saints Row 2) Switches fineaim (ADS) from a toggle to hold press.",
     "MouseHook");
 
-DEFINE_bool(sr2_havok_fix_frametime, false,
-            "(Saints Row 2) Fixes cutscene object synchronization and doors "
-            "teleporting on high fps, as seen in Juiced Patch. (Causes "
-            "Performance loss at a higher FPSes.) ",
-            "MouseHook");
-
 DEFINE_bool(sr1_increase_vehicle_rotation_limit, true,
             "(Saints Row 1) Patch vehicle vertical rotation limit to be mostly "
             "the same "
@@ -1785,9 +1779,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t Vehicle_RotationXWrite_addr1;
       uint32_t Vehicle_RotationXWrite_addr2;  // Handbrake.
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
-      uint32_t havok_write_frametime_address1;
-      uint32_t havok_value_address;
-      uint32_t fps_1over60_value;
     };
 
     std::vector<SR2PatchOffsets> supported_builds = {
@@ -1797,8 +1788,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
          0x8247832c, 0x821a4b84, 0x824e6a68, 0x824e7f50, 0x824e6b8c, 0x82478934,
          0x824e6b2c, 0x82478330, 0x82478094, 0x821a4b88, 0x82B7A5AC, 0x82B7A5A8,
          0x82B77C04, 0x82B77C08, 0x82B77C0C, 0x82B77C08, 0x82B77C10, 0x821A4D20,
-         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0, 0x8221CEAC, 0x837DB620,
-         0x3c888889},
+         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0},
     };
 
     for (auto& build : supported_builds) {
@@ -1849,11 +1839,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
-      if (cvars::sr2_havok_fix_frametime &&
-          build.havok_write_frametime_address1)
-        patch_addr(build.havok_write_frametime_address1, build.beNOP);
-      // in case user boots game with inputs other than winkey.
-      patch_addr(build.havok_value_address, build.fps_1over60_value);
       break;
     }
   }
