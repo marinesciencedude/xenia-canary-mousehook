@@ -78,8 +78,8 @@ jobs:
             echo "::error:: Executable is too small."
             exit 1
           }
-          robocopy . build\bin\Windows\Release                                                             LICENSE /r:0 /w:0
-          robocopy   build\bin\Windows\Release artifacts\xenia_canary_netplay   xenia_canary_netplay.exe   LICENSE /r:0 /w:0
+          robocopy . build\bin\Windows\Release                                                             LICENSE  bindings.ini /r:0 /w:0
+          robocopy   build\bin\Windows\Release artifacts\xenia_canary_netplay   xenia_canary_netplay.exe   LICENSE  bindings.ini /r:0 /w:0
           If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
 
       - name: Upload Xenia Canary artifact
