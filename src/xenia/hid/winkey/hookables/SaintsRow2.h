@@ -40,8 +40,6 @@ class SaintsRow2Game : public HookableGame {
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
 
-  void FixHavokFrameTime();
-
   uint64_t reset_fineaim(uint32_t function_address, uint32_t player_ptr,
                          uint32_t a2, uint32_t a3);
 
