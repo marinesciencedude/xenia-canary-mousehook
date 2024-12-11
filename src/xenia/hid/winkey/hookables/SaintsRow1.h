@@ -30,16 +30,22 @@ class SaintsRow1Game : public HookableGame {
 
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
-  void FixHavokFrameTime(float frametime);
   bool isTervelPlugin();
   bool inFirstPerson();
+  bool isMP();
   bool isPaused();
+  bool RotatePlayerinCustomization(RawInputState& input_state);
+  bool CantSwitchWeapons();
   void WeaponWheelScrollWheel(RawInputState& input_state);
   bool inMapScreen();
   void MapCursor(RawInputState& input_state);
+  void call_argless_function(uint32_t function_address);
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
                           X_INPUT_STATE* out_state);
+  bool isAnimStatus(uint8_t type);
+  bool IsPlayerStatus1(uint32_t type);
+  void SelectableWeaponsHack();
   void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
@@ -52,6 +58,28 @@ class SaintsRow1Game : public HookableGame {
   std::chrono::steady_clock::time_point last_movement_time_y_;
   uint8_t tervelplugin_status;
   uint8_t* wheel_status;
+  uint32_t player;
+  uint8_t vehicle_status;
+  uint8_t canspinplayer;
+  enum animstatus {
+    JUMPING = 2,
+    PASSANGER = 10,
+    DRIVING = 11,
+    DEAD = 7,
+    RAGDOLL = 4,
+
+  };
+  enum playerstatus1 {
+    NORMAL = 4287,
+    SPRINTING = 178,
+    JUMPING1 = 8,
+    DRIVING1 = 4304,
+    STANDINGUP = 32,
+    // this could be from interacting with menus or opening doors, or getting in
+    // a car..
+    BUSY = 0,
+
+  };
 };
 
 }  // namespace winkey
