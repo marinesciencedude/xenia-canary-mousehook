@@ -79,13 +79,9 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (!IsGameSupported()) {
     return false;
   }
-
-  XThread* current_thread = XThread::GetCurrentThread();
-
-  if (!current_thread) {
+  if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+       !input_state.mouse.wheel_delta))
     return false;
-  }
-
   xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
       supported_builds[game_build_].x_address);
 
@@ -161,6 +157,12 @@ bool DeadRisingGame::ModifierKeyHandler(uint32_t user_index,
   // won't be used
   return true;
 }
+
+void DeadRisingGame::WeaponSwitchHandler(uint32_t user_index,
+                                         RawInputState& input_state,
+                                         X_INPUT_STATE* out_state, int weapon,
+                                         uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

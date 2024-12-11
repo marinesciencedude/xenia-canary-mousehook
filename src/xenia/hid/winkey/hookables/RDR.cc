@@ -158,10 +158,6 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
                        now - last_movement_time_y_)
                        .count();
 
-  XThread* current_thread = XThread::GetCurrentThread();
-  if (!current_thread) {
-    return false;
-  }
   if (IsPaused()) return false;
 
   xe::be<uint32_t>* base_address =
@@ -334,7 +330,10 @@ bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
         }
       }
     }
-
+    if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
+         !input_state.mouse.wheel_delta))
+      return false;  // This late because want the pattern scans to occur during
+                     // loading screen.
     xe::be<uint32_t> x_address =
         *base_address - supported_builds[game_build_].x_offset;
     xe::be<uint32_t> y_address =
@@ -846,6 +845,12 @@ bool RedDeadRedemptionGame::ModifierKeyHandler(uint32_t user_index,
     out_state->gamepad.buttons = buttons;
   return true;
 }
+
+void RedDeadRedemptionGame::WeaponSwitchHandler(uint32_t user_index,
+                                                RawInputState& input_state,
+                                                X_INPUT_STATE* out_state,
+                                                int weapon, uint16_t buttons) {}
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

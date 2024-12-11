@@ -6,7 +6,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 
 ## Supported Games
 | Game  | Supported versions  | Title ID | Mouse support | Notes|
-|---|---| --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Orange Box | All Games TU0 | 4541080F | Fair |
 | Portal Still Alive |  | 58410960 | Fair |
 | CSGO | | 5841125A | Fair |
@@ -45,7 +45,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Gears Of Wars 2 | TU0/TU6 | 4D53082D | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
 | Gears Of Wars 3 | TU0/TU6 | 4D5308AB | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook. 
 | Gears Of Wars Judgement | TU0/TU4| 4D530A26 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
-| Section 8 | TU0 | 475007D4 | Fair | <sub> Might not work in languages other than in English, also some patches could break mousehook. <br/>Guns models exhibit odd swaying. |
+| Section 8 | TU0 | 475007D4 | Fair | <sub> Might not work in languages other than in English, also some patches could break mousehook. <br/>Gun models exhibit odd swaying. |
 | Minecraft | TU75 (1.0.80) | 584111F7 | Good | <sub> Camera exhibits stuttering when moving the player and camera at the same time. |
 
 [^1]: Mousehook implements a right-stick workaround for these games, it disables right-stick usage by slowing sensitivity to an extremely slow speed and ties mouse movement to it, this fixes several in-game camera modes ranging from vehicles, ADS, auto centering & more.
