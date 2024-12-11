@@ -28,7 +28,6 @@ DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
-DECLARE_bool(sr_havok_fix_frametime);
 DECLARE_bool(sr2_hold_fine_aim);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
@@ -54,6 +53,9 @@ struct GameBuildAddrs {
                                    // manage player's fineaim.
   uint32_t player_pointer_address;
   uint32_t sniper_zoom_function_address;
+  uint32_t clamp_value_to_subtract;
+  uint32_t clamp_current_min;
+  uint32_t clamp_current_max;
 };
 
 std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
@@ -61,7 +63,7 @@ std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
       0x82BCBA78, 0x82B7A4BC, 0x837DB620, 0x82B7A518, 0x837B7BBB, 0x826CB818,
-      0x835BF42C, 0x826CBB40}}};
+      0x835BF42C, 0x826CBB40, 0x82B7AC58, 0x82B7AC4C, 0x82B7AC50}}};
 
 SaintsRow2Game::~SaintsRow2Game() = default;
 
@@ -108,10 +110,6 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   auto elapsed_y = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_y_)
                        .count();
-
-  if (cvars::sr_havok_fix_frametime) {
-    FixHavokFrameTime();
-  }
 
   // Declare static variables for last deltas
   static int last_x_delta = 0;
@@ -199,7 +197,7 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     float degree_x = RadianstoDegree(*radian_x);
     float degree_y = RadianstoDegree(*radian_y);
 
-    float divisor = 7.5f;
+    float divisor = 6.0f;
     if (*sniper_status == 0) {
       divisor = 10.f;
     }
@@ -229,6 +227,19 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       degree_y -=
           (input_state.mouse.y_delta / divisor) * (float)cvars::sensitivity;
     }
+    // re-implemenation of SR1&2's dynamic clamping because internal clamping
+    // can break and it doesn't work well with mousehook on-foot.
+    xe::be<float>* value_to_subtract =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[game_build_].clamp_value_to_subtract);
+    xe::be<float>* min = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].clamp_current_min);
+    xe::be<float>* max = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].clamp_current_max);
+
+    degree_y = std::clamp(degree_y, RadianstoDegree(*min - *value_to_subtract),
+                          RadianstoDegree(*max - *value_to_subtract));
+
     *radian_y = DegreetoRadians(degree_y);
   }
   return true;
@@ -302,33 +313,6 @@ void SaintsRow2Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {}
-
-void SaintsRow2Game::FixHavokFrameTime() {
-  XThread* current_thread = XThread::GetCurrentThread();
-  if (!current_thread) {
-    return;
-  }
-  xe::be<float>* havok_frametime =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].havok_frametime_address);
-
-  xe::be<float>* current_frametime =
-      kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].current_frametime_address);
-
-  float frametime = *current_frametime;
-
-  if (frametime < 0.03333333333f) {
-    frametime = frametime / 2.f;
-    if (*havok_frametime != frametime) {
-      *havok_frametime = frametime;
-    }
-  } else {
-    if (*havok_frametime != 0.01666666666f) {
-      *havok_frametime = 0.01666666666f;
-    }
-  }
-}
 
 uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
                                        uint32_t player_ptr, uint32_t a2,
