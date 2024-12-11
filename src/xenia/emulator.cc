@@ -99,12 +99,6 @@ DEFINE_bool(
     "(Saints Row 2) Switches fineaim (ADS) from a toggle to hold press.",
     "MouseHook");
 
-DEFINE_bool(sr_havok_fix_frametime, false,
-            "(Saints Row 1&2) Fixes cutscene object synchronization and doors "
-            "teleporting on high fps, as seen in Juiced Patch. (Causes "
-            "Performance loss at a higher FPSes.) ",
-            "MouseHook");
-
 DEFINE_bool(sr1_increase_vehicle_rotation_limit, true,
             "(Saints Row 1) Patch vehicle vertical rotation limit to be mostly "
             "the same "
@@ -1740,8 +1734,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t mousefix_addr2;
       uint32_t mousefix_addr3;
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
-      uint32_t havok_write_frametime_address1;
-      uint32_t havok_write_frametime_address2;
       uint32_t vehicle_rotationXWrite_addr_start;  // lfs f0, (flt_827F9B04 -
                                                    // 0x827F99A0)(r31) -- no
                                                    // idea how I figured this,
@@ -1754,15 +1746,12 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t min_float_addr_lis1;
       uint32_t write_max_value1;  // making it same as on-foot causes the camera
                                   // to clip.
-      uint32_t havok_value_address;
-      uint32_t fps_1over60_value;
     };
     std::vector<SR1PatchOffsets> supported_builds = {
         // TU1 Release build
         {0x82050304, 0x7361696E, 0x60000000, 0x8249db00, 0x8249dd28, 0x8249dd50,
-         0x82079cbc, 0x82195324, 0x8225BD8C, 0x8211D604, 0x82772D90, 0x8211FC8C,
-         0x82772DB0, 0xC108C88C, 0xC00BC88C, 0xC0C8B850, 0x8208C88C, 0x835F2684,
-         0x3c888889},
+         0x82079cbc, 0x8211D604, 0x82772D90, 0x8211FC8C, 0x82772DB0, 0xC108C88C,
+         0xC00BC88C, 0xC0C8B850, 0x8208C88C},
     };
     for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
@@ -1776,14 +1765,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       patch_addr(build.mousefix_addr3, build.beNOP);
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
-      }
-      if (cvars::sr_havok_fix_frametime &&
-          build.havok_write_frametime_address1 &&
-          build.havok_write_frametime_address2) {
-        patch_addr(build.havok_write_frametime_address1, build.beNOP);
-        patch_addr(build.havok_write_frametime_address2, build.beNOP);
-        // in case user boots game with inputs other than winkey.
-        patch_addr(build.havok_value_address, build.fps_1over60_value);
       }
       if (cvars::sr_better_drive_cam &&
           build.vehicle_rotationXWrite_addr_start) {
@@ -1852,9 +1833,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t Vehicle_RotationXWrite_addr1;
       uint32_t Vehicle_RotationXWrite_addr2;  // Handbrake.
       uint32_t aim_assist_xbtl;  // File declares aim_assist values.
-      uint32_t havok_write_frametime_address1;
-      uint32_t havok_value_address;
-      uint32_t fps_1over60_value;
     };
 
     std::vector<SR2PatchOffsets> supported_builds = {
@@ -1864,8 +1842,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
          0x8247832c, 0x821a4b84, 0x824e6a68, 0x824e7f50, 0x824e6b8c, 0x82478934,
          0x824e6b2c, 0x82478330, 0x82478094, 0x821a4b88, 0x82B7A5AC, 0x82B7A5A8,
          0x82B77C04, 0x82B77C08, 0x82B77C0C, 0x82B77C08, 0x82B77C10, 0x821A4D20,
-         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0, 0x8221CEAC, 0x837DB620,
-         0x3c888889},
+         0x821A4D18, 0x821a1f74, 0x821A2A2C, 0x820A61C0},
     };
 
     for (auto& build : supported_builds) {
@@ -1916,10 +1893,6 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
-      if (cvars::sr_havok_fix_frametime && build.havok_write_frametime_address1)
-        patch_addr(build.havok_write_frametime_address1, build.beNOP);
-      // in case user boots game with inputs other than winkey.
-      patch_addr(build.havok_value_address, build.fps_1over60_value);
       break;
     }
   }
