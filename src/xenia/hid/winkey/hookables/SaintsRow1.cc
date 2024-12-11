@@ -44,7 +44,7 @@ struct GameBuildAddrs {
   uint32_t map_x_address;
   uint32_t map_zoom_address;
   uint32_t pause_screen_section_address;
-  uint32_t map_open_flag_address;
+  uint32_t current_diversion_type_addr;  // 0x82F062EF different candidate
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t weapon_wheel_slot_address;
@@ -77,7 +77,7 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
-      0x827CF9CC, 0x835F279B, 0x82EE10DC, 0x82932407, 0x8283CA7B, 0x835F2883,
+      0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99A3,
       0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58, 0x837DD080,
       0x827F95B4, 0x835F33DF, 0x835F3522}}};
@@ -483,12 +483,10 @@ bool SaintsRow1Game::inMapScreen() {
   auto* pause_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].pause_screen_section_address);
 
-  xe::be<uint16_t>* map_usable =
-      kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
-          supported_builds[game_build_].map_open_flag_address);
+  auto* map_usable = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].current_diversion_type_addr);
 
-  // current map usable is shared with rotating player menus, find a better one.
-  if ((*pause_screen == 26 || *map_usable == 0x82EE) && isPaused())
+  if ((*pause_screen == 26 || *map_usable == 210) && isPaused())
     return true;
   else
     return false;
