@@ -76,8 +76,8 @@ jobs:
         run: .\xb build --config=Release --target=src\xenia-app
       - name: Prepare artifacts
         run: |
-          robocopy . build\bin\${{ runner.os }}\Release                                                                LICENSE /r:0 /w:0
-          robocopy   build\bin\${{ runner.os }}\Release artifacts\xenia_canary   xenia_canary.exe   xenia_canary.pdb   LICENSE /r:0 /w:0
+          robocopy . build\bin\${{ runner.os }}\Release                                                                LICENSE bindings.ini /r:0 /w:0
+          robocopy   build\bin\${{ runner.os }}\Release artifacts\xenia_canary   xenia_canary.exe   xenia_canary.pdb   LICENSE bindings.ini /r:0 /w:0
           If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
       - name: Upload xenia canary artifacts
         uses: actions/upload-artifact@main
