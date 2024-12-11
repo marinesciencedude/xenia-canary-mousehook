@@ -72,7 +72,7 @@ jobs:
             exit 1
           }
           $path="xenia_canary_windows.7z"
-          7z a $path .\build\bin\Windows\Release\xenia_canary.exe LICENSE -mx9 -bb3
+          7z a $path .\build\bin\Windows\Release\xenia_canary.exe LICENSE bindings.ini -mx9 -bb3
           if ((Get-Item "$path").Length -le 100000) {
             echo "::error:: Archive is too small."
             exit 1
