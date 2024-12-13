@@ -48,8 +48,8 @@ struct GameBuildAddrs {
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t weapon_wheel_slot_address;
-  uint32_t food_wheel_array_address_1;
-  uint32_t food_wheel_array_address_2;
+  uint32_t food_wheel_object_address;
+  uint32_t food_wheel_slot_address;
   uint32_t menu_status_address;
   // ACTUAL pause flag, menu_status_address acts more like if can player control
   // (kind of the real player paused controls flag is at 0x8283CA7B, will need
@@ -611,6 +611,13 @@ bool SaintsRow1Game::IsPlayerStatus1(uint32_t type) {
 void SaintsRow1Game::SelectableWeaponsHack() {
   /*Opening weapon wheel does call limit_weapons_function_addr correctly, so
    * skip our attempt at re-creating it.*/
+  auto* food_selector =
+      kernel_memory()
+          ->TranslateVirtual<xe::be<uint32_t>*>(  // possibily signed? for our
+                                                  // purpose
+                                                  // it doesn't matter.
+              supported_builds[game_build_].food_wheel_object_address);
+  *food_selector = 0;
   if (*wheel_status) return;
   call_argless_function(
       supported_builds[game_build_]
@@ -643,29 +650,6 @@ void SaintsRow1Game::SelectableWeaponsHack() {
     *ar_slot = 0;
     *rpg_slot = 0;
   }
-  // Preferred to do this even while the open wheel is open, but doing so will
-  // cause the game to freeze, as of now selecting a food and attempting to
-  // scroll will call our change weapon function, since they are shared.
-  for (int offset = 0x0; offset <= 0x3; ++offset) {
-    auto* food_selector =
-        kernel_memory()
-            ->TranslateVirtual<uint8_t*>(  // possibily signed? for our purpose
-                                           // it doesn't matter.
-                supported_builds[game_build_].food_wheel_array_address_1 +
-                offset);
-    *food_selector = 0;
-  }
-
-  // Seems to be unrequired.
-  /* for (int offset = 0x0; offset <= 0x3; ++offset) {
-  auto* food_selector =
-      kernel_memory()
-          ->TranslateVirtual<uint8_t*>(  // possibily signed? for our purpose
-                                         // it doesn't matter.
-              supported_builds[game_build_].food_wheel_array_address_2 +
-              offset);
-  *food_selector = 255;
-}*/
 }
 
 void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
