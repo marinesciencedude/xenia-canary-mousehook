@@ -164,17 +164,18 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // Not in game
     return false;
   }
+  enum universal_addr_cam {
+    HOVERCRAFT = 2,
+    COVER = 3,
+    JETPAC = 4,
+    TURRET = 6,
+  };
 
-  if (!IsPaused(base_address)) {
+  bool in_jetpac = isSpecialCam(base_address, NULL, true, JETPAC);
+  if (!IsPaused(base_address) || in_jetpac) {
     xe::be<uint32_t> x_address;
     xe::be<uint32_t> y_address;
-    enum universal_addr_cam {
-      HOVERCRAFT = 2,
-      COVER = 3,
-      JETPAC =
-          4,  // UNWRITEABLE CAMERA ADDRESS, CURRENTLY RS IS EMULATED FOR IT.
-      TURRET = 6,
-    };
+
     bool in_cover = isSpecialCam(
         base_address, supported_builds[game_build_].cover_flag_offset, true, 3);
     bool in_hovercraft = isSpecialCam(base_address, NULL, true, HOVERCRAFT);
@@ -211,7 +212,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
               *turret_base + supported_builds[game_build_].turret_y_offset;
         }
       }
-    } else if (in_hovercraft) {
+    } else if (in_hovercraft || in_jetpac) {
       xe::be<uint32_t>* hovercraft_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               *base_address +
@@ -230,14 +231,14 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
     float degree_x, degree_y;
 
-    if (!in_cover || (in_turret2) || in_hovercraft) {
+    if (!in_cover || (in_turret2) || in_hovercraft || in_jetpac) {
       // Normal mode: convert radians to degrees
       degree_x = RadianstoDegree(*cam_x);
     } else {
       // Cover mode: X-axis is already in degrees
       degree_x = *cam_x;
     }
-    if (in_turret2 || in_hovercraft)
+    if (in_turret2 || in_hovercraft || in_jetpac)
       degree_y = RadianstoDegree(*cam_y);
     else
       degree_y = (float)*cam_y;
@@ -284,7 +285,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                   (float)cvars::sensitivity;
     }
 
-    if (!in_cover || (in_turret2) || in_hovercraft) {
+    if (!in_cover || (in_turret2) || in_hovercraft || in_jetpac) {
       *cam_x = DegreetoRadians(
           degree_x);  // Convert degrees back to radians for normal aiming
     } else if (in_cover) {
@@ -302,7 +303,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                    (8.40517241378f * fovscale_l)) *
                   (float)cvars::sensitivity;
     }
-    if (in_turret2 || in_hovercraft)
+    if (in_turret2 || in_hovercraft || in_jetpac)
       *cam_y = DegreetoRadians(degree_y);
     else
       *cam_y = degree_y;
