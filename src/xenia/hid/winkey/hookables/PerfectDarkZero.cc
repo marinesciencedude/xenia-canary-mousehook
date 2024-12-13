@@ -168,6 +168,8 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     enum universal_addr_cam {
       HOVERCRAFT = 2,
       COVER = 3,
+      JETPAC =
+          4,  // UNWRITEABLE CAMERA ADDRESS, CURRENTLY RS IS EMULATED FOR IT.
       TURRET = 6,
     };
     bool in_cover = isSpecialCam(
