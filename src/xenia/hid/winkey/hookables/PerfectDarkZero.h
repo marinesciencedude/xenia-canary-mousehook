@@ -42,7 +42,7 @@ class PerfectDarkZeroGame : public HookableGame {
                     bool universal_addr = false, uint8_t cam_type = -1);
 
   void HandleRightStickEmulation(RawInputState& input_state,
-                                 X_INPUT_STATE* out_state);
+                                 X_INPUT_STATE* out_state, bool LSmode = false);
 
   std::string ChooseBinds();
 

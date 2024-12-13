@@ -389,8 +389,10 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       *gun_x = gun_x_val;
       *gun_y = gun_y_val;
     }
-  } else
+  } else if (IsPaused(base_address) && !isSpecialCam(base_address, 0x16D1))
     HandleRightStickEmulation(input_state, out_state);
+  else if (IsPaused(base_address) && isSpecialCam(base_address, 0x16D1))
+    HandleRightStickEmulation(input_state, out_state, true);
 
   return true;
 }
@@ -447,7 +449,8 @@ bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
 }
 
 void PerfectDarkZeroGame::HandleRightStickEmulation(RawInputState& input_state,
-                                                    X_INPUT_STATE* out_state) {
+                                                    X_INPUT_STATE* out_state,
+                                                    bool LSmode) {
   auto now = std::chrono::steady_clock::now();
   auto elapsed_x = std::chrono::duration_cast<std::chrono::milliseconds>(
                        now - last_movement_time_x_)
@@ -470,7 +473,7 @@ void PerfectDarkZeroGame::HandleRightStickEmulation(RawInputState& input_state,
     last_movement_time_x_ = now;
   } else if (elapsed_x < hold_time) {  // Hold the last accumulated value
     accumulated_x = std::clamp(accumulated_x, (float)SHRT_MIN, (float)SHRT_MAX);
-  } else {
+  } else if (!LSmode) {
     accumulated_x = 0.0f;
   }
 
@@ -483,12 +486,16 @@ void PerfectDarkZeroGame::HandleRightStickEmulation(RawInputState& input_state,
     last_movement_time_y_ = now;
   } else if (elapsed_y < hold_time) {  // Hold the last accumulated value
     accumulated_y = std::clamp(accumulated_y, (float)SHRT_MIN, (float)SHRT_MAX);
-  } else {
+  } else if (!LSmode) {
     accumulated_y = 0.0f;
   }
-
-  out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
-  out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
+  if (!LSmode) {
+    out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
+    out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
+  } else {
+    out_state->gamepad.thumb_lx = static_cast<short>(accumulated_x);
+    out_state->gamepad.thumb_ly = static_cast<short>(accumulated_y);
+  }
 }
 
 std::string PerfectDarkZeroGame::ChooseBinds() { return "Default"; }
