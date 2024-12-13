@@ -35,6 +35,9 @@ const uint32_t kTitleIdPerfectDarkZero = 0x4D5307D3;
 namespace xe {
 namespace hid {
 namespace winkey {
+bool __inline IsKeyDown(uint8_t key) {
+  return (GetAsyncKeyState(key) & 0x8000) == 0x8000;
+}
 struct GameBuildAddrs {
   const char* build_string;
   uint32_t build_string_addr;
@@ -492,7 +495,7 @@ void PerfectDarkZeroGame::HandleRightStickEmulation(RawInputState& input_state,
   if (!LSmode) {
     out_state->gamepad.thumb_rx = static_cast<short>(accumulated_x);
     out_state->gamepad.thumb_ry = static_cast<short>(accumulated_y);
-  } else {
+  } else if (LSmode && !IsKeyDown(VK_SHIFT)) {
     out_state->gamepad.thumb_lx = static_cast<short>(accumulated_x);
     out_state->gamepad.thumb_ly = static_cast<short>(accumulated_y);
   }
