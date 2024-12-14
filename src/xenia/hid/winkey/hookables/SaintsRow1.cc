@@ -617,7 +617,10 @@ void SaintsRow1Game::SelectableWeaponsHack() {
                                                   // purpose
                                                   // it doesn't matter.
               supported_builds[game_build_].food_wheel_object_address);
-  *food_selector = 0;
+  auto* food_slot = kernel_memory()->TranslateVirtual<xe::be<int32_t>*>(
+      supported_builds[game_build_].food_wheel_slot_address);
+  if (*food_selector != 0) *food_selector = 0;
+  if (*food_slot != -1) *food_slot = -1;
   if (*wheel_status) return;
   call_argless_function(
       supported_builds[game_build_]
