@@ -48,6 +48,8 @@ struct GameBuildAddrs {
   uint32_t vehicle_address;
   uint32_t weapon_wheel_address;
   uint32_t weapon_wheel_slot_address;
+  uint32_t food_wheel_object_address;
+  uint32_t food_wheel_slot_address;
   uint32_t menu_status_address;
   // ACTUAL pause flag, menu_status_address acts more like if can player control
   // (kind of the real player paused controls flag is at 0x8283CA7B, will need
@@ -78,9 +80,9 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
-      0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8, 0x827F9B58, 0x827F99A3,
-      0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484, 0x835F1A58, 0x837DD080,
-      0x827F95B4, 0x835F33DF, 0x835F3522}}};
+      0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
+      0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
@@ -643,6 +645,20 @@ bool SaintsRow1Game::IsPlayerStatus1(uint32_t type) {
 void SaintsRow1Game::SelectableWeaponsHack() {
   /*Opening weapon wheel does call limit_weapons_function_addr correctly, so
    * skip our attempt at re-creating it.*/
+  auto* food_selector =
+      kernel_memory()
+          ->TranslateVirtual<xe::be<uint32_t>*>(  // possibily signed? for our
+                                                  // purpose
+                                                  // it doesn't matter.
+              supported_builds[game_build_].food_wheel_object_address);
+  auto* food_slot = kernel_memory()->TranslateVirtual<xe::be<int32_t>*>(
+      supported_builds[game_build_].food_wheel_slot_address);
+  if (*food_selector != 0) {
+    *food_selector = 0;
+  }
+  if (*food_slot != -1) {
+    *food_slot = -1;
+  }
   if (*wheel_status) {
     return;
   }
