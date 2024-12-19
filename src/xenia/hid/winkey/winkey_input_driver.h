@@ -73,7 +73,7 @@ namespace hid {
 namespace winkey {
 
 enum class KeyboardMode { Disabled, Enabled, Passthrough };
-
+// extern bool mousehook_passthru_override = false;
 class WinKeyInputDriver final : public InputDriver {
  public:
   explicit WinKeyInputDriver(xe::ui::Window* window, size_t window_z_order);

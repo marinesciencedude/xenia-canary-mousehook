@@ -11,6 +11,7 @@
 
 #include "xenia/hid/winkey/hookables/SaintsRow1.h"
 
+#include <xenia/hid/winkey/winkey_input_driver.h>
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/emulator.h"
@@ -29,12 +30,16 @@ DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
+DECLARE_int32(keyboard_mode);
 
 const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
 
 namespace xe {
 namespace hid {
 namespace winkey {
+bool __inline IsKeyDown(uint8_t key) {
+  return (GetAsyncKeyState(key) & 0x8000) == 0x8000;
+}
 struct GameBuildAddrs {
   const char* title_version;
   uint32_t x_address;
@@ -220,7 +225,15 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       }
     }
   }
+  /*
+    if (!mousehook_passthru_override &&
+        *kernel_memory()->TranslateVirtual<uint8_t*>(
+            0x835F4C3E)) {  // byte that controls console status
+      cvars::keyboard_mode = 2;
 
+    } else if (!mousehook_passthru_override)
+      cvars::keyboard_mode = 1;
+  */
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
        !input_state.mouse.wheel_delta))
     return false;
