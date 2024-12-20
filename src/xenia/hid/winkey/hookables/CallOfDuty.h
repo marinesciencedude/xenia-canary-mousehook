@@ -46,6 +46,7 @@ class CallOfDutyGame : public HookableGame {
     CallOfDuty3_MP_TU0,
     CallOfDuty3_MP_TU3,
     New_Moon_PatchedXEX,
+    CallOfDutyBO2_ZM_DLC5_DEV,
     CallOfDutyMW3_TU0_MP,
     CallOfDutyMW2_TU0_MP,
     CallOfDutyNX1_Nightly_SP_maps,
