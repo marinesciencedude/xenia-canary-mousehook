@@ -29,6 +29,7 @@ DECLARE_bool(invert_x);
 DECLARE_bool(disable_autoaim);
 DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(sr2_hold_fine_aim);
+DECLARE_bool(swap_wheel);
 
 const uint32_t kTitleIdSaintsRow2 = 0x545107FC;
 
@@ -182,11 +183,11 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
       if (player_status && (*holding_rs == 0)) {
         if (player_ptr != NULL) {
           if (player_status == 16 || player_status == 17) {
-            reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
-                          player_ptr, 144, 0);
+            call_func(supported_builds[game_build_].reset_fineaim_address,
+                      player_ptr, 144, 0);
           }
           if (*sniper_status == 0) {
-            reset_fineaim(
+            call_func(
                 supported_builds[game_build_].sniper_zoom_function_address,
                 player_ptr, 0, NULL);
           }
@@ -196,6 +197,8 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
          !input_state.mouse.wheel_delta))
       return false;
+    if (input_state.mouse.wheel_delta) WeaponWheelScrollWheel(input_state);
+
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         supported_builds[game_build_].x_address);
 
@@ -252,6 +255,49 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     *radian_y = DegreetoRadians(degree_y);
   }
   return true;
+}
+
+void SaintsRow2Game::WeaponWheelScrollWheel(RawInputState& input_state) {
+  uint32_t player_ptr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].player_pointer_address);
+  if (player_ptr == NULL) return;
+
+  auto* weapon_slot_ptr = multi_pointer(0x82C18510, {0xC, 0xC, 0xC, 0xC, 0xC});
+  if (*weapon_slot_ptr == NULL) return;
+  printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr));
+  auto* weapon_slot =
+      kernel_memory()->TranslateVirtual<uint8_t*>(*weapon_slot_ptr + 0x1B0B);
+  printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr + 0x1B0B));
+  printf("(slot: %d)\n", (int)*weapon_slot);
+  xe::be<uint32_t>* current_weapon =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player_ptr + 0x10BC);
+  if (input_state.mouse.wheel_delta) {
+    int16_t original_slot = static_cast<int16_t>(*weapon_slot);
+    int16_t slot = original_slot;
+
+    uint32_t old_weapon = *current_weapon;
+    bool weapon_switched = false;
+
+    int direction = (input_state.mouse.wheel_delta > 0) ? 1 : -1;
+
+    if (cvars::swap_wheel) {
+      direction = -direction;
+    }
+
+    for (int attempts = 0; attempts < 8; ++attempts) {
+      slot = (slot + direction + 8) % 8;
+
+      call_func(0x822597D8, (player_ptr + 0x10B4), slot, 1, 0);
+
+      if (*current_weapon != old_weapon) {
+        weapon_switched = true;
+
+        break;
+      }
+      if (!weapon_switched) {
+      }
+    }
+  }
 }
 
 std::string SaintsRow2Game::ChooseBinds() {
@@ -321,11 +367,17 @@ bool SaintsRow2Game::ModifierKeyHandler(uint32_t user_index,
 void SaintsRow2Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
-                                         uint16_t buttons) {}
+                                         uint16_t buttons) {
+  uint32_t player_ptr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].player_pointer_address);
+  if (player_ptr != 0 && weapon)
+    call_func(0x822597D8, (player_ptr + 0x10B4), std::clamp(weapon - 1, 0, 7),
+              1, 0);
+}
 
-uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
-                                       uint32_t player_ptr, uint32_t a2,
-                                       uint32_t a3) {
+uint32_t SaintsRow2Game::call_func(uint32_t function_address,
+                                   uint32_t player_ptr, uint32_t a2,
+                                   uint32_t a3, uint8_t a4) {
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {
@@ -341,6 +393,7 @@ uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
   // address, (0x9D9FD0)
   current_thread->thread_state()->context()->r[4] = a2;
   if (a3 != NULL) current_thread->thread_state()->context()->r[5] = a3;
+  if (a4 != NULL) current_thread->thread_state()->context()->r[6] = a4;
 
   kernel_state()->processor()->Execute(current_thread->thread_state(),
                                        function_address);
