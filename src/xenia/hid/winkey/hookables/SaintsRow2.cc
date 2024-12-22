@@ -262,17 +262,24 @@ void SaintsRow2Game::WeaponWheelScrollWheel(RawInputState& input_state) {
       supported_builds[game_build_].player_pointer_address);
   if (player_ptr == NULL) return;
 
-  auto* weapon_slot_ptr = multi_pointer(0x82C18510, {0xC, 0xC, 0xC, 0xC, 0xC});
-  if (*weapon_slot_ptr == NULL) return;
-  printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr));
-  auto* weapon_slot =
-      kernel_memory()->TranslateVirtual<uint8_t*>(*weapon_slot_ptr + 0x1B0B);
-  printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr + 0x1B0B));
-  printf("(slot: %d)\n", (int)*weapon_slot);
+  auto* weapon_slot_ptr =
+      multi_pointer(supported_builds[game_build_].player_pointer_address,
+                    {0x10BC, 0xC0, 0x8});
+  uint8_t weapon_slot;
+  if (weapon_slot_ptr) {
+    // printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr));
+    weapon_slot =
+        *kernel_memory()->TranslateVirtual<uint8_t*>(*weapon_slot_ptr + 0x3F);
+
+    printf("(weapon_slot_ptr: 0x%X)\n", uint32_t(*weapon_slot_ptr + 0x1B0B));
+    printf("(slot: %d)\n", (int)weapon_slot);
+  } else
+    weapon_slot = 0;
+
   xe::be<uint32_t>* current_weapon =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player_ptr + 0x10BC);
   if (input_state.mouse.wheel_delta) {
-    int16_t original_slot = static_cast<int16_t>(*weapon_slot);
+    int16_t original_slot = static_cast<int16_t>(weapon_slot);
     int16_t slot = original_slot;
 
     uint32_t old_weapon = *current_weapon;
@@ -290,9 +297,10 @@ void SaintsRow2Game::WeaponWheelScrollWheel(RawInputState& input_state) {
       call_func(0x822597D8, (player_ptr + 0x10B4), slot, 1, 0);
 
       if (*current_weapon != old_weapon) {
-        weapon_switched = true;
-
-        break;
+        if (*current_weapon != 0x0 || slot == 0) {
+          weapon_switched = true;
+          break;
+        }
       }
       if (!weapon_switched) {
       }
