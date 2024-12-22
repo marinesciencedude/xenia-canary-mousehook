@@ -31,6 +31,8 @@ class SaintsRow2Game : public HookableGame {
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
 
+  void WeaponWheelScrollWheel(RawInputState& input_state);
+
   std::string ChooseBinds();
 
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
@@ -40,8 +42,8 @@ class SaintsRow2Game : public HookableGame {
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
 
-  uint64_t reset_fineaim(uint32_t function_address, uint32_t player_ptr,
-                         uint32_t a2, uint32_t a3);
+  uint32_t call_func(uint32_t function_address, uint32_t player_ptr,
+                     uint32_t a2, uint32_t a3, uint8_t a4 = NULL);
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;
