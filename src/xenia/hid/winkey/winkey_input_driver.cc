@@ -697,11 +697,16 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
           binds = key_binds_.at(0).at("Default");
         } else {
           if (key_binds_.at(title_id).size() > 1) {
+            bool contextual_binds = false;
             for (auto& game : hookable_games_) {
               if (game->IsGameSupported()) {
                 binds = key_binds_.at(title_id).at(game->ChooseBinds());
+                contextual_binds = true;
                 break;
               }
+            }
+            if (!contextual_binds) {
+              binds = key_binds_.at(title_id).at("Default");
             }
           } else {
             binds = key_binds_.at(title_id).at("Default");
