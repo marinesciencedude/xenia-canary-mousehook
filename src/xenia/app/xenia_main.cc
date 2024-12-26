@@ -81,7 +81,7 @@
 
 DEFINE_string(apu, "any", "Audio system. Use: " APU_OPTIONS, "APU");
 DEFINE_string(gpu, "any", "Graphics system. Use: " GPU_OPTIONS, "GPU");
-DEFINE_string(hid, "any", "Input system. Use: " HID_OPTIONS, "HID");
+DEFINE_string(hid, "winkey", "Input system. Use: " HID_OPTIONS, "HID");
 
 DEFINE_path(
     storage_root, "",
