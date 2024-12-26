@@ -105,7 +105,7 @@ DEFINE_bool(
 #include "winkey_binding_table.inc"
 #undef XE_HID_WINKEY_BINDING
 
-DEFINE_int32(keyboard_mode, 0,
+DEFINE_int32(keyboard_mode, 1,
              "Allows user do specify keyboard working mode. Possible values: 0 "
              "- Disabled, 1 - Enabled, 2 - Passthrough. Passthrough requires "
              "controller being connected!",
