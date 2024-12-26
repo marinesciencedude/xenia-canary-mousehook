@@ -38,7 +38,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Call Of Duty World At War | Singleplayer & Multiplayer TU7 | 4156081C | Fair |
 | Call Of Duty Modern Warfare 2 | Singleplayer & Multiplayer TU0 / 482 alpha SP ".xex only" | 41560817 | Fair |
 | Call Of Duty Future Warfare "NX1" | Nightly_SP_maps / nx1sp.xex / nx1mp_demo.xex / nx1mp.xex / NightlyMPmaps | 4156089E | Fair |
-| Call Of Duty Black Ops 2 Greenlight | ".xex only" | 415608C3 | Fair |
+| Call Of Duty Black Ops 2  | Greenlight .xex only <br/>DLC 5 builds xex/exe <br/>version ZMBUILD-764 c4b2078a | 415608C3 | Fair |
 | Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" | 4156088E | Fair |
 | Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 | 41560914 | Fair | <sub> Modifier bound to readback_resolve <br/>Default: **Capslock** |
 | Wolfenstein | Singleplayer TU0 | 415607DE | Fair |
