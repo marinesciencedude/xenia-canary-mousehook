@@ -87,9 +87,9 @@ jobs:
           if-no-files-found: error
       - name: Create release
         if: |
-          github.repository == 'xenia-canary/xenia-canary' &&
+          github.repository == 'marinesciencedude/xenia-canary-mousehook' &&
           github.event.action != 'pull_request' &&
-          github.ref == 'refs/heads/canary_experimental'
+          (github.ref == 'refs/heads/mousehook' || github.ref == 'refs/heads/netplay_canary_experimental')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
