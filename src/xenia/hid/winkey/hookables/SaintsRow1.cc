@@ -388,7 +388,8 @@ bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
     max_zoom = 9.f;
     xe::be<uint32_t>* rims_jobs_vehicle_pointer = multi_pointer(
         supported_builds[game_build_].rims_jobs_address_ptr, {0x20, 0x98});
-    if (*rims_jobs_vehicle_pointer == NULL) return false;
+    if (!rims_jobs_vehicle_pointer || *rims_jobs_vehicle_pointer == NULL)
+      return false;
     player_x_sin = kernel_memory()->TranslateVirtual<xe::be<float>*>(
         *rims_jobs_vehicle_pointer + 0x40);
     player_x_cos = kernel_memory()->TranslateVirtual<xe::be<float>*>(
