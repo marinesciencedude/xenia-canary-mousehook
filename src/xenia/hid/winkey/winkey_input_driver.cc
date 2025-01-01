@@ -539,8 +539,10 @@ X_RESULT WinKeyInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
 
 X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
                                      X_INPUT_STATE* out_state) {
+  if (!IsKeyboardForUserEnabled(user_index)) {
+    return X_ERROR_DEVICE_NOT_CONNECTED;
+  }
   packet_number_++;
-
   uint16_t buttons = 0;
   uint8_t left_trigger = 0;
   uint8_t right_trigger = 0;
@@ -727,9 +729,10 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
     out_state->gamepad.thumb_ly = 0;
   }
 
-  if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
+  if (IsPassthroughEnabled()) {
     memset(out_state, 0, sizeof(out_state));
-  }
+  } else
+    memset(key_map_, 0, 256);
 
   return X_ERROR_SUCCESS;
 }
@@ -775,7 +778,6 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
 
   if (!IsPassthroughEnabled() && !IsKeyDown(VK_OEM_3)) {
     if (IsKeyboardForUserEnabled(user_index)) {
-      memset(key_map_, 0, 256);
       for (const KeyBinding& b : key_bindings_) {
         if (b.input_key == evt.virtual_key &&
             ((b.lowercase == b.uppercase) || (b.lowercase && !capital) ||
@@ -784,7 +786,7 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
         }
       }
     }
-  } else if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
+  } else if (IsPassthroughEnabled()) {
     xinput_virtual_key = evt.virtual_key;
 
     if (capital) {
@@ -864,10 +866,14 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
                           KeyboardMode::Disabled) {
     return;
   }
-  if (e.virtual_key() == ui::VirtualKey::kHome && is_down) {
-    if (cvars::keyboard_mode == 1)
+  if (e.virtual_key() == ui::VirtualKey::kDelete && is_down) {
+    if (cvars::keyboard_mode == 1) {
       cvars::keyboard_mode = 2;
-    else if (cvars::keyboard_mode == 2)
+      memset(key_map_, 0, sizeof(key_map_));
+      while (!key_events_.empty()) {
+        key_events_.pop();
+      }
+    } else if (cvars::keyboard_mode == 2)
       cvars::keyboard_mode = 1;
   }
   KeyEvent key;

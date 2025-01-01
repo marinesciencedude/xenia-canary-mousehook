@@ -101,7 +101,7 @@ X_RESULT InputSystem::GetCapabilities(uint32_t user_index, uint32_t flags,
       return result;
     }
   }
-  return X_ERROR_DEVICE_NOT_CONNECTED;
+  return X_ERROR_SUCCESS;
 }
 
 X_RESULT InputSystem::GetState(uint32_t user_index, uint32_t flags,
