@@ -539,7 +539,7 @@ X_RESULT WinKeyInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
 
 X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
                                      X_INPUT_STATE* out_state) {
-  if (!IsKeyboardForUserEnabled(user_index)) {
+  if (user_index != cvars::keyboard_user_index) {
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
   packet_number_++;
@@ -570,7 +570,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
       }
     }
     if (IsKeyboardForUserEnabled(user_index)) {
-      memset(key_map_, 0, 256);
+      // memset(key_map_, 0, 256);
       for (int i = 0; i < sizeof(key_states_); i++) {
         if (key_states_[i]) {
           std::map<ui::VirtualKey, uint64_t> binds;
@@ -729,10 +729,8 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
     out_state->gamepad.thumb_ly = 0;
   }
 
-  if (IsPassthroughEnabled()) {
+  if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3))
     memset(out_state, 0, sizeof(out_state));
-  } else
-    memset(key_map_, 0, 256);
 
   return X_ERROR_SUCCESS;
 }
@@ -786,7 +784,7 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
         }
       }
     }
-  } else if (IsPassthroughEnabled()) {
+  } else if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
     xinput_virtual_key = evt.virtual_key;
 
     if (capital) {
@@ -875,6 +873,7 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
       }
     } else if (cvars::keyboard_mode == 2)
       cvars::keyboard_mode = 1;
+    memset(key_map_, 0, sizeof(key_map_));
   }
   KeyEvent key;
   key.virtual_key = e.virtual_key();
