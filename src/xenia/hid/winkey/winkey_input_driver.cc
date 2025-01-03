@@ -516,7 +516,7 @@ X_RESULT WinKeyInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
-  if (IsPassthroughEnabled()) {
+  if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
     out_caps->type = X_INPUT_DEVTYPE::XINPUT_DEVTYPE_KEYBOARD;
     out_caps->sub_type = X_INPUT_DEVSUBTYPE::XINPUT_DEVSUBTYPE_USB_KEYBOARD;
     return X_ERROR_SUCCESS;
@@ -575,25 +575,25 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         if (key_states_[i]) {
           std::map<ui::VirtualKey, uint64_t> binds;
 
-        if (key_binds_.find(title_id) == key_binds_.end()) {
-          binds = key_binds_.at(0).at("Default");
-        } else {
-          if (key_binds_.at(title_id).size() > 1) {
-            bool contextual_binds = false;
-            for (auto& game : hookable_games_) {
-              if (game->IsGameSupported()) {
-                binds = key_binds_.at(title_id).at(game->ChooseBinds());
-                contextual_binds = true;
-                break;
+          if (key_binds_.find(title_id) == key_binds_.end()) {
+            binds = key_binds_.at(0).at("Default");
+          } else {
+            if (key_binds_.at(title_id).size() > 1) {
+              bool contextual_binds = false;
+              for (auto& game : hookable_games_) {
+                if (game->IsGameSupported()) {
+                  binds = key_binds_.at(title_id).at(game->ChooseBinds());
+                  contextual_binds = true;
+                  break;
+                }
               }
-            }
-            if (!contextual_binds) {
+              if (!contextual_binds) {
+                binds = key_binds_.at(title_id).at("Default");
+              }
+            } else {
               binds = key_binds_.at(title_id).at("Default");
             }
-          } else {
-            binds = key_binds_.at(title_id).at("Default");
           }
-        }
 
           const auto vk_key = static_cast<ui::VirtualKey>(i);
 
@@ -731,7 +731,10 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
 
   if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3))
     memset(out_state, 0, sizeof(out_state));
-
+  else {
+    memset(key_map_, 0, sizeof(key_map_));
+    while (!key_events_.empty()) key_events_.pop();
+  }
   return X_ERROR_SUCCESS;
 }
 
@@ -867,13 +870,13 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
   if (e.virtual_key() == ui::VirtualKey::kDelete && is_down) {
     if (cvars::keyboard_mode == 1) {
       cvars::keyboard_mode = 2;
-      memset(key_map_, 0, sizeof(key_map_));
+      // memset(key_map_, 0, sizeof(key_map_));
       while (!key_events_.empty()) {
         key_events_.pop();
       }
     } else if (cvars::keyboard_mode == 2)
       cvars::keyboard_mode = 1;
-    memset(key_map_, 0, sizeof(key_map_));
+    // memset(key_map_, 0, sizeof(key_map_));
   }
   KeyEvent key;
   key.virtual_key = e.virtual_key();
