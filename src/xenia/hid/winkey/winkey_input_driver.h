@@ -13,60 +13,10 @@
 #include <queue>
 
 #include "xenia/base/mutex.h"
-#include "xenia/hid/input.h"
 #include "xenia/hid/input_driver.h"
-#include "xenia/hid/winkey/hookables/hookable_game.h"
 #include "xenia/ui/virtual_key.h"
 
-#define VK_BIND_MWHEELUP 0x0E
-#define VK_BIND_MWHEELDOWN 0x0F
-
-#define XINPUT_BUTTONS_MASK 0xFFFF
-
-#define XINPUT_BIND_UP X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_UP
-#define XINPUT_BIND_DOWN X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_DOWN
-#define XINPUT_BIND_LEFT X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_LEFT
-#define XINPUT_BIND_RIGHT X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_DPAD_RIGHT
-
-#define XINPUT_BIND_START X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_START
-#define XINPUT_BIND_BACK X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_BACK
-
-#define XINPUT_BIND_LS X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_LEFT_THUMB
-#define XINPUT_BIND_RS X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_RIGHT_THUMB
-
-#define XINPUT_BIND_LB X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_LEFT_SHOULDER
-#define XINPUT_BIND_RB X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_RIGHT_SHOULDER
-
-#define XINPUT_BIND_A X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_A
-#define XINPUT_BIND_B X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_B
-#define XINPUT_BIND_X X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_X
-#define XINPUT_BIND_Y X_INPUT_GAMEPAD_BUTTON::X_INPUT_GAMEPAD_Y
-
-#define XINPUT_BIND_LEFT_TRIGGER (1 << 16)
-#define XINPUT_BIND_RIGHT_TRIGGER (1 << 17)
-
-#define XINPUT_BIND_LS_UP (1 << 18)
-#define XINPUT_BIND_LS_DOWN (1 << 19)
-#define XINPUT_BIND_LS_LEFT (1 << 20)
-#define XINPUT_BIND_LS_RIGHT (1 << 21)
-
-#define XINPUT_BIND_RS_UP (1 << 22)
-#define XINPUT_BIND_RS_DOWN (1 << 23)
-#define XINPUT_BIND_RS_LEFT (1 << 24)
-#define XINPUT_BIND_RS_RIGHT (1 << 25)
-
-#define XINPUT_BIND_MODIFIER (1 << 26)
-
-#define XINPUT_BIND_WEAPON1 ((uint64_t)1 << 54)
-#define XINPUT_BIND_WEAPON2 ((uint64_t)1 << 55)
-#define XINPUT_BIND_WEAPON3 ((uint64_t)1 << 56)
-#define XINPUT_BIND_WEAPON4 ((uint64_t)1 << 57)
-#define XINPUT_BIND_WEAPON5 ((uint64_t)1 << 58)
-#define XINPUT_BIND_WEAPON6 ((uint64_t)1 << 59)
-#define XINPUT_BIND_WEAPON7 ((uint64_t)1 << 60)
-#define XINPUT_BIND_WEAPON8 ((uint64_t)1 << 61)
-#define XINPUT_BIND_WEAPON9 ((uint64_t)1 << 62)
-#define XINPUT_BIND_WEAPON10 ((uint64_t)1 << 63)
+#include "xenia/hid/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
@@ -121,10 +71,6 @@ class WinKeyInputDriver final : public InputDriver {
   void ParseKeyBinding(ui::VirtualKey virtual_key,
                        const std::string_view description,
                        const std::string_view binding);
-
-  uint64_t ParseButtonCombination(const char* combo);
-
-  void ParseCustomKeyBinding(const std::string_view bindings_file);
 
   void OnRawKeyboard(ui::KeyEvent& e);
 

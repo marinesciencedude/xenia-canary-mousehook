@@ -9,6 +9,8 @@ project("xenia-hid-xinput")
   links({
     "xenia-base",
     "xenia-hid",
+	"xenia-kernel",
+	"xenia-hid-mousehook",
   })
   defines({
   })

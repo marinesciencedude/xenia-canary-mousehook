@@ -24,6 +24,8 @@
 #include "xenia/ui/window.h"
 #include "xenia/ui/windowed_app_context.h"
 
+#include "xenia/hid/hookables/mousehook.h"
+
 // TODO(joellinn) make this path relative to the config folder.
 DEFINE_path(mappings_file, "gamecontrollerdb.txt",
             "Filename of a database with custom game controller mappings.",
@@ -35,12 +37,21 @@ namespace sdl {
 
 SDLInputDriver::SDLInputDriver(xe::ui::Window* window, size_t window_z_order)
     : InputDriver(window, window_z_order),
+      window_input_listener_(*this),
       sdl_events_initialized_(false),
       sdl_gamecontroller_initialized_(false),
       sdl_events_unflushed_(0),
       sdl_pumpevents_queued_(false),
       controllers_(),
-      keystroke_states_() {}
+      keystroke_states_() {
+  // Register our supported hookable games
+  RegisterHookables(hookable_games_);
+
+  // Read bindings file if it exists
+  ParseCustomKeyBinding(key_binds_);
+
+  window->AddInputListener(&window_input_listener_, window_z_order);
+}
 
 SDLInputDriver::~SDLInputDriver() {
   // Make sure the CallInUIThread is executed before destroying the references.
@@ -241,7 +252,59 @@ X_RESULT SDLInputDriver::GetState(uint32_t user_index,
     controller->is_active = is_active;
     controller->state_changed = false;
   }
-  std::memcpy(out_state, &controller->state, sizeof(*out_state));
+
+  uint16_t buttons = controller->state.gamepad.buttons;
+  uint8_t left_trigger = controller->state.gamepad.left_trigger;
+  uint8_t right_trigger = controller->state.gamepad.right_trigger;
+  int16_t thumb_lx = controller->state.gamepad.thumb_lx;
+  int16_t thumb_ly = controller->state.gamepad.thumb_ly;
+  int16_t thumb_rx = controller->state.gamepad.thumb_rx;
+  int16_t thumb_ry = controller->state.gamepad.thumb_ry;
+  bool modifier_pressed = false;
+  bool weapon_switch = false;
+  int weapon = 0;
+
+  RawInputState state;
+
+  if (window()->HasFocus() && is_active) {
+    HandleKeyBindings(state, mouse_events_, key_states_, key_binds_, title_id,
+                      hookable_games_, &buttons, &left_trigger, &right_trigger,
+                      &thumb_lx, &thumb_ly, &thumb_rx, &thumb_ry,
+                      &modifier_pressed, &weapon_switch, &weapon);
+  } else {  // So keys don't get 'stuck' if they were held previously when
+            // tabbing in and out from the window
+    memset(key_states_, 0, 256);
+    mouse_events_ = {};
+  }
+
+  out_state->packet_number = controller->state.packet_number;
+  out_state->gamepad.buttons = buttons;
+  out_state->gamepad.left_trigger = left_trigger;
+  out_state->gamepad.right_trigger = right_trigger;
+  out_state->gamepad.thumb_lx = thumb_lx;
+  out_state->gamepad.thumb_ly = thumb_ly;
+  out_state->gamepad.thumb_rx = thumb_rx;
+  out_state->gamepad.thumb_ry = thumb_ry;
+
+  // Check if we have any hooks/injections for the current game
+  bool game_modifier_handled = false;
+  if (title_id) {
+    for (auto& game : hookable_games_) {
+      if (game->IsGameSupported()) {
+        game->DoHooks(user_index, state, out_state);
+        if (modifier_pressed) {
+          game_modifier_handled =
+              game->ModifierKeyHandler(user_index, state, out_state);
+        }
+        if (weapon_switch) {
+          game->WeaponSwitchHandler(user_index, state, out_state, weapon,
+                                    buttons);
+        }
+        break;
+      }
+    }
+  }
+
   if (!is_active) {
     // Simulate an "untouched" controller. When we become active again the
     // pressed buttons aren't lost and will be visible again.
@@ -799,6 +862,18 @@ inline uint64_t SDLInputDriver::AnalogToKeyfield(
     thumb_y = gamepad.thumb_ry;
   }
   return f;
+}
+
+void SDLInputDriver::SDLWindowInputListener::OnRawMouse(ui::MouseEvent& e) {
+  driver_.OnRawMouse(e);
+}
+
+void SDLInputDriver::OnRawMouse(ui::MouseEvent& evt) {
+  if (!is_active()) {
+    return;
+  }
+
+  OnMouse(evt, mouse_events_, key_states_);
 }
 
 }  // namespace sdl

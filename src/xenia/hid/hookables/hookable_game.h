@@ -1,0 +1,55 @@
+/**
+ ******************************************************************************
+ * Xenia : Xbox 360 Emulator Research Project                                 *
+ ******************************************************************************
+ * Copyright 2013 Ben Vanik. All rights reserved.                             *
+ * Released under the BSD license - see LICENSE in the root for more details. *
+ ******************************************************************************
+ */
+
+#ifndef XENIA_HID_HOOKABLE_GAME_H_
+#define XENIA_HID_HOOKABLE_GAME_H_
+
+#include <vector>
+#include "xenia/hid/input.h"
+#include "xenia/xbox.h"
+
+namespace xe {
+namespace hid {
+
+struct MouseEvent {
+  int32_t x_delta = 0;
+  int32_t y_delta = 0;
+  int32_t buttons = 0;
+  int32_t wheel_delta = 0;
+};
+
+struct RawInputState {
+  MouseEvent mouse;
+  bool* key_states;
+};
+
+class HookableGame {
+ public:
+  virtual ~HookableGame() = default;
+
+  virtual bool IsGameSupported() = 0;
+  virtual bool DoHooks(uint32_t user_index, RawInputState& input_state,
+                       X_INPUT_STATE* out_state) = 0;
+  virtual std::string ChooseBinds() = 0;
+  virtual bool ModifierKeyHandler(uint32_t user_index,
+                                  RawInputState& input_state,
+                                  X_INPUT_STATE* out_state) = 0;
+  virtual void WeaponSwitchHandler(uint32_t user_index,
+                                   RawInputState& input_state,
+                                   X_INPUT_STATE* out_state, int weapon,
+                                   uint16_t buttons) = 0;
+};
+
+xe::be<uint32_t>* multi_pointer(uint32_t base_address,
+                                std::vector<uint32_t> offsets);
+
+}  // namespace hid
+}  // namespace xe
+
+#endif  // XENIA_HID_HOOKABLE_GAME_H_

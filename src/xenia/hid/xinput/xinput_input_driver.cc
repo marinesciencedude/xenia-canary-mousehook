@@ -17,6 +17,9 @@
 #include "xenia/base/clock.h"
 #include "xenia/base/logging.h"
 #include "xenia/hid/hid_flags.h"
+
+#include "xenia/hid/hookables/mousehook.h"
+
 namespace xe {
 namespace hid {
 namespace xinput {
@@ -24,13 +27,22 @@ namespace xinput {
 XInputInputDriver::XInputInputDriver(xe::ui::Window* window,
                                      size_t window_z_order)
     : InputDriver(window, window_z_order),
+      window_input_listener_(*this),
       module_(nullptr),
       XInputGetCapabilities_(nullptr),
       XInputGetState_(nullptr),
       XInputGetStateEx_(nullptr),
       XInputGetKeystroke_(nullptr),
       XInputSetState_(nullptr),
-      XInputEnable_(nullptr) {}
+      XInputEnable_(nullptr) {
+  // Register our supported hookable games
+  RegisterHookables(hookable_games_);
+
+  // Read bindings file if it exists
+  ParseCustomKeyBinding(key_binds_);
+
+  window->AddInputListener(&window_input_listener_, window_z_order);
+}
 
 XInputInputDriver::~XInputInputDriver() {
   if (module_) {
@@ -163,17 +175,60 @@ X_RESULT XInputInputDriver::GetState(uint32_t user_index,
     return result;
   }
 
+  uint16_t buttons = native_state.state.Gamepad.wButtons;
+  uint8_t left_trigger = native_state.state.Gamepad.bLeftTrigger;
+  uint8_t right_trigger = native_state.state.Gamepad.bRightTrigger;
+  int16_t thumb_lx = native_state.state.Gamepad.sThumbLX;
+  int16_t thumb_ly = native_state.state.Gamepad.sThumbLY;
+  int16_t thumb_rx = native_state.state.Gamepad.sThumbRX;
+  int16_t thumb_ry = native_state.state.Gamepad.sThumbRY;
+  bool modifier_pressed = false;
+  bool weapon_switch = false;
+  int weapon = 0;
+
+  RawInputState state;
+
+  if (window()->HasFocus() && is_active()) {
+    HandleKeyBindings(state, mouse_events_, key_states_, key_binds_, title_id,
+                      hookable_games_, &buttons, &left_trigger, &right_trigger,
+                      &thumb_lx, &thumb_ly, &thumb_rx, &thumb_ry,
+                      &modifier_pressed, &weapon_switch, &weapon);
+  } else {  // So keys don't get 'stuck' if they were held previously when
+            // tabbing in and out from the window
+    memset(key_states_, 0, 256);
+    mouse_events_ = {};
+  }
+
   out_state->packet_number = native_state.state.dwPacketNumber;
   if (is_active()) {
-    out_state->gamepad.buttons = native_state.state.Gamepad.wButtons;
-    out_state->gamepad.left_trigger = native_state.state.Gamepad.bLeftTrigger;
-    out_state->gamepad.right_trigger = native_state.state.Gamepad.bRightTrigger;
-    out_state->gamepad.thumb_lx = native_state.state.Gamepad.sThumbLX;
-    out_state->gamepad.thumb_ly = native_state.state.Gamepad.sThumbLY;
-    out_state->gamepad.thumb_rx = native_state.state.Gamepad.sThumbRX;
-    out_state->gamepad.thumb_ry = native_state.state.Gamepad.sThumbRY;
+    out_state->gamepad.buttons = buttons;
+    out_state->gamepad.left_trigger = left_trigger;
+    out_state->gamepad.right_trigger = right_trigger;
+    out_state->gamepad.thumb_lx = thumb_lx;
+    out_state->gamepad.thumb_ly = thumb_ly;
+    out_state->gamepad.thumb_rx = thumb_rx;
+    out_state->gamepad.thumb_ry = thumb_ry;
   } else {
     std::memset(&out_state->gamepad, 0, sizeof(out_state->gamepad));
+  }
+
+  // Check if we have any hooks/injections for the current game
+  bool game_modifier_handled = false;
+  if (title_id) {
+    for (auto& game : hookable_games_) {
+      if (game->IsGameSupported()) {
+        game->DoHooks(user_index, state, out_state);
+        if (modifier_pressed) {
+          game_modifier_handled =
+              game->ModifierKeyHandler(user_index, state, out_state);
+        }
+        if (weapon_switch) {
+          game->WeaponSwitchHandler(user_index, state, out_state, weapon,
+                                    buttons);
+        }
+        break;
+      }
+    }
   }
 
   return result;
@@ -243,6 +298,19 @@ X_RESULT XInputInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
 
 InputType XInputInputDriver::GetInputType() const {
   return InputType::Controller;
+}
+
+void XInputInputDriver::XInputWindowInputListener::OnRawMouse(
+    ui::MouseEvent& e) {
+  driver_.OnRawMouse(e);
+}
+
+void XInputInputDriver::OnRawMouse(ui::MouseEvent& evt) {
+  if (!is_active()) {
+    return;
+  }
+
+  OnMouse(evt, mouse_events_, key_states_);
 }
 
 }  // namespace xinput

@@ -14,10 +14,13 @@
 #include <atomic>
 #include <mutex>
 #include <optional>
+#include <queue>
 
 #include "SDL.h"
 #include "third_party/rapidcsv/src/rapidcsv.h"
 #include "xenia/hid/input_driver.h"
+
+#include "xenia/hid/hookables/hookable_game.h"
 
 #define HID_SDL_USER_COUNT 4
 #define HID_SDL_THUMB_THRES 0x4E00
@@ -45,6 +48,21 @@ class SDLInputDriver final : public InputDriver {
   X_RESULT GetKeystroke(uint32_t user_index, uint32_t flags,
                         X_INPUT_KEYSTROKE* out_keystroke) override;
   virtual InputType GetInputType() const override;
+
+ protected:
+  class SDLWindowInputListener final : public ui::WindowInputListener {
+   public:
+    explicit SDLWindowInputListener(SDLInputDriver& driver) : driver_(driver) {}
+
+    void OnRawMouse(ui::MouseEvent& e) override;
+
+   private:
+    SDLInputDriver& driver_;
+  };
+
+  void OnRawMouse(ui::MouseEvent& e);
+
+  SDLWindowInputListener window_input_listener_;
 
  private:
   struct ControllerState {
@@ -89,6 +107,14 @@ class SDLInputDriver final : public InputDriver {
   std::atomic<bool> sdl_pumpevents_queued_;
   std::array<ControllerState, HID_SDL_USER_COUNT> controllers_;
   std::array<KeystrokeState, HID_SDL_USER_COUNT> keystroke_states_;
+
+  std::queue<MouseEvent> mouse_events_;
+
+  uint8_t key_states_[256] = {};
+  std::map<uint32_t, std::map<std::string, std::map<ui::VirtualKey, uint64_t>>>
+      key_binds_;
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
 };
 
 }  // namespace sdl

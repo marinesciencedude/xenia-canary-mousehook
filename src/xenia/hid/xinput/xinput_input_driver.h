@@ -10,7 +10,11 @@
 #ifndef XENIA_HID_XINPUT_XINPUT_INPUT_DRIVER_H_
 #define XENIA_HID_XINPUT_XINPUT_INPUT_DRIVER_H_
 
+#include <queue>
+
 #include "xenia/hid/input_driver.h"
+
+#include "xenia/hid/hookables/hookable_game.h"
 
 namespace xe {
 namespace hid {
@@ -31,6 +35,22 @@ class XInputInputDriver final : public InputDriver {
                         X_INPUT_KEYSTROKE* out_keystroke) override;
   virtual InputType GetInputType() const override;
 
+ protected:
+  class XInputWindowInputListener final : public ui::WindowInputListener {
+   public:
+    explicit XInputWindowInputListener(XInputInputDriver& driver)
+        : driver_(driver) {}
+
+    void OnRawMouse(ui::MouseEvent& e) override;
+
+   private:
+    XInputInputDriver& driver_;
+  };
+
+  void OnRawMouse(ui::MouseEvent& e);
+
+  XInputWindowInputListener window_input_listener_;
+
  private:
   void* module_;
   void* XInputGetCapabilities_;
@@ -39,6 +59,14 @@ class XInputInputDriver final : public InputDriver {
   void* XInputGetKeystroke_;
   void* XInputSetState_;
   void* XInputEnable_;
+
+  std::queue<MouseEvent> mouse_events_;
+
+  uint8_t key_states_[256] = {};
+  std::map<uint32_t, std::map<std::string, std::map<ui::VirtualKey, uint64_t>>>
+      key_binds_;
+
+  std::vector<std::unique_ptr<HookableGame>> hookable_games_;
 };
 
 }  // namespace xinput
