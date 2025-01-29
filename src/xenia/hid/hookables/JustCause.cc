@@ -11,7 +11,6 @@
 
 #include "xenia/hid/hookables/JustCause.h"
 
-#include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/emulator.h"
 #include "xenia/hid/hid_flags.h"

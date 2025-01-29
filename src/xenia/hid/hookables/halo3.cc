@@ -9,7 +9,6 @@
 
 #include "xenia/hid/hookables/halo3.h"
 
-#include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
