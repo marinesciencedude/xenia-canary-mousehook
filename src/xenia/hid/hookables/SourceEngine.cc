@@ -38,11 +38,11 @@ const uint32_t kTitleIdDarkMessiah = 0x55530804;
 
 namespace xe {
 namespace hid {
-
+#if XE_PLATFORM_WIN32
 bool __inline IsKeyToggled(uint8_t key) {
   return (GetKeyState(key) & 0x1) == 0x1;
 }
-
+#endif
 SourceEngine::SourceEngine() {
   original_sensitivity = cvars::sensitivity;
   engine_360 = NULL;
@@ -179,7 +179,7 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
   // xe::be += treats things as int?
   float camX = (float)ang->pitchX;
   float camY = (float)ang->pitchY;
-
+#if XE_PLATFORM_WIN32
   if (cvars::source_sniper_sensitivity != 0) {
     if (IsKeyToggled(VK_CAPITAL) != 0) {
       cvars::sensitivity = cvars::source_sniper_sensitivity;
@@ -187,7 +187,7 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
       cvars::sensitivity = original_sensitivity;
     }
   }
-
+#endif
   if (!cvars::invert_x) {
     camX -=
         (((float)input_state.mouse.x_delta) / 7.5f) * (float)cvars::sensitivity;
