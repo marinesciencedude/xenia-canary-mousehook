@@ -56,7 +56,7 @@ struct GameBuildAddrs {
   uint32_t clamp_current_max;
 };
 
-std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> supported_builds{
+std::map<SaintsRow2Game::GameBuild, GameBuildAddrs> saintsrow2_supported_builds{
     {SaintsRow2Game::GameBuild::Unknown, {"", NULL, NULL, NULL, NULL, NULL}},
     {SaintsRow2Game::GameBuild::SaintsRow2_TU3,
      {"8.0.3", 0x82B7A570, 0x82B7A590, 0x82B7ABC4, 0x837B79C3, 0x82B58DA3,
@@ -73,7 +73,7 @@ bool SaintsRow2Game::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : saintsrow2_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -97,7 +97,7 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (saintsrow2_supported_builds.count(game_build_) == 0) {
     return false;
   }
 
@@ -149,30 +149,31 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   auto* sniper_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].sniper_status_address);
+      saintsrow2_supported_builds[game_build_].sniper_status_address);
 
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
+      saintsrow2_supported_builds[game_build_].menu_status_address);
   if (*menu_status == 2) {  // Our paused check.
     auto* holding_rs = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].RS_held_address);
+        saintsrow2_supported_builds[game_build_].RS_held_address);
 
     player_status = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        supported_builds[game_build_].player_status_address);
+        saintsrow2_supported_builds[game_build_].player_status_address);
     if (cvars::sr2_hold_fine_aim) {
       uint32_t player_ptr =
           *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              supported_builds[game_build_].player_pointer_address);
+              saintsrow2_supported_builds[game_build_].player_pointer_address);
       if (player_status && (*holding_rs == 0)) {
         if (player_ptr != NULL) {
           if (player_status == 16 || player_status == 17) {
-            reset_fineaim(supported_builds[game_build_].reset_fineaim_address,
-                          player_ptr, 144, 0);
+            reset_fineaim(
+                saintsrow2_supported_builds[game_build_].reset_fineaim_address,
+                player_ptr, 144, 0);
           }
           if (*sniper_status == 0) {
-            reset_fineaim(
-                supported_builds[game_build_].sniper_zoom_function_address,
-                player_ptr, 0, NULL);
+            reset_fineaim(saintsrow2_supported_builds[game_build_]
+                              .sniper_zoom_function_address,
+                          player_ptr, 0, NULL);
           }
         }
       }
@@ -181,10 +182,10 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
          !input_state.mouse.wheel_delta))
       return false;
     xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].x_address);
+        saintsrow2_supported_builds[game_build_].x_address);
 
     xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].y_address);
+        saintsrow2_supported_builds[game_build_].y_address);
 
     if (!radian_x || *radian_x == NULL) {
       // Not in game
@@ -199,7 +200,7 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
     xe::be<float>* currentFOV =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].currentFOV_address);
+            saintsrow2_supported_builds[game_build_].currentFOV_address);
     if (*currentFOV < 58.f) divisor = (58.f / *currentFOV) * divisor;
 
     // X-axis = 0 to 360
@@ -224,11 +225,11 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     // can break and it doesn't work well with mousehook on-foot.
     xe::be<float>* value_to_subtract =
         kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].clamp_value_to_subtract);
+            saintsrow2_supported_builds[game_build_].clamp_value_to_subtract);
     xe::be<float>* min = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].clamp_current_min);
+        saintsrow2_supported_builds[game_build_].clamp_current_min);
     xe::be<float>* max = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].clamp_current_max);
+        saintsrow2_supported_builds[game_build_].clamp_current_max);
 
     degree_y = std::clamp(degree_y, RadianstoDegree(*min - *value_to_subtract),
                           RadianstoDegree(*max - *value_to_subtract));
@@ -241,10 +242,10 @@ bool SaintsRow2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 std::string SaintsRow2Game::ChooseBinds() {
   // Highest priority:
   auto* wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].pressB_status_address);
+      saintsrow2_supported_builds[game_build_].pressB_status_address);
 
   auto* menu_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
+      saintsrow2_supported_builds[game_build_].menu_status_address);
 
   if (wheel_status && *wheel_status != 0 &&
       *menu_status == 2) {  // Need to check menu_status otherwise pressing B in

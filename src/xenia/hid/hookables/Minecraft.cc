@@ -64,7 +64,7 @@ struct GameBuildAddrs {
   std::vector<uint32_t> hotbar_offsets;
 };
 
-std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
+std::map<MinecraftGame::GameBuild, GameBuildAddrs> minecraft_supported_builds{
     {MinecraftGame::GameBuild::Unknown,
      {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},
       NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -92,7 +92,7 @@ bool MinecraftGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : minecraft_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -115,13 +115,13 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   if (*kernel_memory()->TranslateVirtual<uint8_t*>(
-          supported_builds[game_build_].pause_flag)) {
+          minecraft_supported_builds[game_build_].pause_flag)) {
     return true;
   }
 
-  auto* inventory_flag_ptr =
-      multi_pointer(supported_builds[game_build_].inventory_flag_base,
-                    supported_builds[game_build_].inventory_flag_offsets);
+  auto* inventory_flag_ptr = multi_pointer(
+      minecraft_supported_builds[game_build_].inventory_flag_base,
+      minecraft_supported_builds[game_build_].inventory_flag_offsets);
   if (inventory_flag_ptr) {
     if (*inventory_flag_ptr) {
       uint32_t x_offset;
@@ -129,51 +129,53 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
       switch (*inventory_flag_ptr) {
         case 1: {
-          x_offset = supported_builds[game_build_].inventory_x_offset;
-          y_offset = supported_builds[game_build_].inventory_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].inventory_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].inventory_y_offset;
           break;
         }
         case 37: {
-          x_offset = supported_builds[game_build_].workbench_x_offset;
-          y_offset = supported_builds[game_build_].workbench_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].workbench_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].workbench_y_offset;
           break;
         }
         case 4: {
-          x_offset = supported_builds[game_build_].furnace_x_offset;
-          y_offset = supported_builds[game_build_].furnace_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].furnace_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].furnace_y_offset;
           break;
         }
         case 10:  // normal/trapped/ender chests
         case 11:  // dispenser/dropper
         case 32:  // hopper
         {
-          x_offset = supported_builds[game_build_].chest_x_offset;
-          y_offset = supported_builds[game_build_].chest_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].chest_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].chest_y_offset;
           break;
         }
         case 27: {
-          x_offset = supported_builds[game_build_].anvil_x_offset;
-          y_offset = supported_builds[game_build_].anvil_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].anvil_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].anvil_y_offset;
           break;
         }
         case 20: {
-          x_offset = supported_builds[game_build_].enchanting_x_offset;
-          y_offset = supported_builds[game_build_].enchanting_y_offset;
+          x_offset =
+              minecraft_supported_builds[game_build_].enchanting_x_offset;
+          y_offset =
+              minecraft_supported_builds[game_build_].enchanting_y_offset;
           break;
         }
         case 18: {
-          x_offset = supported_builds[game_build_].brewing_x_offset;
-          y_offset = supported_builds[game_build_].brewing_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].brewing_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].brewing_y_offset;
           break;
         }
         case 34: {
-          x_offset = supported_builds[game_build_].beacon_x_offset;
-          y_offset = supported_builds[game_build_].beacon_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].beacon_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].beacon_y_offset;
           break;
         }
         case 14: {
-          x_offset = supported_builds[game_build_].creative_x_offset;
-          y_offset = supported_builds[game_build_].creative_y_offset;
+          x_offset = minecraft_supported_builds[game_build_].creative_x_offset;
+          y_offset = minecraft_supported_builds[game_build_].creative_y_offset;
           break;
         }
         default:  // sometimes we need to check if offsets are being set at all
@@ -181,9 +183,9 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
           return false;
       }
 
-      auto* inventory_ptr =
-          multi_pointer(supported_builds[game_build_].inventory_base_addr,
-                        supported_builds[game_build_].inventory_base_offsets);
+      auto* inventory_ptr = multi_pointer(
+          minecraft_supported_builds[game_build_].inventory_base_addr,
+          minecraft_supported_builds[game_build_].inventory_base_offsets);
       if (*inventory_ptr) {
         auto* inventoryX_ptr =
             kernel_memory()->TranslateVirtual<xe::be<float>*>(*inventory_ptr +
@@ -210,14 +212,16 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   auto* input_base_addr =
-      multi_pointer(supported_builds[game_build_].camera_base_addr,
-                    supported_builds[game_build_].camera_offsets);
+      multi_pointer(minecraft_supported_builds[game_build_].camera_base_addr,
+                    minecraft_supported_builds[game_build_].camera_offsets);
 
   if (*input_base_addr) {
     auto* player_cam_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        *input_base_addr + supported_builds[game_build_].camera_x_offset);
+        *input_base_addr +
+        minecraft_supported_builds[game_build_].camera_x_offset);
     auto* player_cam_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        *input_base_addr + supported_builds[game_build_].camera_y_offset);
+        *input_base_addr +
+        minecraft_supported_builds[game_build_].camera_y_offset);
 
     // Have to do weird things converting it to normal float otherwise
     // xe::be += treats things as int?
@@ -256,9 +260,9 @@ bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 }
 
 std::string MinecraftGame::ChooseBinds() {
-  auto* inventory_flag_ptr =
-      multi_pointer(supported_builds[game_build_].inventory_flag_base,
-                    supported_builds[game_build_].inventory_flag_offsets);
+  auto* inventory_flag_ptr = multi_pointer(
+      minecraft_supported_builds[game_build_].inventory_flag_base,
+      minecraft_supported_builds[game_build_].inventory_flag_offsets);
   if (inventory_flag_ptr) {
     if (*inventory_flag_ptr) {
       return "Inventory";
@@ -279,8 +283,8 @@ void MinecraftGame::WeaponSwitchHandler(uint32_t user_index,
                                         X_INPUT_STATE* out_state, int weapon,
                                         uint16_t buttons) {
   auto* hotbar_selection =
-      multi_pointer(supported_builds[game_build_].hotbar_base_addr,
-                    supported_builds[game_build_].hotbar_offsets);
+      multi_pointer(minecraft_supported_builds[game_build_].hotbar_base_addr,
+                    minecraft_supported_builds[game_build_].hotbar_offsets);
   if (hotbar_selection) {
     if (weapon == 1) {
       *hotbar_selection = 0;

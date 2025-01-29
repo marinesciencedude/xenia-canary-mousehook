@@ -39,7 +39,7 @@ struct GameBuildAddrs {
   uint32_t fovscale_address;
 };
 
-std::map<DeadRisingGame::GameBuild, GameBuildAddrs> supported_builds{
+std::map<DeadRisingGame::GameBuild, GameBuildAddrs> deadrising_supported_builds{
     {DeadRisingGame::GameBuild::Unknown, {NULL, NULL, NULL}},
     {DeadRisingGame::GameBuild::DeadRising2_CaseZero,
      {kTitleIdDR2CZ, 0xAA4D2388, 0xAA4D238C, 0xA4B3F1B0}},
@@ -55,7 +55,7 @@ bool DeadRisingGame::IsGameSupported() {
   }
   const std::string current_version =
       kernel_state()->emulator()->title_version();
-  for (auto& build : supported_builds) {
+  for (auto& build : deadrising_supported_builds) {
     if (title_id == build.second.title_id) {
       game_build_ = build.first;
       return true;
@@ -81,10 +81,10 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
        !input_state.mouse.wheel_delta))
     return false;
   xe::be<float>* radian_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].x_address);
+      deadrising_supported_builds[game_build_].x_address);
 
   xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].y_address);
+      deadrising_supported_builds[game_build_].y_address);
 
   if (!radian_x || *radian_x == NULL) {
     // Not in game
@@ -93,9 +93,9 @@ bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   float degree_x = RadianstoDegree(*radian_x);
   float degree_y = RadianstoDegree(*radian_y);
   static float divisor;
-  if (supported_builds[game_build_].fovscale_address) {
+  if (deadrising_supported_builds[game_build_].fovscale_address) {
     xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].fovscale_address);
+        deadrising_supported_builds[game_build_].fovscale_address);
     float fov = *fovscale;
     if (fov > 1.427999954f && fov <= 10.f) {
       divisor = ((3.50142693372f * fov) * (1 / (float)cvars::fov_sensitivity) *

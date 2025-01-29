@@ -41,7 +41,7 @@ struct GameBuildAddrs {
   uint32_t camera_y_offset;
 };
 
-std::map<Halo3Game::GameBuild, GameBuildAddrs> supported_builds{
+std::map<Halo3Game::GameBuild, GameBuildAddrs> halo_supported_builds{
     {Halo3Game::GameBuild::Debug_08172,
      {"08172.07.03.08.2240.delta__cache_debug", 0x820BA40C, 0x1A30, 0x1C,
       0x20}},
@@ -90,7 +90,7 @@ bool Halo3Game::IsGameSupported() {
     return false;
   }
 
-  for (auto& build : supported_builds) {
+  for (auto& build : halo_supported_builds) {
     auto* build_ptr = kernel_memory()->TranslateVirtual<const char*>(
         build.second.build_string_addr);
 
@@ -111,7 +111,7 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_)) {
+  if (halo_supported_builds.count(game_build_)) {
     // HACKHACK: Doesn't seem to be any way to get tls_static_address_ besides
     // this (XThread::GetTLSValue only returns tls_dynamic_address_, and doesn't
     // seem to be any functions to get static_addr...)
@@ -130,15 +130,15 @@ bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         kernel_memory()->TranslateVirtual<X_KPCR*>(pcr_addr)->tls_ptr;
 
     auto global_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        tls_addr + supported_builds[game_build_].input_globals_offset);
+        tls_addr + halo_supported_builds[game_build_].input_globals_offset);
 
     if (global_addr) {
       auto* input_globals = kernel_memory()->TranslateVirtual(global_addr);
 
       auto* player_cam_x = reinterpret_cast<xe::be<float>*>(
-          input_globals + supported_builds[game_build_].camera_x_offset);
+          input_globals + halo_supported_builds[game_build_].camera_x_offset);
       auto* player_cam_y = reinterpret_cast<xe::be<float>*>(
-          input_globals + supported_builds[game_build_].camera_y_offset);
+          input_globals + halo_supported_builds[game_build_].camera_y_offset);
 
       // Have to do weird things converting it to normal float otherwise
       // xe::be += treats things as int?

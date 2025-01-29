@@ -68,7 +68,7 @@ struct RareGameBuildAddrs {
   uint32_t player_offset_gun_left_y;
 };
 
-std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> supported_builds = {
+std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> rare_supported_builds = {
     // GoldenEye Nov2007 build (aka Aug2007 build)
     {GoldeneyeGame::GameBuild::GoldenEye_Nov2007_Release,
      {0x8200336C, 0x676f6c64, 0x8272B37C, 0x82F1E70C, 0x83088228, 0x298,
@@ -120,7 +120,7 @@ bool GoldeneyeGame::IsGameSupported() {
     return false;
   }
 
-  for (auto& build : supported_builds) {
+  for (auto& build : rare_supported_builds) {
     auto* build_ptr = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
         build.second.check_addr);
 
@@ -141,7 +141,7 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
   auto title_id = kernel_state()->title_id();
-  auto& game_addrs = supported_builds[game_build_];
+  auto& game_addrs = rare_supported_builds[game_build_];
 
   // Move menu selection crosshair
   // TODO: detect if we're actually in the menu first
@@ -521,7 +521,7 @@ bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 }
 
 std::string GoldeneyeGame::ChooseBinds() {
-  auto& game_addrs = supported_builds[game_build_];
+  auto& game_addrs = rare_supported_builds[game_build_];
   auto players_addr = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
       game_addrs.player_addr);
 

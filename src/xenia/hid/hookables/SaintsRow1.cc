@@ -73,7 +73,7 @@ struct GameBuildAddrs {
   uint32_t mp_flag_2;
 };
 
-std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
+std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> saintsrow1_supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
@@ -92,7 +92,7 @@ bool SaintsRow1Game::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : saintsrow1_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -116,27 +116,29 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (saintsrow1_supported_builds.count(game_build_) == 0) {
     return false;
   }
 
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].ingame_sens);
+          saintsrow1_supported_builds[game_build_].ingame_sens);
 
   xe::be<float>* slow_pan_horizontal_multiplier =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].slow_pan_horizontal_multiplier_address);
+          saintsrow1_supported_builds[game_build_]
+              .slow_pan_horizontal_multiplier_address);
 
   xe::be<float>* slow_pan_vertical_multiplier =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].slow_pan_horizontal_multiplier_address +
+          saintsrow1_supported_builds[game_build_]
+              .slow_pan_horizontal_multiplier_address +
           0x4);
 
   xe::be<float>* ingamesens_y =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].ingame_sens + 0x4);
+          saintsrow1_supported_builds[game_build_].ingame_sens + 0x4);
 
   if (*ingamesens_x != 0.01999999955f || *ingamesens_y != 0.01999999955f) {
     *ingamesens_x = 0.01999999955f;  // 3CA3D70A
@@ -151,7 +153,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   xe::be<float>* ingame_frametime =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].current_frametime_address);
+          saintsrow1_supported_builds[game_build_].current_frametime_address);
 
   float frametime = *ingame_frametime;
 
@@ -209,12 +211,13 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
        !input_state.mouse.wheel_delta))
     return false;
   player = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-      supported_builds[game_build_].player_address);
+      saintsrow1_supported_builds[game_build_].player_address);
 
   if (isPaused()) {
     if (inMapScreen()) MapCursor(input_state);
     if (*kernel_memory()->TranslateVirtual<uint8_t*>(
-            supported_builds[game_build_].world_paused_address) != 0) {
+            saintsrow1_supported_builds[game_build_].world_paused_address) !=
+        0) {
       return false;
     }
     if (RotatePlayerinCustomization(input_state) == true) {
@@ -225,14 +228,14 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
   if (input_state.mouse.wheel_delta) WeaponWheelScrollWheel(input_state);
   xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].x_address);
+      saintsrow1_supported_builds[game_build_].x_address);
 
   xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].y_address);
+      saintsrow1_supported_builds[game_build_].y_address);
 
   xe::be<float>* current_fov =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].current_fov_address);
+          saintsrow1_supported_builds[game_build_].current_fov_address);
 
   float degree_x = *addition_x;
   float degree_y = RadianstoDegree(*radian_y);
@@ -248,10 +251,10 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     frametime = 1.f;
 
     fine_aim_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].fineaim_y_address + 0x4);
+        saintsrow1_supported_builds[game_build_].fineaim_y_address + 0x4);
 
     fine_aim_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].fineaim_y_address);
+        saintsrow1_supported_builds[game_build_].fineaim_y_address);
     degree_x = RadianstoDegree(*fine_aim_x);
   }
 
@@ -331,7 +334,7 @@ bool SaintsRow1Game::isTervelPlugin() {
 
 bool SaintsRow1Game::inFirstPerson() {
   auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].isfirstperson_address);
+      saintsrow1_supported_builds[game_build_].isfirstperson_address);
   if (*firstperson && *firstperson == 8)
     return true;
   else
@@ -340,9 +343,9 @@ bool SaintsRow1Game::inFirstPerson() {
 
 bool SaintsRow1Game::isMP() {
   auto* mp1 = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].mp_flag_1);
+      saintsrow1_supported_builds[game_build_].mp_flag_1);
   auto* mp2 = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].mp_flag_2);
+      saintsrow1_supported_builds[game_build_].mp_flag_2);
   if (*mp2 == 1 || *mp1 == 1)
     return true;
   else
@@ -351,7 +354,7 @@ bool SaintsRow1Game::isMP() {
 
 bool SaintsRow1Game::isPaused() {
   auto* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].menu_status_address);
+      saintsrow1_supported_builds[game_build_].menu_status_address);
 
   if (*pause_flag != 2)
     return true;
@@ -362,13 +365,14 @@ bool SaintsRow1Game::isPaused() {
 bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
   if (player == NULL) return false;
   canspinplayer = *kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].can_spin_player_flag_addr);
+      saintsrow1_supported_builds[game_build_].can_spin_player_flag_addr);
   if (canspinplayer != 1) return false;
 
   float mousex =
       (input_state.mouse.x_delta / 5.f) * (float)cvars::menu_sensitivity;
   xe::be<float>* zoom_level = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].customization_screen_zoom_level_addr);
+      saintsrow1_supported_builds[game_build_]
+          .customization_screen_zoom_level_addr);
 
   // this is absoloute player rotation, this isn't fixed to the player
   // customization screens
@@ -385,7 +389,8 @@ bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
     min_zoom = 3.f;
     max_zoom = 9.f;
     xe::be<uint32_t>* rims_jobs_vehicle_pointer = multi_pointer(
-        supported_builds[game_build_].rims_jobs_address_ptr, {0x20, 0x98});
+        saintsrow1_supported_builds[game_build_].rims_jobs_address_ptr,
+        {0x20, 0x98});
     if (!rims_jobs_vehicle_pointer || *rims_jobs_vehicle_pointer == NULL)
       return false;
     player_x_sin = kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -438,7 +443,7 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
     if (CantSwitchWeapons()) return;
 
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].weapon_wheel_slot_address);
+      saintsrow1_supported_builds[game_build_].weapon_wheel_slot_address);
   xe::be<uint32_t>* current_weapon =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0xDDC);
 
@@ -466,7 +471,7 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
 
       *weapon_slot = static_cast<uint8_t>(slot);
 
-      call_argless_function(supported_builds[game_build_]
+      call_argless_function(saintsrow1_supported_builds[game_build_]
                                 .change_weapon_function_addr);  // set weapon
 
       if (*current_weapon != old_weapon) {
@@ -482,10 +487,10 @@ void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
 
 bool SaintsRow1Game::inMapScreen() {
   auto* pause_screen = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].pause_screen_section_address);
+      saintsrow1_supported_builds[game_build_].pause_screen_section_address);
 
   auto* map_usable = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].current_diversion_type_addr);
+      saintsrow1_supported_builds[game_build_].current_diversion_type_addr);
 
   if ((*pause_screen == 26 || *map_usable == 210) && isPaused())
     return true;
@@ -495,14 +500,14 @@ bool SaintsRow1Game::inMapScreen() {
 
 void SaintsRow1Game::MapCursor(RawInputState& input_state) {
   xe::be<float>* map_x_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].map_x_address);
+      saintsrow1_supported_builds[game_build_].map_x_address);
 
   xe::be<float>* map_y_be = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].map_x_address + 0x4);
+      saintsrow1_supported_builds[game_build_].map_x_address + 0x4);
 
   xe::be<float>* map_zoom_be =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].map_zoom_address);
+          saintsrow1_supported_builds[game_build_].map_zoom_address);
 
   float map_x = *map_x_be;
 
@@ -546,9 +551,9 @@ void SaintsRow1Game::call_argless_function(uint32_t function_address) {
 
 std::string SaintsRow1Game::ChooseBinds() {
   wheel_status = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].weapon_wheel_address);
+      saintsrow1_supported_builds[game_build_].weapon_wheel_address);
   vehicle_status = *kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].vehicle_address);
+      saintsrow1_supported_builds[game_build_].vehicle_address);
 
   if (*wheel_status == 1 || isPaused()) {
     return "Default";
@@ -615,26 +620,30 @@ void SaintsRow1Game::SelectableWeaponsHack() {
           ->TranslateVirtual<xe::be<uint32_t>*>(  // possibily signed? for our
                                                   // purpose
                                                   // it doesn't matter.
-              supported_builds[game_build_].food_wheel_object_address);
+              saintsrow1_supported_builds[game_build_]
+                  .food_wheel_object_address);
   auto* food_slot = kernel_memory()->TranslateVirtual<xe::be<int32_t>*>(
-      supported_builds[game_build_].food_wheel_slot_address);
+      saintsrow1_supported_builds[game_build_].food_wheel_slot_address);
   if (*food_selector != 0) *food_selector = 0;
   if (*food_slot != -1) *food_slot = -1;
   if (*wheel_status) return;
   call_argless_function(
-      supported_builds[game_build_]
+      saintsrow1_supported_builds[game_build_]
           .limit_weapons_function_addr);  // Ideally this should have done
                                           // everything that this function does,
                                           // but calling it doesn't seem to do
                                           // the job fully??
   auto* melee_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].allowable_weapons_melee_array);
+      saintsrow1_supported_builds[game_build_].allowable_weapons_melee_array);
   auto* shotgun_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].allowable_weapons_melee_array + 0x3C);
+      saintsrow1_supported_builds[game_build_].allowable_weapons_melee_array +
+      0x3C);
   auto* ar_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].allowable_weapons_melee_array + 0x50);
+      saintsrow1_supported_builds[game_build_].allowable_weapons_melee_array +
+      0x50);
   auto* rpg_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].allowable_weapons_melee_array + 0x64);
+      saintsrow1_supported_builds[game_build_].allowable_weapons_melee_array +
+      0x64);
 
   if (isAnimStatus(animstatus::DRIVING) && vehicle_status) {
     *melee_slot = 1;
@@ -665,12 +674,12 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
   if (isMP())
     if (CantSwitchWeapons()) return;
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
-      supported_builds[game_build_].weapon_wheel_slot_address);
+      saintsrow1_supported_builds[game_build_].weapon_wheel_slot_address);
   SelectableWeaponsHack();
   if (weapon) {
     *weapon_slot = std::clamp(weapon - 1, 0, 7);
     call_argless_function(
-        supported_builds[game_build_].change_weapon_function_addr);
+        saintsrow1_supported_builds[game_build_].change_weapon_function_addr);
   }
 }
 

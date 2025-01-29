@@ -53,7 +53,7 @@ struct GameBuildAddrs {
   uint32_t Dvar_GetBool_address;
 };
 
-std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
+std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> callofduty_supported_builds{
     {CallOfDutyGame::GameBuild::CallOfDuty4_SP,
      {0x82044468, 0x63675F66, kTitleIdCOD4, 0x824F6BDC, 0x824f6bd8, 0x824F6BC8,
       NULL, NULL}},
@@ -200,7 +200,7 @@ bool CallOfDutyGame::IsGameSupported() {
     return false;
   }
 
-  for (auto& build : supported_builds) {
+  for (auto& build : callofduty_supported_builds) {
     if (build.second.title_id != title_id) {
       continue;
     }
@@ -228,17 +228,17 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   xe::be<float>* degree_x;
   xe::be<float>* degree_y;
 
-  if (supported_builds[game_build_].base_address != NULL) {
+  if (callofduty_supported_builds[game_build_].base_address != NULL) {
     // Calculate based on base address
     uint32_t base_address =
         *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].base_address);
+            callofduty_supported_builds[game_build_].base_address);
     if (!base_address || base_address == NULL) {
       // Not in game
       return false;
     }
 
-    int32_t offset = supported_builds[game_build_].x_address;
+    int32_t offset = callofduty_supported_builds[game_build_].x_address;
     /* uint32_t stored_base_address;
     if (base_address && base_address >= 0x40000000) {
       stored_base_address = base_address;
@@ -253,12 +253,12 @@ bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   } else {
     // Use pre-defined addresses for other builds
     degree_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].x_address);
+        callofduty_supported_builds[game_build_].x_address);
     degree_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].y_address);
+        callofduty_supported_builds[game_build_].y_address);
   }
   xe::be<float>* fovscale = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-      supported_builds[game_build_].fovscale_address);
+      callofduty_supported_builds[game_build_].fovscale_address);
 
   float new_degree_x = *degree_x;
   float new_degree_y = *degree_y;

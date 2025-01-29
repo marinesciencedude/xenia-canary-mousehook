@@ -37,7 +37,7 @@ struct GameBuildAddrs {
   uint32_t y_offset;
 };
 
-std::map<FarCryGame::GameBuild, GameBuildAddrs> supported_builds{
+std::map<FarCryGame::GameBuild, GameBuildAddrs> farcry_supported_builds{
     {FarCryGame::GameBuild::FarCry_TU0, {"1.0", 0x829138B8, 0x3AC, 0x3A4}}};
 
 FarCryGame::~FarCryGame() = default;
@@ -50,7 +50,7 @@ bool FarCryGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : farcry_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -66,7 +66,7 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (farcry_supported_builds.count(game_build_) == 0) {
     return false;
   }
 
@@ -76,7 +76,7 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].base_address);
+          farcry_supported_builds[game_build_].base_address);
 
   if (!base_address || *base_address == NULL) {
     // Not in game
@@ -84,9 +84,9 @@ bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   xe::be<uint32_t> x_address =
-      *base_address + supported_builds[game_build_].x_offset;
+      *base_address + farcry_supported_builds[game_build_].x_offset;
   xe::be<uint32_t> y_address =
-      *base_address + supported_builds[game_build_].y_offset;
+      *base_address + farcry_supported_builds[game_build_].y_offset;
 
   xe::be<float>* degree_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);

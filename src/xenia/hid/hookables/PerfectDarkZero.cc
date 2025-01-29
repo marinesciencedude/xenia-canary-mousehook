@@ -65,23 +65,26 @@ struct GameBuildAddrs {
   uint32_t pause_offset;
 };
 
-std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
-    {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
-     {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x82E35468, 0x3B8, 0x16B9,
-      0x150,           0x1674,     0x16AB,     0x5C,       0x3A0, 0x39C,
-      0x1670,          0x5C,       0xE54,      0xF9C,      0xFA0, 0x82D68320,
-      0x82E1B930,      0x820EC228, 0x16A3}},
-    {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
-     {"19.09.06.0082", 0x820CD9E0, 0x82E3C3E8, 0x82E34224, 0x3C4, 0x16B9,
-      0x150,           0x1674,     0x16AB,     0x5C,       0x3A0, 0x39C,
-      0x1670,          0x5C,       0xE54,      0xF9C,      0xFA0, 0x82D69048,
-      0x82D3EED0,      0x820EAF40, 0x16A3}},
-    {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
-     {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x82E3622C, 0x3C4,
-      0x16B9,          0x150,      0x1674,     0x16AB,     0x5C,
-      0x3A0,           0x39C,      0x1670,     0x5C,       0xE54,
-      0xF9C,           0xFA0,      0x82D69048, NULL,       0x820EAF20,
-      0x16A3}}};
+std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs>
+    pdzero_supported_builds{
+        {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU0,
+         {"09.11.05.0052", 0x820CED70, 0x82D2AD38, 0x82E35468, 0x3B8,
+          0x16B9,          0x150,      0x1674,     0x16AB,     0x5C,
+          0x3A0,           0x39C,      0x1670,     0x5C,       0xE54,
+          0xF9C,           0xFA0,      0x82D68320, 0x82E1B930, 0x820EC228,
+          0x16A3}},
+        {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_TU3,
+         {"19.09.06.0082", 0x820CD9E0, 0x82E3C3E8, 0x82E34224, 0x3C4,
+          0x16B9,          0x150,      0x1674,     0x16AB,     0x5C,
+          0x3A0,           0x39C,      0x1670,     0x5C,       0xE54,
+          0xF9C,           0xFA0,      0x82D69048, 0x82D3EED0, 0x820EAF40,
+          0x16A3}},
+        {PerfectDarkZeroGame::GameBuild::PerfectDarkZero_PlatinumHitsTU15,
+         {"12.09.06.0081", 0x820CD9C0, 0x82E3C3E8, 0x82E3622C, 0x3C4,
+          0x16B9,          0x150,      0x1674,     0x16AB,     0x5C,
+          0x3A0,           0x39C,      0x1670,     0x5C,       0xE54,
+          0xF9C,           0xFA0,      0x82D69048, NULL,       0x820EAF20,
+          0x16A3}}};
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
@@ -93,7 +96,7 @@ bool PerfectDarkZeroGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : pdzero_supported_builds) {
     auto* build_ptr = kernel_memory()->TranslateVirtual<const char*>(
         build.second.build_string_addr);
 
@@ -121,7 +124,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (pdzero_supported_builds.count(game_build_) == 0) {
     return false;
   }
 
@@ -133,8 +136,8 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].base_address);
-  if (supported_builds[game_build_].base_address_multi != NULL) {
+          pdzero_supported_builds[game_build_].base_address);
+  if (pdzero_supported_builds[game_build_].base_address_multi != NULL) {
     // Other candidates for this address on TU3 are.
     //  + 3C4 at 82E2F568,82E2FB30 & 82E34224( we are using this), the offset
     //  seems to be different in TU0?
@@ -147,11 +150,11 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     // Maybe implement sanity check and if fails use our base_address?
     xe::be<uint32_t>* base_address_multi =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].base_address_multi);
+            pdzero_supported_builds[game_build_].base_address_multi);
     if (*base_address_multi != NULL) {
       base_address = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
           *base_address_multi +
-          supported_builds[game_build_].base_address_multi_offset);
+          pdzero_supported_builds[game_build_].base_address_multi_offset);
     }
   }
 
@@ -177,25 +180,29 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     xe::be<uint32_t> y_address;
 
     bool in_cover = isSpecialCam(
-        base_address, supported_builds[game_build_].cover_flag_offset, true, 3);
+        base_address, pdzero_supported_builds[game_build_].cover_flag_offset,
+        true, 3);
     bool in_hovercraft = isSpecialCam(base_address, NULL, true, HOVERCRAFT);
     bool in_turret = false;
     bool in_turret2 = false;
-    if (supported_builds[game_build_].turret_flag_offset)
-      in_turret = isSpecialCam(base_address,
-                               supported_builds[game_build_].turret_flag_offset,
-                               true, 6);
+    if (pdzero_supported_builds[game_build_].turret_flag_offset)
+      in_turret = isSpecialCam(
+          base_address, pdzero_supported_builds[game_build_].turret_flag_offset,
+          true, 6);
     if (!in_cover) {
-      x_address = *radians_x_base + supported_builds[game_build_].x_offset;
+      x_address =
+          *radians_x_base + pdzero_supported_builds[game_build_].x_offset;
     } else {
-      x_address = *base_address + supported_builds[game_build_].cover_x_offset;
+      x_address =
+          *base_address + pdzero_supported_builds[game_build_].cover_x_offset;
     }
-    y_address = *base_address + supported_builds[game_build_].y_offset;
+    y_address = *base_address + pdzero_supported_builds[game_build_].y_offset;
     xe::be<uint32_t>* turret_base = NULL;
     if (in_turret) {
       xe::be<uint32_t>* turret_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-              *base_address + supported_builds[game_build_].turret_base_offset);
+              *base_address +
+              pdzero_supported_builds[game_build_].turret_base_offset);
 
       if (*turret_base != NULL) {
         // MOUSEHOOK TODO: use static turret base address instead, currently I
@@ -206,21 +213,22 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
         if (*turret_base && *turret_base >= 0x00100000 &&
             *turret_base < 0x20000000) {
           in_turret2 = true;
-          x_address =
-              *turret_base + supported_builds[game_build_].turret_x_offset;
-          y_address =
-              *turret_base + supported_builds[game_build_].turret_y_offset;
+          x_address = *turret_base +
+                      pdzero_supported_builds[game_build_].turret_x_offset;
+          y_address = *turret_base +
+                      pdzero_supported_builds[game_build_].turret_y_offset;
         }
       }
     } else if (in_hovercraft || in_jetpac) {
       xe::be<uint32_t>* hovercraft_base =
           kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
               *base_address +
-              supported_builds[game_build_].hovercraft_base_offset);
+              pdzero_supported_builds[game_build_].hovercraft_base_offset);
       x_address = *hovercraft_base +
-                  supported_builds[game_build_].hovercraft_y_offset + 0x4;
-      y_address =
-          *hovercraft_base + supported_builds[game_build_].hovercraft_y_offset;
+                  pdzero_supported_builds[game_build_].hovercraft_y_offset +
+                  0x4;
+      y_address = *hovercraft_base +
+                  pdzero_supported_builds[game_build_].hovercraft_y_offset;
     }
 
     xe::be<float>* cam_x =
@@ -247,14 +255,14 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
     static float fovscale_l = 1.0f;
     xe::be<uint32_t>* base_address_fov =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].fovscale_address);
+            pdzero_supported_builds[game_build_].fovscale_address);
     if (!base_address_fov || *base_address_fov != NULL) {
       xe::be<uint32_t> fovscale_address = *base_address_fov + 0x440;
       xe::be<uint32_t> fovscale_sanity = *base_address_fov + 0x660;
 
       xe::be<float>* set_fov =
           kernel_memory()->TranslateVirtual<xe::be<float>*>(
-              supported_builds[game_build_].current_set_fov);
+              pdzero_supported_builds[game_build_].current_set_fov);
 
       xe::be<float>* fovscale =
           kernel_memory()->TranslateVirtual<xe::be<float>*>(fovscale_address);
@@ -309,9 +317,9 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
       *cam_y = degree_y;
     if (cvars::ge_gun_sway) {
       xe::be<uint32_t> gun_x_address =
-          *base_address + supported_builds[game_build_].gun_x_offset;
+          *base_address + pdzero_supported_builds[game_build_].gun_x_offset;
       xe::be<uint32_t> gun_y_address =
-          *base_address + supported_builds[game_build_].gun_y_offset;
+          *base_address + pdzero_supported_builds[game_build_].gun_y_offset;
 
       // revised gun sway from goldeneye.cc
       xe::be<float>* gun_x =
@@ -403,7 +411,7 @@ bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
 
 bool PerfectDarkZeroGame::IsPaused(xe::be<uint32_t>* player) {
   uint8_t* pause_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
-      *player + supported_builds[game_build_].pause_offset);
+      *player + pdzero_supported_builds[game_build_].pause_offset);
   if (*pause_flag != 0) {
     return true;
   } else {
@@ -426,7 +434,7 @@ bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
   } else {
     xe::be<uint32_t>* base_address =
         kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].fovscale_address);
+            pdzero_supported_builds[game_build_].fovscale_address);
 
     if (!base_address || *base_address == 0) {
       return false;

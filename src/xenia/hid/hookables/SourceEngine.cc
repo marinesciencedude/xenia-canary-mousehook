@@ -58,7 +58,7 @@ struct GameBuildAddrs {
 };
 
 // Replace with build names when we introduce more compatibility
-std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
+std::map<SourceEngine::GameBuild, GameBuildAddrs> source_supported_builds{
     {SourceEngine::GameBuild::CSGO, {kTitleIdCSGO, "5.0", 0x86955490, 0x4AE8}},
     {SourceEngine::GameBuild::CSGO_Beta,
      {kTitleIdCSGO, "1.0.1.16", 0x8697DB30, 0x4AC8}},
@@ -96,7 +96,7 @@ bool SourceEngine::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : source_supported_builds) {
     if (title_id == build.second.title_id &&
         current_version == build.second.title_version) {
       game_build_ = build.first;
@@ -134,21 +134,21 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
   // Swap execute_addr if singleplayer, and set execute_addr to null
   if (game_build_ == GameBuild::DarkMessiah) {
     if (kernel_state()->GetModule("default.xex") &&
-        supported_builds[game_build_].execute_addr) {
-      supported_builds[game_build_].angle_offset =
-          supported_builds[game_build_].execute_addr;
+        source_supported_builds[game_build_].execute_addr) {
+      source_supported_builds[game_build_].angle_offset =
+          source_supported_builds[game_build_].execute_addr;
     }
 
-    supported_builds[game_build_].execute_addr = 0;
+    source_supported_builds[game_build_].execute_addr = 0;
   }
 
   uint32_t player_ptr;
-  if (supported_builds[game_build_].execute_addr) {
+  if (source_supported_builds[game_build_].execute_addr) {
     current_thread->thread_state()->context()->r[3] = -1;
 
     kernel_state()->processor()->Execute(
         current_thread->thread_state(),
-        supported_builds[game_build_].execute_addr);
+        source_supported_builds[game_build_].execute_addr);
 
     // Get player pointer
     player_ptr =
@@ -162,12 +162,12 @@ bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
 
   xe::be<uint32_t>* angle_offset;
 
-  if (supported_builds[game_build_].execute_addr) {
+  if (source_supported_builds[game_build_].execute_addr) {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        player_ptr + supported_builds[game_build_].angle_offset);
+        player_ptr + source_supported_builds[game_build_].angle_offset);
   } else {
     angle_offset = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        supported_builds[game_build_].angle_offset);
+        source_supported_builds[game_build_].angle_offset);
   }
 
   QAngle* ang = reinterpret_cast<QAngle*>(angle_offset);

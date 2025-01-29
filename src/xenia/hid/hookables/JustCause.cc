@@ -37,7 +37,7 @@ struct GameBuildAddrs {
   uint32_t SteerAddPitch_offset;
 };
 
-std::map<JustCauseGame::GameBuild, GameBuildAddrs> supported_builds{
+std::map<JustCauseGame::GameBuild, GameBuildAddrs> justcause_supported_builds{
     {JustCauseGame::GameBuild::JustCause1_TU0,
      {"1.0", 0x46965100, 0x130, 0x12C}}};
 
@@ -51,7 +51,7 @@ bool JustCauseGame::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : justcause_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -76,7 +76,7 @@ bool JustCauseGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (justcause_supported_builds.count(game_build_) == 0) {
     return false;
   }
 
@@ -98,7 +98,8 @@ GTA-styled freecam.
 
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].cameracontroller_pointer_address);
+          justcause_supported_builds[game_build_]
+              .cameracontroller_pointer_address);
 
   if (!base_address || *base_address == NULL) {
     // Not in game
@@ -106,9 +107,11 @@ GTA-styled freecam.
   }
 
   xe::be<uint32_t> x_address =
-      *base_address + supported_builds[game_build_].SteerAddYaw_offset;
+      *base_address +
+      justcause_supported_builds[game_build_].SteerAddYaw_offset;
   xe::be<uint32_t> y_address =
-      *base_address + supported_builds[game_build_].SteerAddPitch_offset;
+      *base_address +
+      justcause_supported_builds[game_build_].SteerAddPitch_offset;
 
   xe::be<float>* add_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);

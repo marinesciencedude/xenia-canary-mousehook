@@ -37,7 +37,7 @@ struct GameBuildAddrs {
   uint32_t y_offset;
 };
 
-std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
+std::map<Crackdown2Game::GameBuild, GameBuildAddrs> crackdown2_supported_builds{
     {Crackdown2Game::GameBuild::Crackdown2_TU0,
      {"1.0", 0x836C6520, 0x7EC, 0x7E8}},
     {Crackdown2Game::GameBuild::Crackdown2_TU5,
@@ -53,7 +53,7 @@ bool Crackdown2Game::IsGameSupported() {
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
+  for (auto& build : crackdown2_supported_builds) {
     if (current_version == build.second.title_version) {
       game_build_ = build.first;
       return true;
@@ -77,7 +77,7 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   }
 
-  if (supported_builds.count(game_build_) == 0) {
+  if (crackdown2_supported_builds.count(game_build_) == 0) {
     return false;
   }
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
@@ -85,7 +85,7 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     return false;
   xe::be<uint32_t>* base_address =
       kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-          supported_builds[game_build_].base_address);
+          crackdown2_supported_builds[game_build_].base_address);
 
   if (!base_address || *base_address == NULL) {
     // Not in game
@@ -93,9 +93,9 @@ bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   }
 
   xe::be<uint32_t> x_address =
-      *base_address + supported_builds[game_build_].x_offset;
+      *base_address + crackdown2_supported_builds[game_build_].x_offset;
   xe::be<uint32_t> y_address =
-      *base_address + supported_builds[game_build_].y_offset;
+      *base_address + crackdown2_supported_builds[game_build_].y_offset;
 
   xe::be<float>* radian_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(x_address);
