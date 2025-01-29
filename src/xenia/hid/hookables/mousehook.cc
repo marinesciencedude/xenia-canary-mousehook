@@ -334,7 +334,7 @@ void OnMouse(ui::MouseEvent& evt, std::queue<MouseEvent>& mouse_events_,
   mouse.buttons = evt.scroll_x();
   mouse.wheel_delta = evt.scroll_y();
   mouse_events_.push(mouse);
-
+#if XE_PLATFORM_WIN32
   {
     if (mouse.buttons & RI_MOUSE_LEFT_BUTTON_DOWN) {
       key_states_[VK_LBUTTON] = true;
@@ -386,6 +386,7 @@ void OnMouse(ui::MouseEvent& evt, std::queue<MouseEvent>& mouse_events_,
       key_states_[VK_BIND_MWHEELDOWN] = false;
     }
   }
+#endif
 }
 
 void HandleKeyBindings(
