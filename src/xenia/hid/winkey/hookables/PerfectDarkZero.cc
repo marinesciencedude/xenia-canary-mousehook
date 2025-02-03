@@ -446,7 +446,7 @@ bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
     if (!current_cam) {
       return false;
     }
-    if (*current_cam == cam_type) {
+    if (current_cam && *current_cam == cam_type) {
       return true;
     } else {
       return false;
