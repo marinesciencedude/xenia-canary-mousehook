@@ -83,10 +83,13 @@ bool GTKWindow::OpenImpl() {
                               GetDesiredLogicalHeight());
 
   // Attach the event handlers.
-  // Keyboard events are processed by the window, mouse events are processed
-  // within, and by, the drawing (client) area.
-  gtk_widget_set_events(window_, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
-                                     GDK_FOCUS_CHANGE_MASK);
+  // Keyboard & mouse events are processed by the window, mouse events are
+  // processed within, and by, the drawing (client) area.
+  gtk_widget_set_events(window_,
+                        GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
+                            GDK_FOCUS_CHANGE_MASK | GDK_POINTER_MOTION_MASK |
+                            GDK_BUTTON_MOTION_MASK | GDK_BUTTON_PRESS_MASK |
+                            GDK_BUTTON_RELEASE_MASK | GDK_SCROLL_MASK);
   gtk_widget_set_events(drawing_area_,
                         GDK_POINTER_MOTION_MASK | GDK_BUTTON_MOTION_MASK |
                             GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
