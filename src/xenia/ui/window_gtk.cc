@@ -549,7 +549,7 @@ bool GTKWindow::HandleMouse(GdkEvent* event,
   MouseEvent e(this, button, x, y, scroll_x, scroll_y);
   switch (event->type) {
     case GDK_MOTION_NOTIFY:
-      OnMouseMove(e, destruction_receiver);
+      OnRawMouse(e, destruction_receiver);
       break;
     case GDK_BUTTON_PRESS:
       OnMouseDown(e, destruction_receiver);
