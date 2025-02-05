@@ -643,6 +643,17 @@ gboolean GTKWindow::WindowEventHandler(GdkEvent* event) {
       }
     } break;
 
+    case GDK_MOTION_NOTIFY:
+    case GDK_BUTTON_PRESS:
+    case GDK_BUTTON_RELEASE:
+    case GDK_SCROLL: {
+      WindowDestructionReceiver destruction_receiver(this);
+      HandleMouse(event, destruction_receiver);
+      if (destruction_receiver.IsWindowDestroyedOrClosed()) {
+        break;
+      }
+    } break;
+
     default:
       break;
   }
