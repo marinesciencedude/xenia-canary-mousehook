@@ -196,7 +196,8 @@ bool GTAVGame::ModifierKeyHandler(uint32_t user_index,
 
   const int spam_interval_ms = 33;
 
-  if (status == VEHICLE_TYPE_NONE || status == VEHICLE_TYPE_BMX) {
+  if ((status == VEHICLE_TYPE_NONE || status == VEHICLE_TYPE_BMX) &&
+      out_state->gamepad.left_trigger < 230) {
     if (elapsed_ms >= spam_interval_ms) {
       a_button_pressed = !a_button_pressed;
       last_toggle_time = now;
