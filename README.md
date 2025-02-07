@@ -19,7 +19,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Postal III | | 4541080F | Fair |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' | 584108A9 | Good | <sub> Camera X rotation might not work when using the tank in the Runway and Street level |
 | Perfect Dark Zero | TU0,TU3 & Platinum Hits base | 4D5307D3 | Good | <sub> No mousehook for Spycam in <br/>Mousehook bindings break in menus and switches to using HID.Winkey bindings.|
-| Perfect Dark XBLA | b33, b52 (TU0) & b102 | 584109C2 | Fair |<sub> Camera doesn't work with the camspy <br/>No mousehook for HoverBike |
+| Perfect Dark XBLA | b33, b52 (TU0), b102, b104, b107 | 584109C2 | Fair |<sub> Camera doesn't work with the camspy <br/>No mousehook for HoverBike |
 | Halo 3 | TU0/TU3 & 08172 'delta' | 4D5307E6 | Fair |
 | Halo 3: ODST | | 4D530877 | Fair |
 | Halo Reach | TU0/TU1 | 4D53085B | Fair |
