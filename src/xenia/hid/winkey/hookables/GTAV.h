@@ -29,6 +29,7 @@ class GTAVGame : public HookableGame {
 
   void GetAddressesFromHelperPlugin(uint32_t* pullaround, uint32_t* delta_x,
                                     uint32_t* delta_y,
+                                    uint32_t* wheel_delta = NULL,
                                     uint32_t* player_status = NULL);
 
   void HandleMouseInput(uint8_t* mousehook_ShouldPullAroundWhenUsingMouse,
@@ -64,6 +65,7 @@ class GTAVGame : public HookableGame {
   uint32_t mousehook_ShouldPullAroundWhenUsingMouse_addr = NULL;
   uint32_t plugin_delta_x_addr = NULL;
   uint32_t plugin_delta_y_addr = NULL;
+  uint32_t plugin_delta_wheel_delta_addr = NULL;
   uint32_t player_status_addr = NULL;
 };
 

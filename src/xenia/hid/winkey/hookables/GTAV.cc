@@ -24,6 +24,7 @@
 using namespace xe::kernel;
 
 DECLARE_double(sensitivity);
+DECLARE_double(menu_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 
@@ -61,7 +62,8 @@ bool GTAVGame::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (mousehook_ShouldPullAroundWhenUsingMouse_addr == NULL ||
       plugin_delta_x_addr == NULL || plugin_delta_y_addr == NULL) {
     GetAddressesFromHelperPlugin(&mousehook_ShouldPullAroundWhenUsingMouse_addr,
-                                 &plugin_delta_x_addr, &plugin_delta_y_addr);
+                                 &plugin_delta_x_addr, &plugin_delta_y_addr,
+                                 &plugin_delta_wheel_delta_addr);
   }
 
   if (mousehook_ShouldPullAroundWhenUsingMouse_addr && plugin_delta_x_addr &&
@@ -85,6 +87,14 @@ bool GTAVGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     *plugin_delta_y = delta_y;
     HandleMouseInput(mousehook_ShouldPullAroundWhenUsingMouse, delta_x,
                      delta_y);
+    if (plugin_delta_wheel_delta_addr) {
+      xe::be<float>* plugin_delta_wheel_delta =
+          kernel_memory()->TranslateVirtual<xe::be<float>*>(
+              plugin_delta_wheel_delta_addr);
+      *plugin_delta_wheel_delta = ((float)input_state.mouse.wheel_delta *
+                                   (float)(cvars::menu_sensitivity * 2));
+    }
+
     return true;
   }
 
@@ -94,6 +104,7 @@ bool GTAVGame::DoHooks(uint32_t user_index, RawInputState& input_state,
 void GTAVGame::GetAddressesFromHelperPlugin(uint32_t* pullaround,
                                             uint32_t* delta_x,
                                             uint32_t* delta_y,
+                                            uint32_t* wheel_delta,
                                             uint32_t* player_status) {
   auto module = kernel_state()->GetModule("GTAVMousehookHelperXenia.xex");
   if (!module) {
@@ -101,29 +112,36 @@ void GTAVGame::GetAddressesFromHelperPlugin(uint32_t* pullaround,
     return;
   }
 
+  if (wheel_delta && *wheel_delta == NULL) {
+    *wheel_delta = module->GetProcAddressByOrdinal(1);
+    XELOGI(fmt::format(
+        "MOUSEHOOK: GTAVMousehookHelper plugin set wheel_delta to 0x{:X}",
+        *wheel_delta));
+  }
+
   if (pullaround && *pullaround == NULL) {
-    *pullaround = module->GetProcAddressByOrdinal(3);
+    *pullaround = module->GetProcAddressByOrdinal(4);
     XELOGI(fmt::format(
         "MOUSEHOOK: GTAVMousehookHelper plugin set pullaround to 0x{:X}",
         *pullaround));
   }
 
   if (delta_x && *delta_x == NULL) {
-    *delta_x = module->GetProcAddressByOrdinal(1);
+    *delta_x = module->GetProcAddressByOrdinal(2);
     XELOGI(fmt::format(
         "MOUSEHOOK: GTAVMousehookHelper plugin set delta_x to 0x{:X}",
         *delta_x));
   }
 
   if (delta_y && *delta_y == NULL) {
-    *delta_y = module->GetProcAddressByOrdinal(2);
+    *delta_y = module->GetProcAddressByOrdinal(3);
     XELOGI(fmt::format(
         "MOUSEHOOK: GTAVMousehookHelper plugin set delta_y to 0x{:X}",
         *delta_y));
   }
 
   if (player_status && *player_status == NULL) {
-    *player_status = module->GetProcAddressByOrdinal(4);
+    *player_status = module->GetProcAddressByOrdinal(5);
     XELOGI(fmt::format(
         "MOUSEHOOK: GTAVMousehookHelper plugin set player_status to 0x{:X}",
         *player_status));
@@ -154,7 +172,7 @@ void GTAVGame::HandleMouseInput(
 
 std::string GTAVGame::ChooseBinds() {
   if (player_status_addr == NULL) {
-    GetAddressesFromHelperPlugin(NULL, NULL, NULL, &player_status_addr);
+    GetAddressesFromHelperPlugin(NULL, NULL, NULL, NULL, &player_status_addr);
     return "Default";
   }
   auto status =
