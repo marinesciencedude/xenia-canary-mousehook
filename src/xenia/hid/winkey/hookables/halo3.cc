@@ -101,7 +101,12 @@ bool Halo3Game::IsGameSupported() {
       return true;
     }
   }
-
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      "MOUSEHOOK: Supported Title ID, but unsupported version of Halo, "
+      "refer to the Github repo for supported titles.",
+      true);
+#endif
   return false;
 }
 
