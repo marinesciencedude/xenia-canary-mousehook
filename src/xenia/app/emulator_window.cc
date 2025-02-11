@@ -66,6 +66,10 @@ DECLARE_bool(readback_memexport);
 DEFINE_bool(fullscreen, false, "Whether to launch the emulator in fullscreen.",
             "Display");
 
+DEFINE_bool(disable_fullscreen_esc_bind, true,
+            "Disables escape exiting out of fullscreen when in fullscreen.",
+            "MouseHook");
+
 DEFINE_bool(controller_hotkeys, false, "Hotkeys for Xbox and PS controllers.",
             "General");
 
@@ -1068,12 +1072,12 @@ void EmulatorWindow::OnKeyDown(ui::KeyEvent& e) {
       TakeScreenshot();
     } break;
 
+    // For Mousehook
     case ui::VirtualKey::kEscape: {
       // Allow users to escape fullscreen (but not enter it).
-      if (!window_->IsFullscreen()) {
-        return;
+      if (!cvars::disable_fullscreen_esc_bind && window_->IsFullscreen()) {
+        SetFullscreen(false);
       }
-      SetFullscreen(false);
     } break;
 
 #ifdef DEBUG
