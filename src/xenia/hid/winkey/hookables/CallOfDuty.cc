@@ -216,6 +216,12 @@ bool CallOfDutyGame::IsGameSupported() {
     }
   }
 
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      "MOUSEHOOK: Supported Title ID, but unsupported version of Call Of Duty, "
+      "refer to the Github repo for supported titles.",
+      true);
+#endif
   return false;
 }
 

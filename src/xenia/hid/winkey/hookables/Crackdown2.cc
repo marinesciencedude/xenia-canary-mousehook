@@ -61,7 +61,23 @@ bool Crackdown2Game::IsGameSupported() {
       return true;
     }
   }
-
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      std::format("MOUSEHOOK: Supported Title ID, but current version '{}' is "
+                  "unsupported. Expected: [{}]",
+                  current_version,
+                  [&]() {
+                    std::string versions;
+                    for (const auto& build : supported_builds) {
+                      if (!versions.empty()) {
+                        versions += ", ";
+                      }
+                      versions += build.second.title_version;
+                    }
+                    return versions;
+                  }()),
+      true);
+#endif
   return false;
 }
 
