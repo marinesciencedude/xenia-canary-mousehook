@@ -1849,8 +1849,7 @@ void EmulatorWindow::GamepadHotKeys() {
 
       for (uint32_t user_index = 0; user_index < XUserMaxUserCount;
            ++user_index) {
-        X_RESULT result = input_sys->GetState(
-            user_index, X_INPUT_FLAG::X_INPUT_FLAG_GAMEPAD, &state);
+        X_RESULT result = input_sys->GetState(user_index, &state);
 
         // Release the lock before processing the hotkey
         input_lock.mutex()->unlock();
