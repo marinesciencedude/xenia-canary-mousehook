@@ -10,6 +10,7 @@
 #include "xenia/hid/winkey/hookables/goldeneye.h"
 
 #include "xenia/base/platform_win.h"
+#include "xenia/emulator.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/kernel/util/shim_utils.h"
@@ -124,7 +125,12 @@ bool GoldeneyeGame::IsGameSupported() {
       return true;
     }
   }
-
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      "MOUSEHOOK: Supported Title ID, but unsupported version of GE/PD, "
+      "refer to the Github repo for supported builds. ",
+      true);
+#endif
   return false;
 }
 
