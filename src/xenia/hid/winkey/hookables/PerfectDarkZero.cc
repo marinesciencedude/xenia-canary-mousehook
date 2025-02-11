@@ -102,6 +102,12 @@ bool PerfectDarkZeroGame::IsGameSupported() {
       return true;
     }
   }
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      "MOUSEHOOK: Supported Title ID, but unsupported version of PDZ, "
+      "refer to the Github repo for supported updates.",
+      true);
+#endif
 
   return false;
 }
