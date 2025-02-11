@@ -67,13 +67,13 @@ jobs:
       - name: Prepare artifacts
         id: prepare_artifacts
         run: |-
-          if ((Get-Item "build\bin\Windows\Release\xenia_canary_netplay.exe").Length -le 100000) {
+          if ((Get-Item "build\bin\Windows\Release\xenia_canary_mousehook_netplay.exe").Length -le 100000) {
             echo "::error:: Executable is too small."
             exit 1
           }
-          $path="artifacts\xenia_canary_netplay"
-          robocopy . build\bin\Windows\Release                                  LICENSE bindings.ini /r:0 /w:0
-          robocopy   build\bin\Windows\Release $path xenia_canary_netplay.exe   LICENSE bindings.ini /r:0 /w:0
+          $path="artifacts\xenia_canary_mousehook_netplay"
+          robocopy . build\bin\Windows\Release                                              LICENSE bindings.ini /r:0 /w:0
+          robocopy   build\bin\Windows\Release $path xenia_canary_mousehook_netplay.exe     LICENSE bindings.ini /r:0 /w:0
           If ($LastExitCode -le 7) { echo "LastExitCode = $LastExitCode";$LastExitCode = 0 }
           echo "path=$path" >> $env:GITHUB_OUTPUT
 
@@ -81,6 +81,6 @@ jobs:
         if: ${{ steps.prepare_artifacts.outcome == 'success' }}
         uses: actions/upload-artifact@v7
         with:
-          name: xenia_canary_netplay_windows
+          name: xenia_canary_mousehook_netplay_windows
           path: ${{ steps.prepare_artifacts.outputs.path }}
           if-no-files-found: error
