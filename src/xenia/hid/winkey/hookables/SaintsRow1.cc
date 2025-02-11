@@ -76,7 +76,7 @@ struct GameBuildAddrs {
 };
 
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
-    {SaintsRow1Game::GameBuild::Unknown, {" ", NULL, NULL}},
+    {SaintsRow1Game::GameBuild::Unknown, {"", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
      {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
@@ -100,7 +100,21 @@ bool SaintsRow1Game::IsGameSupported() {
       return true;
     }
   }
-
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+  mousehook_message_wrapper(
+      std::format("MOUSEHOOK: Supported Title ID, but current version '{}' is "
+                  "unsupported. Expected: [{}]",
+                  current_version,
+                  [&]() {
+                    std::string versions;
+                    for (const auto& build : supported_builds) {
+                      if (!versions.empty()) versions += ", ";
+                      versions += build.second.title_version;
+                    }
+                    return versions;
+                  }()),
+      true, MESSAGE_TYPE_XNotify);
+#endif
   return false;
 }
 
