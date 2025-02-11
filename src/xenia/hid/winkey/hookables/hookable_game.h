@@ -7,17 +7,21 @@
  ******************************************************************************
  */
 
+#define XENIA_MOUSEHOOK_MESSAGE
 #ifndef XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 #define XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 
 #include <vector>
 #include "xenia/hid/input.h"
 #include "xenia/xbox.h"
-
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+#include "xenia/ui/imgui_guest_notification.h"
+#include "xenia/ui/imgui_host_notification.h"
+#endif
 namespace xe {
 namespace hid {
 namespace winkey {
-
+static bool mousehook_message_read;
 struct MouseEvent {
   int32_t x_delta = 0;
   int32_t y_delta = 0;
@@ -49,7 +53,16 @@ class HookableGame {
 
 xe::be<uint32_t>* multi_pointer(uint32_t base_address,
                                 std::vector<uint32_t> offsets);
+#ifdef XENIA_MOUSEHOOK_MESSAGE
+enum notification_type : uint8_t {
+  MESSAGE_TYPE_XNotify = 0,
+  MESSAGE_TYPE_Host = 1
+};
+bool mousehook_message_wrapper(std::string message, bool handleseen = true,
+                               notification_type type = MESSAGE_TYPE_Host,
+                               uint8_t pos = 2);
 
+#endif
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
