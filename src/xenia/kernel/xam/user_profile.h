@@ -238,6 +238,9 @@ class UserProfile {
   bool UnsubscribeFromXUID(const uint64_t xuid);
   bool IsSubscribed(const uint64_t xuid);
 
+  void SetSelfInvite(X_INVITE_INFO* invite_info);
+  X_INVITE_INFO* GetSelfInvite() { return &self_invite; };
+
   const std::vector<uint64_t> GetSubscribedXUIDs() const;
 
   std::string GetPresenceString();
@@ -261,6 +264,7 @@ class UserProfile {
  private:
   uint64_t xuid_;
   X_XAMACCOUNTINFO account_info_;
+  X_INVITE_INFO self_invite;
 
   std::vector<std::unique_ptr<UserSetting>> setting_list_;
   std::unordered_map<uint32_t, UserSetting*> settings_;

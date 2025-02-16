@@ -37,6 +37,7 @@ UserProfile::UserProfile(uint64_t xuid, X_XAMACCOUNTINFO* account_info)
 
   friends_ = std::vector<X_ONLINE_FRIEND>();
   subscriptions_ = std::map<uint64_t, X_ONLINE_PRESENCE>();
+  self_invite = {};
 
   for (const auto& friend_xuid : XLiveAPI::ParseFriendsXUIDs()) {
     AddFriendFromXUID(friend_xuid);
@@ -369,6 +370,10 @@ bool UserProfile::UnsubscribeFromXUID(const uint64_t xuid) {
 
 bool UserProfile::IsSubscribed(const uint64_t xuid) {
   return subscriptions_.count(xuid) != 0;
+}
+
+void UserProfile::SetSelfInvite(X_INVITE_INFO* invite_info) {
+  memcpy(&self_invite, invite_info, sizeof(X_INVITE_INFO));
 }
 
 const std::vector<uint64_t> UserProfile::GetSubscribedXUIDs() const {

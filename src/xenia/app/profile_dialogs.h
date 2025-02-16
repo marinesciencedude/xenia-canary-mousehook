@@ -10,6 +10,7 @@
 #ifndef XENIA_APP_PROFILE_DIALOGS_H_
 #define XENIA_APP_PROFILE_DIALOGS_H_
 
+#include "xenia/kernel/json/friend_presence_object_json.h"
 #include "xenia/ui/imgui_dialog.h"
 #include "xenia/ui/imgui_drawer.h"
 #include "xenia/xbox.h"
@@ -80,6 +81,15 @@ class FriendsManagerDialog final : public ui::ImGuiDialog {
   bool are_friends = false;
   bool valid_xuid = false;
   char add_xuid_[17] = "";
+  uint64_t selected_xuid_ = 0;
+  uint64_t removed_xuid_ = 0;
+  bool add_friend_open = false;
+  bool filter_joinable = false;
+  bool filter_offline = false;
+  bool friends_open = false;
+  bool checked_presence_open = false;
+  std::vector<xe::kernel::FriendPresenceObjectJSON> presences;
+  ImGuiTextFilter filter;
   EmulatorWindow* emulator_window_;
 };
 

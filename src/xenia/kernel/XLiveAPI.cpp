@@ -1413,6 +1413,78 @@ std::unique_ptr<HTTPResponseObjectJSON> XLiveAPI::PraseResponse(
   return response;
 }
 
+std::vector<xe::kernel::FriendPresenceObjectJSON>
+XLiveAPI::GetAllFriendsPresence(const uint32_t user_index) {
+  const auto profile = kernel_state()->xam_state()->GetUserProfile(user_index);
+
+  auto offline_peer_presences = GetOfflineFriendsPresence(user_index);
+  std::map<uint64_t, xe::kernel::FriendPresenceObjectJSON>
+      online_peer_presences = {};
+
+  if (kernel::XLiveAPI::IsConnectedToServer()) {
+    online_peer_presences = GetOnlineFriendsPresence(user_index);
+  }
+
+  auto& merged_peer_presences = online_peer_presences;
+
+  merged_peer_presences.merge(offline_peer_presences);
+
+  std::vector<xe::kernel::FriendPresenceObjectJSON> peer_presences;
+
+  std::ranges::transform(
+      merged_peer_presences, std::back_inserter(peer_presences),
+      &std::pair<const uint64_t, xe::kernel::FriendPresenceObjectJSON>::second);
+
+  std::sort(peer_presences.begin(), peer_presences.end(),
+            [](const xe::kernel::FriendPresenceObjectJSON& peer_1,
+               xe::kernel::FriendPresenceObjectJSON& peer_2) {
+              bool peer_1_prefix = peer_1.Gamertag().starts_with("0009");
+              bool peer_2_prefix = peer_2.Gamertag().starts_with("0009");
+
+              if (peer_1_prefix != peer_2_prefix) {
+                return !peer_1_prefix;
+              }
+
+              return peer_1.Gamertag() < peer_2.Gamertag();
+            });
+
+  return peer_presences;
+}
+
+std::map<uint64_t, xe::kernel::FriendPresenceObjectJSON>
+XLiveAPI::GetOfflineFriendsPresence(const uint32_t user_index) {
+  const auto profile = kernel_state()->xam_state()->GetUserProfile(user_index);
+
+  std::map<uint64_t, xe::kernel::FriendPresenceObjectJSON> peer_presences = {};
+
+  for (const auto& xuid : profile->GetFriendsXUIDs()) {
+    xe::kernel::FriendPresenceObjectJSON peer = {};
+    peer.Gamertag(std::format("{:016X}", xuid));
+    peer.XUID(xuid);
+
+    peer_presences[xuid] = peer;
+  }
+
+  return peer_presences;
+}
+
+std::map<uint64_t, xe::kernel::FriendPresenceObjectJSON>
+XLiveAPI::GetOnlineFriendsPresence(const uint32_t user_index) {
+  const auto profile = kernel_state()->xam_state()->GetUserProfile(user_index);
+
+  std::map<uint64_t, xe::kernel::FriendPresenceObjectJSON> peer_presences = {};
+
+  const auto freinds_presence =
+      xe::kernel::XLiveAPI::GetFriendsPresence(profile->GetFriendsXUIDs())
+          ->PlayersPresence();
+
+  for (const auto& presence : freinds_presence) {
+    peer_presences[presence.XUID()] = presence;
+  }
+
+  return peer_presences;
+}
+
 const uint8_t* XLiveAPI::GenerateMacAddress() {
   uint8_t* mac_address = new uint8_t[6];
   // MAC OUI part for MS devices.
