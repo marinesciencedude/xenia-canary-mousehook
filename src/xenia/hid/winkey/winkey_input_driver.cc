@@ -120,6 +120,8 @@ DEFINE_int32(
 namespace xe {
 namespace hid {
 namespace winkey {
+bool mousehook_passthru_override = false;
+
 using namespace xe::string_util;
 
 bool static IsPassthroughEnabled() {
@@ -127,10 +129,6 @@ bool static IsPassthroughEnabled() {
          KeyboardMode::Passthrough;
 }
 
-/* bool static isMousehookOverridingPassthrough() {
-  return mousehook_passthru_override;
-}
-*/
 bool static IsKeyboardForUserEnabled(uint32_t user_index) {
   if (static_cast<KeyboardMode>(cvars::keyboard_mode) !=
       KeyboardMode::Enabled) {
@@ -869,13 +867,16 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
   }
   if (e.virtual_key() == ui::VirtualKey::kDelete && is_down) {
     if (cvars::keyboard_mode == 1) {
+      mousehook_passthru_override = true;
       cvars::keyboard_mode = 2;
       // memset(key_map_, 0, sizeof(key_map_));
       while (!key_events_.empty()) {
         key_events_.pop();
       }
-    } else if (cvars::keyboard_mode == 2)
+    } else if (cvars::keyboard_mode == 2) {
+      mousehook_passthru_override = false;
       cvars::keyboard_mode = 1;
+    }
     // memset(key_map_, 0, sizeof(key_map_));
   }
   KeyEvent key;
