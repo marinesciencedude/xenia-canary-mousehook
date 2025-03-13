@@ -101,19 +101,16 @@ X_RESULT InputSystem::GetCapabilities(uint32_t user_index, uint32_t flags,
       return result;
     }
   }
-  return X_ERROR_DEVICE_NOT_CONNECTED;
+  return X_ERROR_SUCCESS;
 }
 
-X_RESULT InputSystem::GetState(uint32_t user_index, uint32_t flags,
-                               X_INPUT_STATE* out_state) {
+X_RESULT InputSystem::GetState(uint32_t user_index, X_INPUT_STATE* out_state) {
   SCOPE_profile_cpu_f("hid");
 
-  std::vector<InputDriver*> filtered_drivers = FilterDrivers(flags);
-
-  for (auto& driver : filtered_drivers) {
+  for (auto& driver : drivers_) {
     X_RESULT result = driver->GetState(user_index, out_state);
     if (result == X_ERROR_SUCCESS) {
-      UpdateUsedSlot(driver, user_index, true);
+      UpdateUsedSlot(driver.get(), user_index, true);
       AdjustDeadzoneLevels(user_index, &out_state->gamepad);
 
       if (out_state->gamepad.buttons != 0) {

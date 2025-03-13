@@ -118,9 +118,7 @@ dword_result_t XamInputGetState_entry(dword_t user_index, dword_t flags,
 
   auto input_system = kernel_state()->emulator()->input_system();
   auto lock = input_system->lock();
-  return input_system->GetState(
-      user_index, !flags ? X_INPUT_FLAG::X_INPUT_FLAG_GAMEPAD : flags,
-      input_state);
+  return input_system->GetState(user_index, input_state);
 }
 DECLARE_XAM_EXPORT2(XamInputGetState, kInput, kImplemented, kHighFrequency);
 

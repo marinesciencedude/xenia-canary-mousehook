@@ -120,6 +120,8 @@ DEFINE_int32(
 namespace xe {
 namespace hid {
 namespace winkey {
+bool mousehook_passthru_override = false;
+
 using namespace xe::string_util;
 
 bool static IsPassthroughEnabled() {
@@ -512,7 +514,7 @@ X_RESULT WinKeyInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
 
-  if (IsPassthroughEnabled()) {
+  if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
     out_caps->type = X_INPUT_DEVTYPE::XINPUT_DEVTYPE_KEYBOARD;
     out_caps->sub_type = X_INPUT_DEVSUBTYPE::XINPUT_DEVSUBTYPE_USB_KEYBOARD;
     return X_ERROR_SUCCESS;
@@ -535,12 +537,10 @@ X_RESULT WinKeyInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
 
 X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
                                      X_INPUT_STATE* out_state) {
-  if (!IsKeyboardForUserEnabled(user_index)) {
+  if (user_index != cvars::keyboard_user_index) {
     return X_ERROR_DEVICE_NOT_CONNECTED;
   }
-
   packet_number_++;
-
   uint16_t buttons = 0;
   uint8_t left_trigger = 0;
   uint8_t right_trigger = 0;
@@ -567,118 +567,120 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
         }
       }
     }
+    if (IsKeyboardForUserEnabled(user_index)) {
+      // memset(key_map_, 0, 256);
+      for (int i = 0; i < sizeof(key_states_); i++) {
+        if (key_states_[i]) {
+          std::map<ui::VirtualKey, uint64_t> binds;
 
-    for (int i = 0; i < sizeof(key_states_); i++) {
-      if (key_states_[i]) {
-        std::map<ui::VirtualKey, uint64_t> binds;
-
-        if (key_binds_.find(title_id) == key_binds_.end()) {
-          binds = key_binds_.at(0).at("Default");
-        } else {
-          if (key_binds_.at(title_id).size() > 1) {
-            bool contextual_binds = false;
-            for (auto& game : hookable_games_) {
-              if (game->IsGameSupported()) {
-                binds = key_binds_.at(title_id).at(game->ChooseBinds());
-                contextual_binds = true;
-                break;
+          if (key_binds_.find(title_id) == key_binds_.end()) {
+            binds = key_binds_.at(0).at("Default");
+          } else {
+            if (key_binds_.at(title_id).size() > 1) {
+              bool contextual_binds = false;
+              for (auto& game : hookable_games_) {
+                if (game->IsGameSupported()) {
+                  binds = key_binds_.at(title_id).at(game->ChooseBinds());
+                  contextual_binds = true;
+                  break;
+                }
               }
-            }
-            if (!contextual_binds) {
+              if (!contextual_binds) {
+                binds = key_binds_.at(title_id).at("Default");
+              }
+            } else {
               binds = key_binds_.at(title_id).at("Default");
             }
-          } else {
-            binds = key_binds_.at(title_id).at("Default");
           }
-        }
 
-        const auto vk_key = static_cast<ui::VirtualKey>(i);
+          const auto vk_key = static_cast<ui::VirtualKey>(i);
 
-        if (!binds.count(vk_key)) {
-          continue;
-        }
+          if (!binds.count(vk_key)) {
+            continue;
+          }
 
-        const auto binding = binds.at(vk_key);
+          const auto binding = binds.at(vk_key);
 
-        buttons |= (binding & XINPUT_BUTTONS_MASK);
+          buttons |= (binding & XINPUT_BUTTONS_MASK);
 
-        if (binding & XINPUT_BIND_LEFT_TRIGGER) {
-          left_trigger = 0xFF;
-        }
+          if (binding & XINPUT_BIND_LEFT_TRIGGER) {
+            left_trigger = 0xFF;
+          }
 
-        if (binding & XINPUT_BIND_RIGHT_TRIGGER) {
-          right_trigger = 0xFF;
-        }
+          if (binding & XINPUT_BIND_RIGHT_TRIGGER) {
+            right_trigger = 0xFF;
+          }
 
-        if (binding & XINPUT_BIND_LS_UP) {
-          thumb_ly = SHRT_MAX;
-        }
-        if (binding & XINPUT_BIND_LS_DOWN) {
-          thumb_ly = SHRT_MIN;
-        }
-        if (binding & XINPUT_BIND_LS_LEFT) {
-          thumb_lx = SHRT_MIN;
-        }
-        if (binding & XINPUT_BIND_LS_RIGHT) {
-          thumb_lx = SHRT_MAX;
-        }
+          if (binding & XINPUT_BIND_LS_UP) {
+            thumb_ly = SHRT_MAX;
+          }
+          if (binding & XINPUT_BIND_LS_DOWN) {
+            thumb_ly = SHRT_MIN;
+          }
+          if (binding & XINPUT_BIND_LS_LEFT) {
+            thumb_lx = SHRT_MIN;
+          }
+          if (binding & XINPUT_BIND_LS_RIGHT) {
+            thumb_lx = SHRT_MAX;
+          }
 
-        if (binding & XINPUT_BIND_RS_UP) {
-          thumb_ry = SHRT_MAX;
-        }
-        if (binding & XINPUT_BIND_RS_DOWN) {
-          thumb_ry = SHRT_MIN;
-        }
-        if (binding & XINPUT_BIND_RS_LEFT) {
-          thumb_rx = SHRT_MIN;
-        }
-        if (binding & XINPUT_BIND_RS_RIGHT) {
-          thumb_rx = SHRT_MAX;
-        }
+          if (binding & XINPUT_BIND_RS_UP) {
+            thumb_ry = SHRT_MAX;
+          }
+          if (binding & XINPUT_BIND_RS_DOWN) {
+            thumb_ry = SHRT_MIN;
+          }
+          if (binding & XINPUT_BIND_RS_LEFT) {
+            thumb_rx = SHRT_MIN;
+          }
+          if (binding & XINPUT_BIND_RS_RIGHT) {
+            thumb_rx = SHRT_MAX;
+          }
 
-        if (binding & XINPUT_BIND_MODIFIER) {
-          modifier_pressed = true;
-        }
+          if (binding & XINPUT_BIND_MODIFIER) {
+            modifier_pressed = true;
+          }
 
-        if (binding & XINPUT_BIND_WEAPON1) {
-          weapon_switch = true;
-          weapon = 1;
-        }
-        if (binding & XINPUT_BIND_WEAPON2) {
-          weapon_switch = true;
-          weapon = 2;
-        }
-        if (binding & XINPUT_BIND_WEAPON3) {
-          weapon_switch = true;
-          weapon = 3;
-        }
-        if (binding & XINPUT_BIND_WEAPON4) {
-          weapon_switch = true;
-          weapon = 4;
-        }
-        if (binding & XINPUT_BIND_WEAPON5) {
-          weapon_switch = true;
-          weapon = 5;
-        }
-        if (binding & XINPUT_BIND_WEAPON6) {
-          weapon_switch = true;
-          weapon = 6;
-        }
-        if (binding & XINPUT_BIND_WEAPON7) {
-          weapon_switch = true;
-          weapon = 7;
-        }
-        if (binding & XINPUT_BIND_WEAPON8) {
-          weapon_switch = true;
-          weapon = 8;
-        }
-        if (binding & XINPUT_BIND_WEAPON9) {
-          weapon_switch = true;
-          weapon = 9;
-        }
-        if (binding & XINPUT_BIND_WEAPON10) {
-          weapon_switch = true;
-          weapon = 10;
+          if (binding & XINPUT_BIND_WEAPON1) {
+            weapon_switch = true;
+            weapon = 1;
+          }
+          if (binding & XINPUT_BIND_WEAPON2) {
+            weapon_switch = true;
+            weapon = 2;
+          }
+          if (binding & XINPUT_BIND_WEAPON3) {
+            weapon_switch = true;
+            weapon = 3;
+          }
+          if (binding & XINPUT_BIND_WEAPON4) {
+            weapon_switch = true;
+            weapon = 4;
+          }
+          if (binding & XINPUT_BIND_WEAPON5) {
+            weapon_switch = true;
+            weapon = 5;
+          }
+          if (binding & XINPUT_BIND_WEAPON6) {
+            weapon_switch = true;
+            weapon = 6;
+          }
+          if (binding & XINPUT_BIND_WEAPON7) {
+            weapon_switch = true;
+            weapon = 7;
+          }
+          if (binding & XINPUT_BIND_WEAPON8) {
+            weapon_switch = true;
+            weapon = 8;
+          }
+          if (binding & XINPUT_BIND_WEAPON9) {
+            weapon_switch = true;
+            weapon = 9;
+          }
+          if (binding & XINPUT_BIND_WEAPON10) {
+            weapon_switch = true;
+            weapon = 10;
+          }
         }
       }
     }
@@ -725,10 +727,12 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
     out_state->gamepad.thumb_ly = 0;
   }
 
-  if (IsPassthroughEnabled()) {
+  if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3))
     memset(out_state, 0, sizeof(out_state));
+  else {
+    memset(key_map_, 0, sizeof(key_map_));
+    while (!key_events_.empty()) key_events_.pop();
   }
-
   return X_ERROR_SUCCESS;
 }
 
@@ -771,7 +775,7 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
 
   bool capital = IsKeyToggled(VK_CAPITAL) || IsKeyDown(VK_SHIFT);
 
-  if (!IsPassthroughEnabled()) {
+  if (!IsPassthroughEnabled() && !IsKeyDown(VK_OEM_3)) {
     if (IsKeyboardForUserEnabled(user_index)) {
       for (const KeyBinding& b : key_bindings_) {
         if (b.input_key == evt.virtual_key &&
@@ -781,7 +785,7 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
         }
       }
     }
-  } else {
+  } else if (IsPassthroughEnabled() || IsKeyDown(VK_OEM_3)) {
     xinput_virtual_key = evt.virtual_key;
 
     if (capital) {
@@ -807,7 +811,7 @@ X_RESULT WinKeyInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
       keystroke_flags |= 0x0002;  // XINPUT_KEYSTROKE_KEYUP
     }
 
-    if (IsPassthroughEnabled()) {
+    if (IsKeyDown(VK_OEM_3) || IsPassthroughEnabled()) {
       if (GetKeyboardState(key_map_)) {
         WCHAR buf;
         if (ToUnicode(uint8_t(xinput_virtual_key), 0, key_map_, &buf, 1, 0) ==
@@ -861,7 +865,20 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
                           KeyboardMode::Disabled) {
     return;
   }
-
+  if (e.virtual_key() == ui::VirtualKey::kDelete && is_down) {
+    if (cvars::keyboard_mode == 1) {
+      mousehook_passthru_override = true;
+      cvars::keyboard_mode = 2;
+      // memset(key_map_, 0, sizeof(key_map_));
+      while (!key_events_.empty()) {
+        key_events_.pop();
+      }
+    } else if (cvars::keyboard_mode == 2) {
+      mousehook_passthru_override = false;
+      cvars::keyboard_mode = 1;
+    }
+    // memset(key_map_, 0, sizeof(key_map_));
+  }
   KeyEvent key;
   key.virtual_key = e.virtual_key();
   key.transition = is_down;
@@ -873,6 +890,8 @@ void WinKeyInputDriver::OnKey(ui::KeyEvent& e, bool is_down) {
 }
 
 InputType WinKeyInputDriver::GetInputType() const {
+  if (IsKeyDown(VK_OEM_3)) return InputType::Keyboard;
+
   switch (static_cast<KeyboardMode>(cvars::keyboard_mode)) {
     case KeyboardMode::Disabled:
       return InputType::None;
