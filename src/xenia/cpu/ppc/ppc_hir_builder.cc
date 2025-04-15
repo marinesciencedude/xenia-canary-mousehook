@@ -37,6 +37,14 @@ DEFINE_bool(
 namespace xe {
 namespace cpu {
 namespace ppc {
+uint32_t g_CurrentHookAddress = 0;
+ bool addshit = false;
+using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
+extern std::unordered_map<uint32_t, std::vector<MouseHookMidHook>>
+    g_AddressHooks;
+
+extern void RegisterAddressHook(uint32_t address,
+                                MouseHookMidHook hook_function);
 
 // TODO(benvanik): remove when enums redefined.
 using namespace xe::cpu::hir;
@@ -81,12 +89,21 @@ void PPCHIRBuilder::Reset() {
   with_debug_info_ = false;
   HIRBuilder::Reset();
 }
-
+void MyCustomHook(PPCContext* context, void* arg0, void* arg1) {
+  printf("LOL HOKOED");
+}
 bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
   SCOPE_profile_cpu_f("cpu");
 
   Memory* memory = frontend_->memory();
+  if (!addshit) {
 
+
+    RegisterAddressHook(0x82646240, MyCustomHook);
+
+
+    addshit = true;
+  }
   function_ = function;
   start_address_ = function_->address();
   // chrispy: i've seen this one happen, not sure why but i think from trying to
@@ -171,8 +188,11 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
     if (opcode_info.type == PPCOpcodeType::kSync) {
       ContextBarrier();
     }
-    if (address == 0x82646240)
-    CallExtern(builtins()->my_hook);
+
+    if (g_AddressHooks.find(address) != g_AddressHooks.end()) {
+      g_CurrentHookAddress = address;
+      CallExtern(builtins()->my_hook);
+    }
     MaybeBreakOnInstruction(address);
 
     InstrData i;
