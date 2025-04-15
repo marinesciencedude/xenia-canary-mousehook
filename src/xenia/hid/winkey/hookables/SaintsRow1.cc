@@ -706,6 +706,16 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
         supported_builds[game_build_].change_weapon_function_addr);
   }
 }
+// can't be in class because it'd pass in `this`
+void print_x_axis_midhook(PPCContext* context, void* arg0, void* arg1) {
+  printf("X-axis: %f \n", context->f[30]);
+  // context->f[30] = 0.0;
+}
+void SaintsRow1Game::MidHookInit() {
+  if (midhook_status == HOOKED) return;
+  xe::cpu::ppc::RegisterMidHookASM(0x8211D96C, print_x_axis_midhook);
+  midhook_status = HOOKED;
+}
 
 }  // namespace winkey
 }  // namespace hid

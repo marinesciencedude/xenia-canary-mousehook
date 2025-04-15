@@ -59,11 +59,10 @@ Memory* PPCFrontend::memory() const { return processor_->memory(); }
 using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
 std::unordered_map<uint32_t, std::vector<MouseHookMidHook>> g_AddressHooks;
 
-void RegisterAddressHook(uint32_t address, MouseHookMidHook hook_function) {
-    g_AddressHooks[address].push_back(hook_function);
+void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
+  g_AddressHooks[address].push_back(hook_function);
 }
 void MyHook(PPCContext* ppc_context, void* arg0, void* arg1) {
-
   auto it = g_AddressHooks.find(g_CurrentHookAddress);
   if (it != g_AddressHooks.end()) {
     for (auto& func : it->second) {

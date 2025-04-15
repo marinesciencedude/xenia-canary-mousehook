@@ -49,6 +49,7 @@ class SaintsRow1Game : public HookableGame {
   void WeaponSwitchHandler(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
+  void MidHookInit();
 
  private:
   GameBuild game_build_ = GameBuild::Unknown;

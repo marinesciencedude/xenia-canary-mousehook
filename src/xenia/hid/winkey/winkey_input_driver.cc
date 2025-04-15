@@ -728,6 +728,9 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
           game->WeaponSwitchHandler(user_index, state, out_state, weapon,
                                     buttons);
         }
+        if (game->midhook_status == MidHookStatus::NOT_HOOKED) {
+          game->MidHookInit();
+        }
         break;
       }
     }
