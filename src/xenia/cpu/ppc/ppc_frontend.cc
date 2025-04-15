@@ -56,6 +56,8 @@ Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
 // Checks the state of the global lock and sets scratch to the current MSR
 // value.
+void MyHook(PPCContext* ppc_context, void* arg0, void* arg1) { printf("My Hook\n"); }
+
 void CheckGlobalLock(PPCContext* ppc_context, void* arg0, void* arg1) {
   auto global_mutex = reinterpret_cast<global_mutex_type*>(arg0);
   auto global_lock_count = reinterpret_cast<int32_t*>(arg1);
@@ -94,6 +96,7 @@ void SyscallHandler(PPCContext* ppc_context, void* arg0, void* arg1) {
 bool PPCFrontend::Initialize() {
   void* arg0 = reinterpret_cast<void*>(&xe::global_critical_region::mutex());
   void* arg1 = reinterpret_cast<void*>(&builtins_.global_lock_count);
+  builtins_.my_hook = processor_->DefineBuiltin("MyHook", MyHook, arg0, arg1);
   builtins_.check_global_lock =
       processor_->DefineBuiltin("CheckGlobalLock", CheckGlobalLock, arg0, arg1);
   builtins_.enter_global_lock =

@@ -171,7 +171,8 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
     if (opcode_info.type == PPCOpcodeType::kSync) {
       ContextBarrier();
     }
-
+    if (address == 0x82646240)
+    CallExtern(builtins()->my_hook);
     MaybeBreakOnInstruction(address);
 
     InstrData i;
