@@ -46,6 +46,7 @@ enum MidHookStatus : BYTE {
   NOT_HOOKED,
   HOOKED,
 };
+static RawInputState static_state;
 class HookableGame {
  public:
   virtual ~HookableGame() = default;

@@ -146,9 +146,18 @@ float SaintsRow1Game::DegreetoRadians(float degree) {
 float SaintsRow1Game::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
-
+static std::mutex input_mutex;
 bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
+
+  {
+    std::lock_guard<std::mutex> lock(input_mutex);
+    static_state.mouse = input_state.mouse;
+  }
+  if (!IsGameSupported()) {
+    return false;
+  }
+
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
@@ -310,10 +319,10 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
         frametime;
   }
-  if (!(isTervelPlugin() && inFirstPerson()))
+  /*if (!(isTervelPlugin() && inFirstPerson()))
     *addition_x = degree_x;
   else if (*fine_aim_x != NULL)
-    *fine_aim_x = DegreetoRadians(degree_x);
+    *fine_aim_x = DegreetoRadians(degree_x);*/
 
   float delta_y =
       (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
@@ -709,7 +718,12 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
 // can't be in class because it'd pass in `this`
 void print_x_axis_midhook(PPCContext* context, void* arg0, void* arg1) {
   printf("X-axis: %f \n", context->f[30]);
-  // context->f[30] = 0.0;
+  double delta = 0.0;
+      {
+        std::lock_guard<std::mutex> lock(input_mutex);
+        delta = static_state.mouse.x_delta / 1000.0;
+    }
+      context->f[30] = context->f[30] + delta;
 }
 void SaintsRow1Game::MidHookInit() {
   if (midhook_status == HOOKED) return;
