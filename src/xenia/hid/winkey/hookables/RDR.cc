@@ -66,34 +66,40 @@ struct GameBuildAddrs supported_builds[6] = {
     {"",   NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
     // RedDeadRedemption_GOTY_Disk1
-    {"12.0",     0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
+    {"0.0.0.12", 0x82010BEC, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE684000, 0x820D6A8C, 0xF1F,      0x103F,
      0xBBC67E24, 0x2B0,      0x820D68E8, 0x794B,     0x82F79E77, 0xBE67B80C,
      0xD0,       0x82F7B450, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_GOTY_Disk2
-    {"12.0",     0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
+    {"0.0.0.12", 0x82010C0C, 0x7A3A5C72, 0x8309C298, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE63AB24, 0xBE65C7FC, 0x1A0,      0x2C0,
      0xBE642900, 0x2B0,      0x8305D684, 0x4D0D4B,   0x82F79E77, 0xBE65780C,
      0xD0,       0x82F7B450, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_Original_TU0
-    {"1.0",      NULL,       NULL,       0x830641D8, 0x460,      0x45C,
+    {"0.0.0.1",  NULL,       NULL,       0x830641D8, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE65B73C, 0xBE661AC8, 0x1A0,      0x2C0,
      0xBBC5FD14, 0x2B0,      0xBE68A060, 0xB,        0x82F49B73, 0xBE64CEAC,
      0xD0,       0x82F4B0E0, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_Original_TU9
-    {"1.0.9",    NULL,       NULL,       0x8305DBE8, 0x460,      0x45C,
+    {"0.0.9.1",  NULL,       NULL,       0x8305DBE8, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE69827C, 0xBE696608, 0x1A0,      0x2C0,
      0xBBC63E24, 0x2B0,      0xBE6BAB60, 0xB,        0x82F49EB7, 0xBE685CEC,
      0xD0,       0x82F4B660, 0xF3,       0x7049E69C},
 
     // RedDeadRedemption_UndeadNightmare_Standalone_TU4
-    {"4.0",      NULL,       NULL,       0x8309AF88, 0x460,      0x45C,
+    {"0.0.0.4",  NULL,       NULL,       0x8309AF88, 0x460,      0x45C,
      0x458,      0x3EC,      0xBE6430A4, 0xBE65B88C, 0x1A0,      0x2C0,
      0xBBC67E3C, 0x2B0,      0xBE685260, 0xB,        0x82F79E77, 0xBE64F80C,
      0xD0,       0x82F7B450, 0xF3,       0x7049E69C}};
+std::map<std::string, GameVersion> supported_rdr_versions{
+    {"", {NULL, NULL, NULL, NULL}},
+    {"0.0.0.12", {0, 0, 0, 12}},
+    {"0.0.0.1", {0, 0, 0, 1}},
+    {"0.0.9.1", {0, 0, 9, 1}},
+    {"0.0.0.4", {0, 0, 0, 4}}};
 
 RedDeadRedemptionGame::~RedDeadRedemptionGame() = default;
 uint32_t RedDeadRedemptionGame::cached_carriage_x_address = 0;
@@ -103,7 +109,7 @@ uint32_t RedDeadRedemptionGame::cached_auto_center_strength_address_carriage =
     0;
 static uint32_t cached_mounting_center_final = 0;
 static uint32_t cached_cover_center_final = 0;
-bool RedDeadRedemptionGame::IsGameSupported() {
+bool RedDeadRedemptionGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdRedDeadRedemption) {
     return false;
   }
@@ -121,9 +127,14 @@ bool RedDeadRedemptionGame::IsGameSupported() {
         game_build_ = static_cast<RedDeadRedemptionGame::GameBuild>(i);
         return true;
       }
-    } else if (current_version == supported_builds[i].title_version) {
-      game_build_ = static_cast<RedDeadRedemptionGame::GameBuild>(i);
-      return true;
+    } else {
+      GameVersion build_version =
+          supported_rdr_versions.at(supported_builds[i].title_version);
+      if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) ==
+          0) {
+        game_build_ = static_cast<RedDeadRedemptionGame::GameBuild>(i);
+        return true;
+      }
     }
   }
 #ifdef XENIA_MOUSEHOOK_MESSAGE
@@ -158,10 +169,6 @@ float RedDeadRedemptionGame::RadianstoDegree(float radians) {
 bool RedDeadRedemptionGame::DoHooks(uint32_t user_index,
                                     RawInputState& input_state,
                                     X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (game_build_ < 0 ||
       game_build_ >= sizeof(supported_builds) / sizeof(supported_builds[0])) {
     return false;

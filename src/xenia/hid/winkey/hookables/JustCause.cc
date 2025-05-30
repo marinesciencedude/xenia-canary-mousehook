@@ -45,7 +45,7 @@ std::map<JustCauseGame::GameBuild, GameBuildAddrs> supported_builds{
 
 JustCauseGame::~JustCauseGame() = default;
 
-bool JustCauseGame::IsGameSupported() {
+bool JustCauseGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdJustCause) {
     return false;
   }
@@ -92,10 +92,6 @@ float JustCauseGame::RadianstoDegree(float radians) {
 
 bool JustCauseGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                             X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
