@@ -40,11 +40,13 @@ struct GameBuildAddrs {
 };
 
 std::map<FarCryGame::GameBuild, GameBuildAddrs> supported_builds{
-    {FarCryGame::GameBuild::FarCry_TU0, {"1.0", 0x829138B8, 0x3AC, 0x3A4}}};
+    {FarCryGame::GameBuild::FarCry_TU0, {"0.0.0.1", 0x829138B8, 0x3AC, 0x3A4}}};
+std::map<std::string, GameVersion> supported_farcry_versions{
+    {"", {NULL, NULL, NULL, NULL}}, {"0.0.0.1", {0, 0, 0, 1}}};
 
 FarCryGame::~FarCryGame() = default;
 
-bool FarCryGame::IsGameSupported() {
+bool FarCryGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdFarCry) {
     return false;
   }
@@ -53,7 +55,9 @@ bool FarCryGame::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    GameVersion build_version =
+        supported_farcry_versions.at(build.second.title_version);
+    if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
       game_build_ = build.first;
       return true;
     }
@@ -82,10 +86,6 @@ bool FarCryGame::IsGameSupported() {
 
 bool FarCryGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                          X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }

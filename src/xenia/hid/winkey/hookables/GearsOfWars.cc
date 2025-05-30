@@ -100,7 +100,7 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 static bool bypass_conditions = false;
-bool GearsOfWarsGame::IsGameSupported() {
+bool GearsOfWarsGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdGearsOfWars3 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars2 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars1 &&
@@ -204,10 +204,6 @@ bool GearsOfWarsGame::IsGameSupported() {
 
 bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                               X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
