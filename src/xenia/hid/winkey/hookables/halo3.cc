@@ -84,7 +84,7 @@ std::map<Halo3Game::GameBuild, GameBuildAddrs> supported_builds{
     // - 21501.13.08.06.2311.main ? (mentioned in TU8 xex)
 };
 
-bool Halo3Game::IsGameSupported() {
+bool Halo3Game::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
 
   if (title_id != kTitleIdHalo3 && title_id != kTitleIdHalo3ODST &&
@@ -114,10 +114,6 @@ bool Halo3Game::IsGameSupported() {
 
 bool Halo3Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                         X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_)) {
     // HACKHACK: Doesn't seem to be any way to get tls_static_address_ besides
     // this (XThread::GetTLSValue only returns tls_dynamic_address_, and doesn't
