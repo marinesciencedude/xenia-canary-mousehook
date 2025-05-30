@@ -18,6 +18,14 @@
 #include "xenia/xbox.h"
 
 namespace xe {
+
+struct GameVersion {
+  uint32_t major;
+  uint32_t minor;
+  uint32_t build;
+  uint32_t qfe;
+};
+
 namespace ui {
 class Window;
 }  // namespace ui
@@ -51,6 +59,7 @@ class InputDriver {
   }
 
   uint32_t title_id = 0;
+  GameVersion title_version;
 
  protected:
   explicit InputDriver(xe::ui::Window* window, size_t window_z_order)

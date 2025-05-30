@@ -109,7 +109,7 @@ std::map<GoldeneyeGame::GameBuild, RareGameBuildAddrs> supported_builds = {
      {0x825FC25D, 0x30313037, 0, 0, 0x8265A200, 0, 0x826619E4, 0x1A4C, 0x0,
       0x14C, 0x15C, 0x1690, 0x1694, 0xCFC, 0xD00, 0x128, 0, 0x14A0, 0x14A4}}};
 
-bool GoldeneyeGame::IsGameSupported() {
+bool GoldeneyeGame::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
 
   if (title_id != kTitleIdGoldenEye && title_id != kTitleIdPerfectDark) {
@@ -138,9 +138,6 @@ bool GoldeneyeGame::IsGameSupported() {
 
 bool GoldeneyeGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                             X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
   auto title_id = kernel_state()->title_id();
   auto& game_addrs = supported_builds[game_build_];
 
