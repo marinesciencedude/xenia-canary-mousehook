@@ -85,7 +85,7 @@ std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
 
 PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
 
-bool PerfectDarkZeroGame::IsGameSupported() {
+bool PerfectDarkZeroGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdPerfectDarkZero) {
     return false;
   }
@@ -123,10 +123,6 @@ float PerfectDarkZeroGame::RadianstoDegree(float radians) {
 bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                                   RawInputState& input_state,
                                   X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
