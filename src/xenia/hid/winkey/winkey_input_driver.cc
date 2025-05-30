@@ -699,7 +699,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
           if (key_binds_.at(title_id).size() > 1) {
             bool contextual_binds = false;
             for (auto& game : hookable_games_) {
-              if (game->IsGameSupported()) {
+              if (game->IsGameSupported(title_version)) {
                 binds = key_binds_.at(title_id).at(game->ChooseBinds());
                 contextual_binds = true;
                 break;
@@ -822,7 +822,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
   bool game_modifier_handled = false;
   if (title_id) {
     for (auto& game : hookable_games_) {
-      if (game->IsGameSupported()) {
+      if (game->IsGameSupported(title_version)) {
         game->DoHooks(user_index, state, out_state);
         if (modifier_pressed) {
           game_modifier_handled =

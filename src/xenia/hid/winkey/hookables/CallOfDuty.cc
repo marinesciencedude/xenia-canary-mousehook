@@ -191,7 +191,7 @@ std::map<CallOfDutyGame::GameBuild, GameBuildAddrs> supported_builds{
 
 CallOfDutyGame::~CallOfDutyGame() = default;
 
-bool CallOfDutyGame::IsGameSupported() {
+bool CallOfDutyGame::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
 
   if (title_id != kTitleIdCOD4 && title_id != kTitleIdCOD3 &&
@@ -227,9 +227,6 @@ bool CallOfDutyGame::IsGameSupported() {
 
 bool CallOfDutyGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
        !input_state.mouse.wheel_delta)) {
     return false;

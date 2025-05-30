@@ -70,7 +70,7 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
      {"",   NULL, {},   NULL, NULL, NULL, NULL, {},   NULL, {},
       NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
       NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, {}}},
-    {MinecraftGame::GameBuild::TU75, {"1.0.80",   0x82C8518C,
+    {MinecraftGame::GameBuild::TU75, {"0.0.80.1", 0x82C8518C,
                                       {0x38},     0x148,
                                       0x14C,      0x82C84986,
                                       0x82C83084, {0x24, 0x114, 0x4},
@@ -85,8 +85,10 @@ std::map<MinecraftGame::GameBuild, GameBuildAddrs> supported_builds{
                                       0x1A48,     0x1A4C,
                                       0x25FC,     0x2600,
                                       0x82CCDB90, {0x34, 0x5F8, 0x6C}}}};
+std::map<std::string, GameVersion> supported_versions{
+    {"", {NULL, NULL, NULL, NULL}}, {"0.0.80.1", {0, 0, 80, 1}}};
 
-bool MinecraftGame::IsGameSupported() {
+bool MinecraftGame::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
   if (title_id != 0x584111F7) {
     return false;
@@ -96,7 +98,9 @@ bool MinecraftGame::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    GameVersion build_version =
+        supported_versions.at(build.second.title_version);
+    if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
       game_build_ = build.first;
       return true;
     }
@@ -125,10 +129,6 @@ bool MinecraftGame::IsGameSupported() {
 
 bool MinecraftGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                             X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   XThread* current_thread = XThread::GetCurrentThread();
 
   if (!current_thread) {

@@ -61,33 +61,42 @@ struct GameBuildAddrs {
 
 // Replace with build names when we introduce more compatibility
 std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
-    {SourceEngine::GameBuild::CSGO, {kTitleIdCSGO, "5.0", 0x86955490, 0x4AE8}},
+    {SourceEngine::GameBuild::CSGO,
+     {kTitleIdCSGO, "0.0.0.5", 0x86955490, 0x4AE8}},
     {SourceEngine::GameBuild::CSGO_Beta,
-     {kTitleIdCSGO, "1.0.1.16", 0x8697DB30, 0x4AC8}},
-    {SourceEngine::GameBuild::L4D1, {kTitleIdL4D1, "1.0", 0x86536888, 0x4B44}},
+     {kTitleIdCSGO, "1.0.1.1", 0x8697DB30, 0x4AC8}},
+    {SourceEngine::GameBuild::L4D1,
+     {kTitleIdL4D1, "0.0.0.1", 0x86536888, 0x4B44}},
     {SourceEngine::GameBuild::L4D1_GOTY,
-     {kTitleIdL4D1, "6.0", 0x86537FA0, 0x4B44}},
-    {SourceEngine::GameBuild::L4D2, {kTitleIdL4D2, "3.0", 0x86CC4E60, 0x4A94}},
+     {kTitleIdL4D1, "0.0.0.6", 0x86537FA0, 0x4B44}},
+    {SourceEngine::GameBuild::L4D2,
+     {kTitleIdL4D2, "0.0.0.3", 0x86CC4E60, 0x4A94}},
     {SourceEngine::GameBuild::OrangeBox,
-     {kTitleIdOrangeBox, "4.0", NULL, 0x863F53A8}},
+     {kTitleIdOrangeBox, "0.0.0.4", NULL, 0x863F53A8}},
     {SourceEngine::GameBuild::PortalSA,
-     {kTitleIdPortalSA, "3.0.1", NULL, 0x863F56B0}},
+     {kTitleIdPortalSA, "0.0.1.3", NULL, 0x863F56B0}},
     {SourceEngine::GameBuild::Portal2,
-     {kTitleIdPortal2, "4.0", 0x82C50180, 0x4A98}},
+     {kTitleIdPortal2, "0.0.0.4", 0x82C50180, 0x4A98}},
     {SourceEngine::GameBuild::Portal2_TU1,
-     {kTitleIdPortal2, "4.0.1", 0x82C50220, 0x4A98}},
+     {kTitleIdPortal2, "0.0.1.4", 0x82C50220, 0x4A98}},
     {SourceEngine::GameBuild::Postal3,
-     {kTitleIdOrangeBox, "1.0.1.16", NULL, 0x86438700}},
+     {kTitleIdOrangeBox, "1.0.1.1", NULL, 0x86438700}},
     {SourceEngine::GameBuild::BloodyGoodTime,
-     {kTitleIdBloodyGoodTime, "3.0", NULL, 0x8644A6B0}},
+     {kTitleIdBloodyGoodTime, "0.0.0.3", NULL, 0x8644A6B0}},
     {
         SourceEngine::GameBuild::DarkMessiah,
-        {kTitleIdDarkMessiah, "5.0", 0x856FC050, 0x856E2490}
+        {kTitleIdDarkMessiah, "0.0.0.5", 0x856FC050, 0x856E2490}
         // default.xex, DMMulti_m.xex
     },
 };
+std::map<std::string, GameVersion> supported_sourceengine_versions{
+    {"", {NULL, NULL, NULL, NULL}}, {"0.0.0.5", {0, 0, 0, 5}},
+    {"0.1.1.1", {0, 1, 1, 1}},      {"0.0.0.1", {0, 0, 0, 1}},
+    {"0.0.0.6", {0, 0, 0, 6}},      {"0.0.0.3", {0, 0, 0, 3}},
+    {"0.0.0.4", {0, 0, 0, 4}},      {"0.0.1.3", {0, 0, 1, 3}},
+    {"0.0.1.4", {0, 0, 1, 4}}};
 
-bool SourceEngine::IsGameSupported() {
+bool SourceEngine::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
   if (title_id != kTitleIdCSGO && title_id != kTitleIdL4D1 &&
       title_id != kTitleIdL4D2 && title_id != kTitleIdOrangeBox &&
@@ -100,8 +109,10 @@ bool SourceEngine::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
+    GameVersion build_version =
+        supported_sourceengine_versions.at(build.second.title_version);
     if (title_id == build.second.title_id &&
-        current_version == build.second.title_version) {
+        std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
       game_build_ = build.first;
       return true;
     }
@@ -132,10 +143,6 @@ bool SourceEngine::IsGameSupported() {
 
 bool SourceEngine::DoHooks(uint32_t user_index, RawInputState& input_state,
                            X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   // Wait until module is loaded, if loaded don't check again otherwise it will
   // impact performance.
   if (!engine_360) {
