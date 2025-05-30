@@ -50,7 +50,7 @@ std::map<DeadRisingGame::GameBuild, GameBuildAddrs> supported_builds{
 
 DeadRisingGame::~DeadRisingGame() = default;
 
-bool DeadRisingGame::IsGameSupported() {
+bool DeadRisingGame::IsGameSupported(GameVersion title_version) {
   auto title_id = kernel_state()->title_id();
   if (title_id != kTitleIdDR2CZ && title_id != kTitleIdDR2CW) {
     return false;
@@ -76,9 +76,6 @@ float DeadRisingGame::RadianstoDegree(float radians) {
 
 bool DeadRisingGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
        !input_state.mouse.wheel_delta)) {
     return false;

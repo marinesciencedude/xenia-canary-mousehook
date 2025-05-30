@@ -41,13 +41,17 @@ struct GameBuildAddrs {
 
 std::map<Crackdown2Game::GameBuild, GameBuildAddrs> supported_builds{
     {Crackdown2Game::GameBuild::Crackdown2_TU0,
-     {"1.0", 0x836C6520, 0x7EC, 0x7E8}},
+     {"0.0.0.1", 0x836C6520, 0x7EC, 0x7E8}},
     {Crackdown2Game::GameBuild::Crackdown2_TU5,
-     {"1.0.5", 0x83800F88, 0x7EC, 0x7E8}}};
+     {"0.0.5.1", 0x83800F88, 0x7EC, 0x7E8}}};
+std::map<std::string, GameVersion> supported_crackdown_versions{
+    {"", {NULL, NULL, NULL, NULL}},
+    {"0.0.0.1", {0, 0, 0, 1}},
+    {"0.0.5.1", {0, 0, 5, 1}}};
 
 Crackdown2Game::~Crackdown2Game() = default;
 
-bool Crackdown2Game::IsGameSupported() {
+bool Crackdown2Game::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdCrackdown2) {
     return false;
   }
@@ -56,7 +60,9 @@ bool Crackdown2Game::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    GameVersion build_version =
+        supported_crackdown_versions.at(build.second.title_version);
+    if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
       game_build_ = build.first;
       return true;
     }
@@ -91,10 +97,6 @@ float Crackdown2Game::RadianstoDegree(float radians) {
 
 bool Crackdown2Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }

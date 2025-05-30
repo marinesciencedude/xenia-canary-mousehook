@@ -23,7 +23,7 @@ class SaintsRow2Game : public HookableGame {
 
   ~SaintsRow2Game() override;
 
-  bool IsGameSupported();
+  bool IsGameSupported(GameVersion title_version);
 
   float RadianstoDegree(float radians);
   float DegreetoRadians(float degree);
