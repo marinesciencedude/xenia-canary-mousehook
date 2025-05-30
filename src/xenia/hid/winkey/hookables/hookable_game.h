@@ -13,6 +13,7 @@
 
 #include <vector>
 #include "xenia/hid/input.h"
+#include "xenia/hid/input_driver.h"
 #include "xenia/xbox.h"
 #ifdef XENIA_MOUSEHOOK_MESSAGE
 #include "xenia/ui/imgui_guest_notification.h"
@@ -38,7 +39,7 @@ class HookableGame {
  public:
   virtual ~HookableGame() = default;
 
-  virtual bool IsGameSupported() = 0;
+  virtual bool IsGameSupported(GameVersion title_version) = 0;
   virtual bool DoHooks(uint32_t user_index, RawInputState& input_state,
                        X_INPUT_STATE* out_state) = 0;
   virtual std::string ChooseBinds() = 0;

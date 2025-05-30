@@ -22,7 +22,7 @@ class Crackdown2Game : public HookableGame {
 
   ~Crackdown2Game() override;
 
-  bool IsGameSupported();
+  bool IsGameSupported(GameVersion title_version);
 
   float RadianstoDegree(float radians);
   float DegreetoRadians(float degree);

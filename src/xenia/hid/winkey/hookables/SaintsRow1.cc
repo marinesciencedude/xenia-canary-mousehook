@@ -78,15 +78,17 @@ struct GameBuildAddrs {
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {"", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
-     {"1.0.1",    0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
+     {"0.0.1.1",  0x827f9af8, 0x827F9B00, 0x827F9BA4, 0x82F7EB04, 0x835F2B80,
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
       0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
+std::map<std::string, GameVersion> supported_sr1_versions{
+    {"", {NULL, NULL, NULL, NULL}}, {"0.0.1.1", {0, 0, 1, 1}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
-bool SaintsRow1Game::IsGameSupported() {
+bool SaintsRow1Game::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdSaintsRow1) {
     return false;
   }
@@ -95,7 +97,9 @@ bool SaintsRow1Game::IsGameSupported() {
       kernel_state()->emulator()->title_version();
 
   for (auto& build : supported_builds) {
-    if (current_version == build.second.title_version) {
+    GameVersion build_version =
+        supported_sr1_versions.at(build.second.title_version);
+    if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
       game_build_ = build.first;
       return true;
     }
@@ -128,10 +132,6 @@ float SaintsRow1Game::RadianstoDegree(float radians) {
 
 bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
