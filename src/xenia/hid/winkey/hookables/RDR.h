@@ -30,7 +30,7 @@ class RedDeadRedemptionGame : public HookableGame {
 
   ~RedDeadRedemptionGame() override;
 
-  bool IsGameSupported();
+  bool IsGameSupported(GameVersion title_version);
 
   float RadianstoDegree(float radians);
   float DegreetoRadians(float degree);
