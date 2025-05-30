@@ -49,7 +49,7 @@ class Halo3Game : public HookableGame {
 
   ~Halo3Game() override;
 
-  bool IsGameSupported();
+  bool IsGameSupported(GameVersion title_version);
   bool DoHooks(uint32_t user_index, RawInputState& input_state,
                X_INPUT_STATE* out_state);
   std::string ChooseBinds();
