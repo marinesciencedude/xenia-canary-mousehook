@@ -271,6 +271,12 @@ void InputSystem::UpdateTitleId(uint32_t title_id) {
   }
 }
 
+void InputSystem::UpdateTitleVersion(GameVersion title_version) {
+  for (auto& driver : drivers_) {
+    driver->title_version = title_version;
+  }
+}
+
 std::unique_lock<xe_unlikely_mutex> InputSystem::lock() {
   return std::unique_lock<xe_unlikely_mutex>{lock_};
 }
