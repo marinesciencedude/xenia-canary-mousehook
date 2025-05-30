@@ -1511,11 +1511,12 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
               kMemoryProtectRead | kMemoryProtectWrite, false,
               &workspace_address);
 
+  xex2_version title_version;
   if (!info) {
     title_id_ = 0;
   } else {
     title_id_ = info->title_id;
-    auto title_version = info->version();
+    title_version = info->version();
     if (title_version.value != 0) {
       title_version_ = format_version(title_version);
     }
@@ -2173,6 +2174,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
   on_launch(title_id_.value(), title_name_);
 
   input_system()->UpdateTitleId(title_id_.value());
+  input_system()->UpdateTitleVersion({title_version.major, title_version.minor,
+                                      title_version.build, title_version.qfe});
 
   // Plugins must be loaded after calling LaunchModule() and
   // FinishLoadingUserModule() which will apply TUs and patching to the main
