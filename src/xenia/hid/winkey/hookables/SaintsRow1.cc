@@ -30,7 +30,8 @@ DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
 
-const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1Global = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1JP = 0x545107F8;
 
 namespace xe {
 namespace hid {
@@ -82,14 +83,22 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
-      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}},
+    {SaintsRow1Game::GameBuild::SaintsRow1_JP,
+     {"0.0.0.1",  0x827E9BF8, 0x827E9C00, 0x827E9CA4, 0x82F6E69C, 0x835E2F40,
+      0x827BFAD0, 0x835E232C, 0x82EE2566, 0x82922507, 0x8282CB7B, 0x835E241B,
+      0x82ED13AC, 0x835E241C, 0x835E233B, 0x835E20C7, 0x827BA764, 0x827E9BD8,
+      0x827E9C58, 0x827E9AA3, 0x827E966C, 0x822AD718, 0x822AC730, 0x827C058C,
+      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F}}};
 std::map<std::string, GameVersion> supported_sr1_versions{
     {"", {NULL, NULL, NULL, NULL}}, {"0.0.1.1", {0, 0, 1, 1}}};
 
 SaintsRow1Game::~SaintsRow1Game() = default;
 
 bool SaintsRow1Game::IsGameSupported(GameVersion title_version) {
-  if (kernel_state()->title_id() != kTitleIdSaintsRow1) {
+  auto title_id = kernel_state()->title_id();
+  if (title_id != kTitleIdSaintsRow1JP &&
+      title_id != kTitleIdSaintsRow1Global) {
     return false;
   }
 
