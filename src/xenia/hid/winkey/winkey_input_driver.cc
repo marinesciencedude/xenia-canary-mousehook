@@ -504,7 +504,8 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
 
   std::string cur_section = "default";
   uint32_t title_id = 0;
-  uint32_t prev_title_id = 0;
+  std::vector<uint32_t> title_ids;
+  std::vector<uint32_t> prev_title_ids = {0};
   std::string cur_type = "Default";
 
   std::map<ui::VirtualKey, uint64_t> cur_binds;
@@ -535,11 +536,27 @@ void WinKeyInputDriver::ParseCustomKeyBinding(
       }
 
       title_id = std::stoul(cur_section, nullptr, 16);
+      title_ids.clear();
+      title_ids.push_back(title_id);
 
-      if (prev_title_id != title_id) {
-        key_binds_.emplace(prev_title_id, cur_title_binds);
+      if (cur_section.find(',') != cur_section.npos) {
+        int64_t num = std::ranges::count(cur_section, ',');
+        for (int i = 0; i < num; i++) {
+          cur_section = cur_section.substr(9);
+          title_ids.push_back(std::stoul(cur_section, nullptr, 16));
+        }
+      }
+
+      if (prev_title_ids != title_ids) {
+        if (prev_title_ids.size() == 1) {
+          key_binds_.emplace(prev_title_ids[0], cur_title_binds);
+        } else {
+          for (auto& id : prev_title_ids) {
+            key_binds_.emplace(id, cur_title_binds);
+          }
+        }
         cur_title_binds.clear();
-        prev_title_id = title_id;
+        prev_title_ids = title_ids;
       }
 
       cur_section = line.substr(sep + 2, line.length() - 2);
