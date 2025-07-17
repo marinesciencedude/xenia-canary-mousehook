@@ -30,7 +30,8 @@ DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
 
-const uint32_t kTitleIdSaintsRow1 = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1Global = 0x545107D1;
+const uint32_t kTitleIdSaintsRow1JP = 0x545107F8;
 
 namespace xe {
 namespace hid {
@@ -82,41 +83,57 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
-      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}}};
-std::map<std::string, GameVersion> supported_sr1_versions{
-    {"", {NULL, NULL, NULL, NULL}}, {"0.0.1.1", {0, 0, 1, 1}}};
-
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}},
+    {SaintsRow1Game::GameBuild::SaintsRow1_JP,
+     {"0.0.0.1",  0x827E9BF8, 0x827E9C00, 0x827E9CA4, 0x82F6E69C, 0x835E2718,
+      0x827BFAD0, 0x835E232F, 0x82EE2566, 0x82922507, 0x8282CB7B, 0x835E241B,
+      0x82ED13AC, 0x835E241C, 0x835E233B, 0x835E20C7, 0x827BA764, 0x827E9BD8,
+      0x827E9C58, 0x827E9AA3, 0x827E966C, 0x822AD718, 0x822AC730, 0x827C058C,
+      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F}}};
 SaintsRow1Game::~SaintsRow1Game() = default;
+std::map<std::pair<uint32_t, std::string>, SaintsRow1Game::GameBuild>
+    supported_builds_lookup{{{kTitleIdSaintsRow1Global, "0.0.1.1"},
+                             SaintsRow1Game::GameBuild::SaintsRow1_TU1},
+                            {{kTitleIdSaintsRow1JP, "0.0.0.1"},
+                             SaintsRow1Game::GameBuild::SaintsRow1_JP}};
+
+std::map<std::string, GameVersion> supported_sr1_versions{
+    {"0.0.1.1", {0, 0, 1, 1}},  // TU1 US version
+    {"0.0.0.1",
+     {0, 0, 0, 1}}  // JP version (and TU0 US, but we'll filter by title ID)
+};
 
 bool SaintsRow1Game::IsGameSupported(GameVersion title_version) {
-  if (kernel_state()->title_id() != kTitleIdSaintsRow1) {
+  auto title_id = kernel_state()->title_id();
+  if (title_id != kTitleIdSaintsRow1JP &&
+      title_id != kTitleIdSaintsRow1Global) {
     return false;
   }
 
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
-  for (auto& build : supported_builds) {
-    GameVersion build_version =
-        supported_sr1_versions.at(build.second.title_version);
-    if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) == 0) {
-      game_build_ = build.first;
-      return true;
+  // Create lookup key with title ID and version
+  auto lookup_key = std::make_pair(title_id, current_version);
+  auto build_it = supported_builds_lookup.find(lookup_key);
+
+  if (build_it != supported_builds_lookup.end()) {
+    auto version_it = supported_sr1_versions.find(current_version);
+    if (version_it != supported_sr1_versions.end()) {
+      GameVersion build_version = version_it->second;
+      if (std::memcmp(&title_version, &build_version, sizeof(GameVersion)) ==
+          0) {
+        game_build_ = build_it->second;
+        return true;
+      }
     }
   }
+
 #ifdef XENIA_MOUSEHOOK_MESSAGE
   mousehook_message_wrapper(
       std::format("MOUSEHOOK: Supported Title ID, but current version '{}' is "
-                  "unsupported. Expected: [{}]",
-                  current_version,
-                  [&]() {
-                    std::string versions;
-                    for (const auto& build : supported_builds) {
-                      if (!versions.empty()) versions += ", ";
-                      versions += build.second.title_version;
-                    }
-                    return versions;
-                  }()),
+                  "unsupported. Expected: TU1 US (0.0.1.1) or JP (0.0.0.1)",
+                  current_version),
       true, MESSAGE_TYPE_XNotify);
 #endif
   return false;
