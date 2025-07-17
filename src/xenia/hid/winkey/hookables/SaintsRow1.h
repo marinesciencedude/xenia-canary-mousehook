@@ -19,7 +19,7 @@ namespace winkey {
 
 class SaintsRow1Game : public HookableGame {
  public:
-  enum class GameBuild { Unknown, SaintsRow1_TU1 };
+  enum class GameBuild { Unknown, SaintsRow1_TU1, SaintsRow1_JP };
 
   ~SaintsRow1Game() override;
 

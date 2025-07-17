@@ -1817,7 +1817,7 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
     }
   }
 
-  if (module->title_id() == 0x545107D1) {
+  if (module->title_id() == 0x545107D1 || module->title_id() == 0x545107F8) {
     struct SR1PatchOffsets {
       uint32_t check_addr;
       uint32_t check_value;
@@ -1844,6 +1844,9 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         {0x82050304, 0x7361696E, 0x60000000, 0x8249db00, 0x8249dd28, 0x8249dd50,
          0x82079cbc, 0x8211D604, 0x82772D90, 0x8211FC8C, 0x82772DB0, 0xC108C88C,
          0xC00BC88C, 0xC0C8B850, 0x8208C88C},
+        {0x820501DC, 0x7361696E, 0x60000000, 0x8249A808, 0x8249AA30, 0x8249AA58,
+         0x82079A64, 0x8211D644, 0x8276F930, 0x8211FCCC, 0x8276F950, 0xC108C71C,
+         0xC00BC71C, 0xC0C8B6C8, 0x8208C71C},
     };
     for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
