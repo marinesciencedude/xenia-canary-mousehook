@@ -21,6 +21,7 @@
 #include "xenia/hid/winkey/hookables/CallOfDuty.h"
 #include "xenia/hid/winkey/hookables/Crackdown2.h"
 #include "xenia/hid/winkey/hookables/DeadRising.h"
+#include "xenia/hid/winkey/hookables/EarthDefenseForce.h"
 #include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 #include "xenia/hid/winkey/hookables/JustCause.h"
@@ -509,6 +510,8 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
   hookable_games_.push_back(std::move(std::make_unique<PerfectDarkZeroGame>()));
   hookable_games_.push_back(std::move(std::make_unique<MinecraftGame>()));
+  hookable_games_.push_back(
+      std::move(std::make_unique<EarthDefenseForceGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
