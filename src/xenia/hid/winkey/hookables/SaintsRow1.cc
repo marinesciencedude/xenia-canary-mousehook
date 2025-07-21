@@ -451,24 +451,37 @@ bool SaintsRow1Game::RotatePlayerinCustomization(RawInputState& input_state) {
 }
 
 bool SaintsRow1Game::CantSwitchWeapons() {
-  if (isAnimStatus(animstatus::DEAD) || isAnimStatus(animstatus::JUMPING) ||
-      isAnimStatus(animstatus::RAGDOLL) ||
-      IsPlayerStatus1(playerstatus1::BUSY) ||
-      IsPlayerStatus1(playerstatus1::SPRINTING) ||
-      IsPlayerStatus1(playerstatus1::STANDINGUP) ||
-      IsPlayerStatus1(playerstatus1::JUMPING1))
+  if (player == NULL) return false;
+
+  uint32_t onfoot_bitmask =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0x1178);
+
+  uint32_t driving_bitmask =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0x117C);
+
+  uint32_t vehicle =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0x9C0);
+  if (!((onfoot_bitmask & 1) != 0 || (driving_bitmask & 1) != 0 && vehicle))
     return true;
-  else
-    return false;
+
+  return false;
 }
 
+// bool SaintsRow1Game::CantSwitchWeapons() {
+//   if (isAnimStatus(animstatus::DEAD) || isAnimStatus(animstatus::JUMPING) ||
+//       isAnimStatus(animstatus::RAGDOLL) ||
+//       IsPlayerStatus1(playerstatus1::BUSY) ||
+//       IsPlayerStatus1(playerstatus1::SPRINTING) ||
+//       IsPlayerStatus1(playerstatus1::STANDINGUP) ||
+//       IsPlayerStatus1(playerstatus1::JUMPING1))
+//     return true;
+//   else
+//     return false;
+// }
+
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
-  if (player == NULL || isAnimStatus(animstatus::DEAD)) return;
-  // This probably works fine but might need more testing, and It'd be more
-  // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
-  // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
-  if (isMP())
-    if (CantSwitchWeapons()) return;
+  if (player == NULL) return;
+  if (CantSwitchWeapons()) return;
 
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
