@@ -149,9 +149,7 @@ float SaintsRow1Game::RadianstoDegree(float radians) {
 static std::mutex input_mutex;
 bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-
   {
-    std::lock_guard<std::mutex> lock(input_mutex);
     static_state.mouse = input_state.mouse;
   }
   if (!IsGameSupported()) {
@@ -161,7 +159,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
-
+  mouse_x_ld += input_state.mouse.x_delta;
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -717,13 +715,8 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
 }
 // can't be in class because it'd pass in `this`
 void print_x_axis_midhook(PPCContext* context, void* arg0, void* arg1) {
-  printf("X-axis: %f \n", context->f[30]);
-  double delta = 0.0;
-      {
-        std::lock_guard<std::mutex> lock(input_mutex);
-        delta = static_state.mouse.x_delta / 1000.0;
-    }
-      context->f[30] = context->f[30] + delta;
+  context->f[30] = context->f[30] + (mouse_x_ld / 1250.0);
+  mouse_x_ld = 0;
 }
 void SaintsRow1Game::MidHookInit() {
   if (midhook_status == HOOKED) return;

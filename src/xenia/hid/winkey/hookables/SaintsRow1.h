@@ -16,7 +16,7 @@
 namespace xe {
 namespace hid {
 namespace winkey {
-
+static int32_t mouse_x_ld;
 class SaintsRow1Game : public HookableGame {
  public:
   enum class GameBuild { Unknown, SaintsRow1_TU1, SaintsRow1_JP };
