@@ -146,16 +146,8 @@ float SaintsRow1Game::DegreetoRadians(float degree) {
 float SaintsRow1Game::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
-static std::mutex input_mutex;
 bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
-  {
-    static_state.mouse = input_state.mouse;
-  }
-  if (!IsGameSupported()) {
-    return false;
-  }
-
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
