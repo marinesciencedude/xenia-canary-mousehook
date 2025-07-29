@@ -272,7 +272,7 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   float fov = *current_fov;
 
   float divider_y = 15.f;
-  float divider_x = 1350.f;
+  float divider_x = 15.f;
 
   static xe::be<float>* fine_aim_x = NULL;
   static xe::be<float>* fine_aim_y = NULL;
@@ -294,24 +294,15 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
     divider_x = divider_x * fov;
   }
 
-  // X-axis = 0 to 360
-  // division over 1350 is assuming if frametime is 1/30, this should fix
-  // sensitivity fluctuation due to framerate as that's what the game does at
-  // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
-  // stuttering might still occur due to framerates, as it's expected to be set
-  // frame? -= isn't the ideal method but doing = causes it be less accurate
-  // somehow. - Clippy95
   if (!cvars::invert_x) {
     degree_x +=
-        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
-        frametime;
+        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity);
   } else {
     degree_x -=
-        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
-        frametime;
+        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity);
   }
   if (!cvars::internal_hook && !(isTervelPlugin() && inFirstPerson()))
-    *addition_x = degree_x;
+    *addition_x = DegreetoRadians(degree_x);
   else if (fine_aim_x != NULL && (isTervelPlugin() && inFirstPerson()))
     *fine_aim_x = DegreetoRadians(degree_x);
   mouse_x_ld += input_state.mouse.x_delta;

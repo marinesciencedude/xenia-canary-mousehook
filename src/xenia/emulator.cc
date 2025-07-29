@@ -1764,15 +1764,17 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
       uint32_t min_float_addr_lis1;
       uint32_t write_max_value1;  // making it same as on-foot causes the camera
                                   // to clip.
+      uint32_t write_camera_x_axis_frametime_mult_addr1;
     };
     std::vector<SR1PatchOffsets> supported_builds = {
         // TU1 Release build
         {0x82050304, 0x7361696E, 0x60000000, 0x8249db00, 0x8249dd28, 0x8249dd50,
          0x82079cbc, 0x8211D604, 0x82772D90, 0x8211FC8C, 0x82772DB0, 0xC108C88C,
-         0xC00BC88C, 0xC0C8B850, 0x8208C88C},
+         0xC00BC88C, 0xC0C8B850, 0x8208C88C, 0x8211D3E4},
+        // JP Release
         {0x820501DC, 0x7361696E, 0x60000000, 0x8249A808, 0x8249AA30, 0x8249AA58,
          0x82079A64, 0x8211D644, 0x8276F930, 0x8211FCCC, 0x8276F950, 0xC108C71C,
-         0xC00BC71C, 0xC0C8B6C8, 0x8208C71C},
+         0xC00BC71C, 0xC0C8B6C8, 0x8208C71C, 0x8211D424},
     };
     for (auto& build : supported_builds) {
       auto* test_addr = (xe::be<uint32_t>*)module->memory()->TranslateVirtual(
@@ -1809,6 +1811,16 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
                    build.min_float_addr_lis1);
         patch_addr(build.write_max_value1, 0xbf000000);
       }
+
+      if (build.write_camera_x_axis_frametime_mult_addr1) {
+        // from
+        // fmadds f27, f13, f31, f0
+        // to
+        // fadds f27, f13, f0
+        // f31 = frametime
+        patch_addr(build.write_camera_x_axis_frametime_mult_addr1, 0xEF6D002A);
+      }
+
       break;
     }
   }
