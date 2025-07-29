@@ -50,9 +50,10 @@ class SaintsRow1Game : public HookableGame {
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
   void MidHookInit();
+  static SaintsRow1Game* current_instance_;
+  GameBuild game_build_ = GameBuild::Unknown;
 
  private:
-  GameBuild game_build_ = GameBuild::Unknown;
   // Timer variables to hold the state for a while // this is probably not ideal
   // -Clippy95
   std::chrono::steady_clock::time_point last_movement_time_x_;

@@ -40,6 +40,12 @@ DEFINE_bool(swap_wheel, false,
             "will go to prev, also changes the weapon wheel & map zoom "
             "direction in Saints Row 1.",
             "MouseHook");
+
+DEFINE_bool(internal_hook, true,
+            "Uses better hooking technique that produces better mouse "
+            "injection results (currently only for Saints Row 1)",
+            "MouseHook");
+
 DEFINE_double(sensitivity, 1, "Mouse sensitivity", "MouseHook");
 DEFINE_double(
     fov_sensitivity, 0.9,

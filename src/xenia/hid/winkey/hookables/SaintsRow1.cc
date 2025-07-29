@@ -29,6 +29,7 @@ DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
+DECLARE_bool(internal_hook);
 
 const uint32_t kTitleIdSaintsRow1Global = 0x545107D1;
 const uint32_t kTitleIdSaintsRow1JP = 0x545107F8;
@@ -74,8 +75,9 @@ struct GameBuildAddrs {
   uint32_t customization_screen_zoom_level_addr;
   uint32_t mp_flag_1;
   uint32_t mp_flag_2;
+  uint32_t radian_x_axis_midhook_addr1;
 };
-
+SaintsRow1Game* SaintsRow1Game::current_instance_ = nullptr;
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {"", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
@@ -83,13 +85,13 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
-      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}},
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522, 0x8211D3E8}},
     {SaintsRow1Game::GameBuild::SaintsRow1_JP,
      {"0.0.0.1",  0x827E9BF8, 0x827E9C00, 0x827E9CA4, 0x82F6E69C, 0x835E2718,
       0x827BFAD0, 0x835E232F, 0x82EE2566, 0x82922507, 0x8282CB7B, 0x835E241B,
       0x82ED13AC, 0x835E241C, 0x835E233B, 0x835E20C7, 0x827BA764, 0x827E9BD8,
       0x827E9C58, 0x827E9AA3, 0x827E966C, 0x822AD718, 0x822AC730, 0x827C058C,
-      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F}}};
+      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F, 0x8211D428}}};
 SaintsRow1Game::~SaintsRow1Game() = default;
 std::map<std::pair<uint32_t, std::string>, SaintsRow1Game::GameBuild>
     supported_builds_lookup{{{kTitleIdSaintsRow1Global, "0.0.1.1"},
@@ -151,7 +153,6 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
-  mouse_x_ld += input_state.mouse.x_delta;
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -309,11 +310,11 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
         ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
         frametime;
   }
-  /*if (!(isTervelPlugin() && inFirstPerson()))
+  if (!cvars::internal_hook && !(isTervelPlugin() && inFirstPerson()))
     *addition_x = degree_x;
-  else if (*fine_aim_x != NULL)
-    *fine_aim_x = DegreetoRadians(degree_x);*/
-
+  else if (fine_aim_x != NULL && (isTervelPlugin() && inFirstPerson()))
+    *fine_aim_x = DegreetoRadians(degree_x);
+  mouse_x_ld += input_state.mouse.x_delta;
   float delta_y =
       (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
 
@@ -705,14 +706,50 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
         supported_builds[game_build_].change_weapon_function_addr);
   }
 }
+
+constexpr double deg_to_rad(double degrees) { return degrees * M_PI / 180.0; }
+
+constexpr double rad_to_deg(double radians) { return radians * 180.0 / M_PI; }
+
 // can't be in class because it'd pass in `this`
 void print_x_axis_midhook(PPCContext* context, void* arg0, void* arg1) {
+  return;
   context->f[30] = context->f[30] + (mouse_x_ld / 1250.0);
   mouse_x_ld = 0;
 }
+
+void x_addition_hook(PPCContext* context, void* arg0, void* arg1) {
+  if (cvars::internal_hook == false) return;
+  double divider = 15.0;
+  if (SaintsRow1Game::current_instance_) {
+    xe::be<float>* current_fov =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[SaintsRow1Game::current_instance_->game_build_]
+                .current_fov_address);
+    float fov = *current_fov;
+    if (fov < 60.f) {
+      fov = 60.f / fov;
+      divider = divider * fov;
+    }
+  }
+
+  double degrees = rad_to_deg(context->f[27]);
+  degrees = degrees + (mouse_x_ld / divider);
+  context->f[27] = context->f[27] + deg_to_rad(degrees);
+  mouse_x_ld = 0;
+}
+
 void SaintsRow1Game::MidHookInit() {
-  if (midhook_status == HOOKED) return;
-  xe::cpu::ppc::RegisterMidHookASM(0x8211D96C, print_x_axis_midhook);
+  if (midhook_status == HOOKED || !cvars::internal_hook) return;
+  SaintsRow1Game::current_instance_ = this;
+
+  if (!supported_builds[game_build_].radian_x_axis_midhook_addr1) return;
+  current_instance_ = this;
+
+  xe::cpu::ppc::RegisterMidHookASM(
+      supported_builds[game_build_].radian_x_axis_midhook_addr1,
+      x_addition_hook);
+
   midhook_status = HOOKED;
 }
 
