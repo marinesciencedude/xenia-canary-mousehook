@@ -37,7 +37,6 @@ DEFINE_bool(
 namespace xe {
 namespace cpu {
 namespace ppc {
-uint32_t g_CurrentHookAddress = 0;
 using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
 extern std::unordered_map<uint32_t, std::vector<MouseHookMidHook>>
     g_AddressHooks;
@@ -175,7 +174,10 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
     }
 
     if (g_AddressHooks.find(address) != g_AddressHooks.end()) {
-      g_CurrentHookAddress = address;
+      // Store the current address in scratch before calling the hook
+      auto store_addr = LoadConstantUint32(address);
+      StoreContext(offsetof(PPCContext, scratch),
+                   ZeroExtend(store_addr, INT64_TYPE));
       CallExtern(builtins()->my_hook);
     }
     MaybeBreakOnInstruction(address);

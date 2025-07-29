@@ -21,7 +21,6 @@
 namespace xe {
 namespace cpu {
 namespace ppc {
-extern uint32_t g_CurrentHookAddress;
 void InitializeIfNeeded();
 void CleanupOnShutdown();
 
@@ -54,22 +53,25 @@ PPCFrontend::~PPCFrontend() {
 
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
-// Checks the state of the global lock and sets scratch to the current MSR
-// value.
 using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
 std::unordered_map<uint32_t, std::vector<MouseHookMidHook>> g_AddressHooks;
 
 void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
+  XELOGW("RegisterMidHookASM: Hooking address {:08X}", address);
   g_AddressHooks[address].push_back(hook_function);
 }
 void MyHook(PPCContext* ppc_context, void* arg0, void* arg1) {
-  auto it = g_AddressHooks.find(g_CurrentHookAddress);
-  if (it != g_AddressHooks.end()) {
-    for (auto& func : it->second) {
-      func(ppc_context, arg0, arg1);
+  uint32_t hook_address = static_cast<uint32_t>(ppc_context->scratch);
+
+  if (auto it = g_AddressHooks.find(hook_address); it != g_AddressHooks.end()) {
+    for (const auto& hook_func : it->second) {
+      hook_func(ppc_context, arg0, arg1);
     }
   }
 }
+
+// Checks the state of the global lock and sets scratch to the current MSR
+// value.
 void CheckGlobalLock(PPCContext* ppc_context, void* arg0, void* arg1) {
   auto global_mutex = reinterpret_cast<global_mutex_type*>(arg0);
   auto global_lock_count = reinterpret_cast<int32_t*>(arg1);
