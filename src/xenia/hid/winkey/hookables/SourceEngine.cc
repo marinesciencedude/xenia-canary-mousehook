@@ -91,7 +91,7 @@ std::map<SourceEngine::GameBuild, GameBuildAddrs> supported_builds{
 };
 std::map<std::string, GameVersion> supported_sourceengine_versions{
     {"", {NULL, NULL, NULL, NULL}}, {"0.0.0.5", {0, 0, 0, 5}},
-    {"0.1.1.1", {0, 1, 1, 1}},      {"0.0.0.1", {0, 0, 0, 1}},
+    {"1.0.1.1", {1, 0, 1, 1}},      {"0.0.0.1", {0, 0, 0, 1}},
     {"0.0.0.6", {0, 0, 0, 6}},      {"0.0.0.3", {0, 0, 0, 3}},
     {"0.0.0.4", {0, 0, 0, 4}},      {"0.0.1.3", {0, 0, 1, 3}},
     {"0.0.1.4", {0, 0, 1, 4}}};
