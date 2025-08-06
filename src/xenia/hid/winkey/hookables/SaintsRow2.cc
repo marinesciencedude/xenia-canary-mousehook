@@ -358,7 +358,11 @@ uint64_t SaintsRow2Game::reset_fineaim(uint32_t function_address,
 
   return return_value != 0;
 }
-
+void SaintsRow2Game::MidHookInit() {
+  if (midhook_status == HOOKED) {
+    return;
+  }
+}
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

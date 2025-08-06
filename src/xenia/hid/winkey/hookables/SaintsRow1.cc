@@ -29,6 +29,7 @@ DECLARE_bool(invert_x);
 DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(swap_wheel);
 DECLARE_double(menu_sensitivity);
+DECLARE_bool(internal_hook);
 
 const uint32_t kTitleIdSaintsRow1Global = 0x545107D1;
 const uint32_t kTitleIdSaintsRow1JP = 0x545107F8;
@@ -74,8 +75,9 @@ struct GameBuildAddrs {
   uint32_t customization_screen_zoom_level_addr;
   uint32_t mp_flag_1;
   uint32_t mp_flag_2;
+  uint32_t radian_x_axis_midhook_addr1;
 };
-
+SaintsRow1Game* SaintsRow1Game::current_instance_ = nullptr;
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
     {SaintsRow1Game::GameBuild::Unknown, {"", NULL, NULL}},
     {SaintsRow1Game::GameBuild::SaintsRow1_TU1,
@@ -83,13 +85,13 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
-      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522}},
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522, 0x8211D3E8}},
     {SaintsRow1Game::GameBuild::SaintsRow1_JP,
      {"0.0.0.1",  0x827E9BF8, 0x827E9C00, 0x827E9CA4, 0x82F6E69C, 0x835E2718,
       0x827BFAD0, 0x835E232F, 0x82EE2566, 0x82922507, 0x8282CB7B, 0x835E241B,
       0x82ED13AC, 0x835E241C, 0x835E233B, 0x835E20C7, 0x827BA764, 0x827E9BD8,
       0x827E9C58, 0x827E9AA3, 0x827E966C, 0x822AD718, 0x822AC730, 0x827C058C,
-      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F}}};
+      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F, 0x8211D428}}};
 SaintsRow1Game::~SaintsRow1Game() = default;
 std::map<std::pair<uint32_t, std::string>, SaintsRow1Game::GameBuild>
     supported_builds_lookup{{{kTitleIdSaintsRow1Global, "0.0.1.1"},
@@ -146,13 +148,11 @@ float SaintsRow1Game::DegreetoRadians(float degree) {
 float SaintsRow1Game::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
-
 bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
                              X_INPUT_STATE* out_state) {
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
-
   // xtbl edits can't be made into a patch most likely?
   xe::be<float>* ingamesens_x =
       kernel_memory()->TranslateVirtual<xe::be<float>*>(
@@ -241,154 +241,153 @@ bool SaintsRow1Game::DoHooks(uint32_t user_index, RawInputState& input_state,
   if ((!input_state.mouse.x_delta && !input_state.mouse.y_delta &&
        !input_state.mouse.wheel_delta)) {
     return false;
-    player = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-        supported_builds[game_build_].player_address);
+  }
+  player = *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      supported_builds[game_build_].player_address);
 
-    if (isPaused()) {
-      if (inMapScreen()) {
-        MapCursor(input_state);
-      }
-      if (*kernel_memory()->TranslateVirtual<uint8_t*>(
-              supported_builds[game_build_].world_paused_address) != 0) {
-        return false;
-      }
-      if (RotatePlayerinCustomization(input_state) == true) {
-        return false;
-      }
-
+  if (isPaused()) {
+    if (inMapScreen()) {
+      MapCursor(input_state);
+    }
+    if (*kernel_memory()->TranslateVirtual<uint8_t*>(
+            supported_builds[game_build_].world_paused_address) != 0) {
       return false;
     }
-    if (input_state.mouse.wheel_delta) {
-      WeaponWheelScrollWheel(input_state);
-    }
-    xe::be<float>* addition_x =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].x_address);
-
-    xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-        supported_builds[game_build_].y_address);
-
-    xe::be<float>* current_fov =
-        kernel_memory()->TranslateVirtual<xe::be<float>*>(
-            supported_builds[game_build_].current_fov_address);
-
-    float degree_x = *addition_x;
-    float degree_y = RadianstoDegree(*radian_y);
-    float fov = *current_fov;
-
-    float divider_y = 15.f;
-    float divider_x = 1350.f;
-
-    static xe::be<float>* fine_aim_x = NULL;
-    static xe::be<float>* fine_aim_y = NULL;
-    if (isTervelPlugin() && inFirstPerson()) {
-      divider_x = 15.f;
-      frametime = 1.f;
-
-      fine_aim_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].fineaim_y_address + 0x4);
-
-      fine_aim_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-          supported_builds[game_build_].fineaim_y_address);
-      degree_x = RadianstoDegree(*fine_aim_x);
+    if (RotatePlayerinCustomization(input_state) == true) {
+      return false;
     }
 
-    if (fov < 60.f) {
-      fov = 60.f / fov;
-      divider_y = divider_y * fov;
-      divider_x = divider_x * fov;
-    }
+    return false;
+  }
+  if (input_state.mouse.wheel_delta) {
+    WeaponWheelScrollWheel(input_state);
+  }
+  xe::be<float>* addition_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].x_address);
 
-    // X-axis = 0 to 360
-    // division over 1350 is assuming if frametime is 1/30, this should fix
-    // sensitivity fluctuation due to framerate as that's what the game does at
-    // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
-    // stuttering might still occur due to framerates, as it's expected to be
-    // set frame? -= isn't the ideal method but doing = causes it be less
-    // accurate somehow. - Clippy95
-    if (!cvars::invert_x) {
-      degree_x += ((input_state.mouse.x_delta / divider_x) *
-                   (float)cvars::sensitivity) /
-                  frametime;
-    } else {
-      degree_x -= ((input_state.mouse.x_delta / divider_x) *
-                   (float)cvars::sensitivity) /
-                  frametime;
-    }
-    if (!(inFirstPerson() && isTervelPlugin())) {
-      *addition_x = degree_x;
-    } else if (*fine_aim_x != NULL) {
-      *fine_aim_x = DegreetoRadians(degree_x);
-    }
+  xe::be<float>* radian_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      supported_builds[game_build_].y_address);
 
-    float delta_y =
-        (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
+  xe::be<float>* current_fov =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(
+          supported_builds[game_build_].current_fov_address);
 
-    if (cvars::invert_y) {
-      delta_y = -delta_y;
-    }
+  float degree_x = *addition_x;
+  float degree_y = RadianstoDegree(*radian_y);
+  float fov = *current_fov;
 
+  float divider_y = 15.f;
+  float divider_x = 1350.f;
+
+  static xe::be<float>* fine_aim_x = NULL;
+  static xe::be<float>* fine_aim_y = NULL;
+  if (isTervelPlugin() && inFirstPerson()) {
+    divider_x = 15.f;
+    frametime = 1.f;
+
+    fine_aim_x = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].fineaim_y_address + 0x4);
+
+    fine_aim_y = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        supported_builds[game_build_].fineaim_y_address);
+    degree_x = RadianstoDegree(*fine_aim_x);
+  }
+
+  if (fov < 60.f) {
+    fov = 60.f / fov;
+    divider_y = divider_y * fov;
+    divider_x = divider_x * fov;
+  }
+
+  // X-axis = 0 to 360
+  // division over 1350 is assuming if frametime is 1/30, this should fix
+  // sensitivity fluctuation due to framerate as that's what the game does at
+  // 8249DD28(TU1); x_axis_addition = -(float)((float)_FP12 / frametime);
+  // stuttering might still occur due to framerates, as it's expected to be set
+  // frame? -= isn't the ideal method but doing = causes it be less accurate
+  // somehow. - Clippy95
+  if (!cvars::invert_x) {
+    degree_x +=
+        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
+        frametime;
+  } else {
+    degree_x -=
+        ((input_state.mouse.x_delta / divider_x) * (float)cvars::sensitivity) /
+        frametime;
+  }
+  if (!cvars::internal_hook && !(isTervelPlugin() && inFirstPerson())) {
+    *addition_x = degree_x;
+  } else if (fine_aim_x != NULL && (isTervelPlugin() && inFirstPerson())) {
+    *fine_aim_x = DegreetoRadians(degree_x);
+  }
+  mouse_x_ld += input_state.mouse.x_delta;
+  float delta_y =
+      (input_state.mouse.y_delta / divider_y) * (float)cvars::sensitivity;
+
+  if (cvars::invert_y) {
+    delta_y = -delta_y;
+  }
+
+  degree_y += delta_y;
+  degree_y = std::clamp(degree_y, -90.f, 90.f);
+  *radian_y = DegreetoRadians(degree_y);
+  if ((isTervelPlugin() && inFirstPerson())) {
+    degree_y = RadianstoDegree(*fine_aim_y);
     degree_y += delta_y;
     degree_y = std::clamp(degree_y, -90.f, 90.f);
-    *radian_y = DegreetoRadians(degree_y);
-    if ((isTervelPlugin() && inFirstPerson())) {
-      degree_y = RadianstoDegree(*fine_aim_y);
-      degree_y += delta_y;
-      degree_y = std::clamp(degree_y, -90.f, 90.f);
-      *fine_aim_y = DegreetoRadians(degree_y);
-    }
-
-    return true;
+    *fine_aim_y = DegreetoRadians(degree_y);
   }
-  bool SaintsRow1Game::isTervelPlugin() {
-    /* Although the fineaim option exists as a console command, realistically
-       users will be using a plugin to switch to it. DoHooks only checks
-       isTervelPlugin when supported game is loaded, we can't hog GetModule
-       otherwise it causes an impact performance according to SourceEngine.cc
-       */
-    if (!isPaused()) {
-      if (tervelplugin_status == 0) {
-        if (kernel_state()->GetModule("sr1fineaim.xex")) {
-          tervelplugin_status = 1;
-          return true;
-        } else {
-          tervelplugin_status = 2;
-          return false;
-        }
-        return false;
-      }
-      if (tervelplugin_status == 1) {
+
+  return true;
+}
+
+bool SaintsRow1Game::isTervelPlugin() {
+  /* Although the fineaim option exists as a console command, realistically
+     users will be using a plugin to switch to it. DoHooks only checks
+     isTervelPlugin when supported game is loaded, we can't hog GetModule
+     otherwise it causes an impact performance according to SourceEngine.cc
+     */
+  if (!isPaused()) {
+    if (tervelplugin_status == 0) {
+      if (kernel_state()->GetModule("sr1fineaim.xex")) {
+        tervelplugin_status = 1;
         return true;
       } else {
+        tervelplugin_status = 2;
         return false;
       }
-
-      return false;
-    } else {
       return false;
     }
-  }
-
-  bool SaintsRow1Game::inFirstPerson() {
-    auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].isfirstperson_address);
-    if (*firstperson && *firstperson == 8) {
+    if (tervelplugin_status == 1) {
       return true;
     } else {
       return false;
     }
-  }
 
-  bool SaintsRow1Game::isMP() {
-    auto* mp1 = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].mp_flag_1);
-    auto* mp2 = kernel_memory()->TranslateVirtual<uint8_t*>(
-        supported_builds[game_build_].mp_flag_2);
-    if (*mp2 == 1 || *mp1 == 1) {
-      return true;
-    }
+    return false;
+  } else {
+    return false;
   }
-  else {
+}
+
+bool SaintsRow1Game::inFirstPerson() {
+  auto* firstperson = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].isfirstperson_address);
+  if (*firstperson && *firstperson == 8) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool SaintsRow1Game::isMP() {
+  auto* mp1 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].mp_flag_1);
+  auto* mp2 = kernel_memory()->TranslateVirtual<uint8_t*>(
+      supported_builds[game_build_].mp_flag_2);
+  if (*mp2 == 1 || *mp1 == 1) {
+    return true;
+  } else {
     return false;
   }
 }
@@ -545,11 +544,9 @@ bool SaintsRow1Game::inMapScreen() {
 
   if ((*pause_screen == 26 || *map_usable == 210) && isPaused()) {
     return true;
+  } else {
+    return false;
   }
-}
-else {
-  return false;
-}
 }
 
 void SaintsRow1Game::MapCursor(RawInputState& input_state) {
@@ -749,6 +746,58 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
     call_argless_function(
         supported_builds[game_build_].change_weapon_function_addr);
   }
+}
+
+constexpr double deg_to_rad(double degrees) { return degrees * M_PI / 180.0; }
+
+constexpr double rad_to_deg(double radians) { return radians * 180.0 / M_PI; }
+
+// can't be in class because it'd pass in `this`
+void print_x_axis_midhook(PPCContext* context, void* arg0, void* arg1) {
+  return;
+  context->f[30] = context->f[30] + (mouse_x_ld / 1250.0);
+  mouse_x_ld = 0;
+}
+
+void x_addition_hook(PPCContext* context, void* arg0, void* arg1) {
+  if (cvars::internal_hook == false) {
+    return;
+  }
+  double divider = 15.0;
+  if (SaintsRow1Game::current_instance_) {
+    xe::be<float>* current_fov =
+        kernel_memory()->TranslateVirtual<xe::be<float>*>(
+            supported_builds[SaintsRow1Game::current_instance_->game_build_]
+                .current_fov_address);
+    float fov = *current_fov;
+    if (fov < 60.f) {
+      fov = 60.f / fov;
+      divider = divider * fov;
+    }
+  }
+
+  double degrees = rad_to_deg(context->f[27]);
+  degrees = degrees + (mouse_x_ld / divider);
+  context->f[27] = context->f[27] + deg_to_rad(degrees);
+  mouse_x_ld = 0;
+}
+
+void SaintsRow1Game::MidHookInit() {
+  if (midhook_status == HOOKED || !cvars::internal_hook) {
+    return;
+  }
+  SaintsRow1Game::current_instance_ = this;
+
+  if (!supported_builds[game_build_].radian_x_axis_midhook_addr1) {
+    return;
+  }
+  current_instance_ = this;
+
+  xe::cpu::ppc::RegisterMidHookASM(
+      supported_builds[game_build_].radian_x_axis_midhook_addr1,
+      x_addition_hook);
+
+  midhook_status = HOOKED;
 }
 
 }  // namespace winkey
