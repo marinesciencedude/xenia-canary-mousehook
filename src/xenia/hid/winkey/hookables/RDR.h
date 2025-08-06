@@ -66,6 +66,8 @@ class RedDeadRedemptionGame : public HookableGame {
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
 
+  void MidHookInit();
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
   std::chrono::steady_clock::time_point last_movement_time_x_;
