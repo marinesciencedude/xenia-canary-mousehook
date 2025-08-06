@@ -159,7 +159,9 @@ void DeadRisingGame::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {}
-
+void DeadRisingGame::MidHookInit() {
+  if (midhook_status == HOOKED) return;
+}
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

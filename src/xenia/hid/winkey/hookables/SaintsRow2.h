@@ -43,6 +43,8 @@ class SaintsRow2Game : public HookableGame {
   uint64_t reset_fineaim(uint32_t function_address, uint32_t player_ptr,
                          uint32_t a2, uint32_t a3);
 
+  void MidHookInit();
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
 
