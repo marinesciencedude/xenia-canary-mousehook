@@ -12,6 +12,7 @@
 #define XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 
 #include <vector>
+#include "xenia/cpu/ppc/ppc_context.h"
 #include "xenia/hid/input.h"
 #include "xenia/hid/input_driver.h"
 #include "xenia/xbox.h"
@@ -20,6 +21,13 @@
 #include "xenia/ui/imgui_host_notification.h"
 #endif
 namespace xe {
+namespace cpu {
+namespace ppc {
+using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
+extern void RegisterMidHookASM(uint32_t address,
+                               MouseHookMidHook hook_function);
+};  // namespace ppc
+};  // namespace cpu
 namespace hid {
 namespace winkey {
 static bool mousehook_message_read;
@@ -34,7 +42,10 @@ struct RawInputState {
   MouseEvent mouse;
   bool* key_states;
 };
-
+enum MidHookStatus : BYTE {
+  NOT_HOOKED,
+  HOOKED,
+};
 class HookableGame {
  public:
   virtual ~HookableGame() = default;
@@ -50,6 +61,8 @@ class HookableGame {
                                    RawInputState& input_state,
                                    X_INPUT_STATE* out_state, int weapon,
                                    uint16_t buttons) = 0;
+  MidHookStatus midhook_status = NOT_HOOKED;
+  virtual void MidHookInit() = 0;
 };
 
 xe::be<uint32_t>* multi_pointer(uint32_t base_address,
