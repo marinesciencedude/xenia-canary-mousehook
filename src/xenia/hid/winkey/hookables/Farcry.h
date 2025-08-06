@@ -36,6 +36,8 @@ class FarCryGame : public HookableGame {
                            X_INPUT_STATE* out_state, int weapon,
                            uint16_t buttons);
 
+  void MidHookInit();
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
 };

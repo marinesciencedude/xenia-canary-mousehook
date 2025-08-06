@@ -84,6 +84,8 @@ class CallOfDutyGame : public HookableGame {
 
   bool Dvar_GetBool(std::string dvar, uint32_t dvar_address);
 
+  void MidHookInit();
+
  private:
   GameBuild game_build_ = GameBuild::Unknown;
 };
