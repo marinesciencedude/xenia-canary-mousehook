@@ -1820,7 +1820,8 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         patch_addr(build.write_max_value1, 0xbf000000);
       }
 
-      if (build.write_camera_x_axis_frametime_mult_addr1) {
+      if (!cvars::internal_hook &&
+          build.write_camera_x_axis_frametime_mult_addr1) {
         // from
         // fmadds f27, f13, f31, f0
         // to
