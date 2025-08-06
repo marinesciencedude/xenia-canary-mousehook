@@ -21,7 +21,6 @@
 namespace xe {
 namespace cpu {
 namespace ppc {
-
 void InitializeIfNeeded();
 void CleanupOnShutdown();
 
@@ -53,6 +52,23 @@ PPCFrontend::~PPCFrontend() {
 }
 
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
+
+using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
+std::unordered_map<uint32_t, std::vector<MouseHookMidHook>> g_AddressHooks;
+
+void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
+  XELOGW("RegisterMidHookASM: Hooking address {:08X}", address);
+  g_AddressHooks[address].push_back(hook_function);
+}
+void MyHook(PPCContext* ppc_context, void* arg0, void* arg1) {
+  uint32_t hook_address = static_cast<uint32_t>(ppc_context->scratch);
+
+  if (auto it = g_AddressHooks.find(hook_address); it != g_AddressHooks.end()) {
+    for (const auto& hook_func : it->second) {
+      hook_func(ppc_context, arg0, arg1);
+    }
+  }
+}
 
 // Checks the state of the global lock and sets scratch to the current MSR
 // value.
@@ -94,6 +110,7 @@ void SyscallHandler(PPCContext* ppc_context, void* arg0, void* arg1) {
 bool PPCFrontend::Initialize() {
   void* arg0 = reinterpret_cast<void*>(&xe::global_critical_region::mutex());
   void* arg1 = reinterpret_cast<void*>(&builtins_.global_lock_count);
+  builtins_.my_hook = processor_->DefineBuiltin("MyHook", MyHook, arg0, arg1);
   builtins_.check_global_lock =
       processor_->DefineBuiltin("CheckGlobalLock", CheckGlobalLock, arg0, arg1);
   builtins_.enter_global_lock =
