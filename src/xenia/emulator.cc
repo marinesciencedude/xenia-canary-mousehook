@@ -116,6 +116,8 @@ DECLARE_int32(user_language);
 DECLARE_bool(allow_plugins);
 DECLARE_bool(disable_autoaim);
 
+DECLARE_bool(internal_hook);
+
 DEFINE_int32(priority_class, 0,
              "Forces Xenia to use different process priority than default one. "
              "It might affect performance and cause unexpected bugs. Possible "
@@ -1855,9 +1857,11 @@ X_STATUS Emulator::CompleteLaunch(const std::filesystem::path& path,
         continue;
       }
       // Write beNOP to each write address
-      patch_addr(build.mousefix_addr1, build.beNOP);
-      patch_addr(build.mousefix_addr2, build.beNOP);
-      patch_addr(build.mousefix_addr3, build.beNOP);
+      if (!cvars::internal_hook) {
+        patch_addr(build.mousefix_addr1, build.beNOP);
+        patch_addr(build.mousefix_addr2, build.beNOP);
+        patch_addr(build.mousefix_addr3, build.beNOP);
+      }
       if (cvars::disable_autoaim && build.aim_assist_xbtl) {
         patch_addr(build.aim_assist_xbtl, build.beNOP);
       }
