@@ -320,7 +320,9 @@ void MinecraftGame::WeaponSwitchHandler(uint32_t user_index,
     }
   }
 }
-
+void MinecraftGame::MidHookInit() {
+  if (midhook_status == HOOKED) return;
+}
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
