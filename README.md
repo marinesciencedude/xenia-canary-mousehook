@@ -18,14 +18,14 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Bloody Good Time |  | 584109B3 | Fair |
 | Postal III | | 4541080F | Fair |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' | 584108A9 | Good | <sub> Camera X rotation might not work when using the tank in the Runway and Street level |
-| Perfect Dark Zero | TU0,TU3 & Platinum Hits base | 4D5307D3 | Good | <sub> No mousehook for Spycam in <br/>Mousehook bindings break in menus and switches to using HID.Winkey bindings.|
+| Perfect Dark Zero | TU0,TU3 & Platinum Hits base | 4D5307D3 | Poor | <sub> No mousehook for Spycam in <br/>Mousehook bindings break in menus and switches to using HID.Winkey bindings.|
 | Perfect Dark XBLA | b33, b52 (TU0), b102, b104, b107 | 584109C2 | Fair |<sub> Camera doesn't work with the camspy <br/>No mousehook for HoverBike |
 | Halo 3 | TU0/TU3 & 08172 'delta' | 4D5307E6 | Fair |
 | Halo 3: ODST | | 4D530877 | Fair |
 | Halo Reach | TU0/TU1 | 4D53085B | Fair |
 | Halo 4 | TU0/TU8 | 4D530919 | Fair |
 | Crackdown 2 | TU0/TU5 | 4D5308BC | Poor | <sub>Only works on-foot |
-| Saints Row 1 | TU1 | 545107D1 | Fair[^1] | <sub> X-Axis can randomly flick to north when using the McManus sniper rifle. <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles.| 
+| Saints Row 1 | TU1 US/TU0 JP | 545107D1 / 545107F8 | Fair[^1] | <sub> weapon10 Reloads current weapon and in conjuction with sr_disable_shared_reload=true which decouples reloading from the internal (A) button which in-game is shared between reload and pickup/replace items. <br/>X-Axis can randomly flick to north when using the McManus sniper rifle. <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles.| 
 | Saints Row 2 | TU3 (8.0.3) | 545107FC | Good[^1] | <sub> ***Some*** diversions/activities might not work great with the mouse, use arrow keys binding for RS <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles. <br/>X-Axis camera in vehicles might not work without `sr_better_drive_cam` set to true (already defaulted to true) | 
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer | 55530804 | Fair|
 | Just Cause | TU0 | 534307D5 | Poor | <sub> Only works on-foot
