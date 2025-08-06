@@ -360,6 +360,11 @@ bool CallOfDutyGame::Dvar_GetBool(std::string dvar, uint32_t dvar_address) {
 
   return state;
 }
+void CallOfDutyGame::MidHookInit() {
+  if (midhook_status == HOOKED) {
+    return;
+  }
+}
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
