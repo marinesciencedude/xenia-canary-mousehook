@@ -39,6 +39,7 @@ class SaintsRow1Game : public HookableGame {
   void WeaponWheelScrollWheel(RawInputState& input_state);
   bool inMapScreen();
   void MapCursor(RawInputState& input_state);
+  void reload_players_weapon();
   void call_argless_function(uint32_t function_address);
   std::string ChooseBinds();
   bool ModifierKeyHandler(uint32_t user_index, RawInputState& input_state,
