@@ -76,6 +76,7 @@ struct GameBuildAddrs {
   uint32_t mp_flag_1;
   uint32_t mp_flag_2;
   uint32_t radian_x_axis_midhook_addr1;
+  uint32_t reload_players_weapon_addr;
 };
 SaintsRow1Game* SaintsRow1Game::current_instance_ = nullptr;
 std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
@@ -85,13 +86,13 @@ std::map<SaintsRow1Game::GameBuild, GameBuildAddrs> supported_builds{
       0x827CF9CC, 0x835F279B, 0x82EDE231, 0x82932407, 0x8283CA7B, 0x835F2883,
       0x82EE12F4, 0x835F2884, 0x835F27A3, 0x835F2527, 0x827CA69C, 0x827F9AD8,
       0x827F9B58, 0x827F99A3, 0x827F956C, 0x822AEB78, 0x822ADC10, 0x827D0484,
-      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522, 0x8211D3E8}},
+      0x835F1A58, 0x837DD080, 0x827F95B4, 0x835F33DF, 0x835F3522,0x8211D3E8 ,0x82496428}},
     {SaintsRow1Game::GameBuild::SaintsRow1_JP,
      {"0.0.0.1",  0x827E9BF8, 0x827E9C00, 0x827E9CA4, 0x82F6E69C, 0x835E2718,
       0x827BFAD0, 0x835E232F, 0x82EE2566, 0x82922507, 0x8282CB7B, 0x835E241B,
       0x82ED13AC, 0x835E241C, 0x835E233B, 0x835E20C7, 0x827BA764, 0x827E9BD8,
       0x827E9C58, 0x827E9AA3, 0x827E966C, 0x822AD718, 0x822AC730, 0x827C058C,
-      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F, 0x8211D428}}};
+      0x835E15F0, 0x837CCC10, 0x827E96B4, 0x835E2F6E, 0x835E2F6F,0x8211D428 ,0x824930C8}}};
 SaintsRow1Game::~SaintsRow1Game() = default;
 std::map<std::pair<uint32_t, std::string>, SaintsRow1Game::GameBuild>
     supported_builds_lookup{{{kTitleIdSaintsRow1Global, "0.0.1.1"},
@@ -472,7 +473,7 @@ bool SaintsRow1Game::CantSwitchWeapons() {
 
 void SaintsRow1Game::WeaponWheelScrollWheel(RawInputState& input_state) {
   if (player == NULL) return;
-  if (CantSwitchWeapons()) return;
+  if (isMP() && CantSwitchWeapons()) return;
 
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
@@ -578,6 +579,27 @@ void SaintsRow1Game::call_argless_function(uint32_t function_address) {
   }
   kernel_state()->processor()->Execute(current_thread->thread_state(),
                                        function_address);
+  return;
+}
+
+void SaintsRow1Game::reload_players_weapon() {
+  XThread* current_thread = XThread::GetCurrentThread();
+  if (!current_thread || !player) {
+    return;
+  }
+
+  uint32_t check_value =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 780);
+  if (check_value != 0) return;
+
+  uint32_t can_we_bitmask =
+      *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(player + 0x1180);
+  if ((((1 << 12) & can_we_bitmask) == 0)) return;
+
+  current_thread->thread_state()->context()->r[3] = player;
+  kernel_state()->processor()->Execute(
+      current_thread->thread_state(),
+      supported_builds[game_build_].reload_players_weapon_addr);
   return;
 }
 
@@ -695,12 +717,16 @@ void SaintsRow1Game::WeaponSwitchHandler(uint32_t user_index,
                                          RawInputState& input_state,
                                          X_INPUT_STATE* out_state, int weapon,
                                          uint16_t buttons) {
+  if (weapon == 10) {
+    reload_players_weapon();
+    return;
+  }
+
   if (isPaused() || isAnimStatus(animstatus::DEAD)) return;
   // This probably works fine but might need more testing, and It'd be more
   // accurate to the SR2 PC port,BUT I prefer being able to switch weapons while
   // sprinting, make this part of a WeaponSwitchHandler cvar in the future?
-  if (isMP())
-    if (CantSwitchWeapons()) return;
+  if (isMP() && CantSwitchWeapons()) return;
   auto* weapon_slot = kernel_memory()->TranslateVirtual<uint8_t*>(
       supported_builds[game_build_].weapon_wheel_slot_address);
   SelectableWeaponsHack();

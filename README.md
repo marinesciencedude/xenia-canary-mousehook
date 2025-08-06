@@ -25,7 +25,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Halo Reach | TU0/TU1 | 4D53085B | Fair |
 | Halo 4 | TU0/TU8 | 4D530919 | Fair |
 | Crackdown 2 | TU0/TU5 | 4D5308BC | Poor | <sub>Only works on-foot |
-| Saints Row 1 | TU1 US/TU0 JP | 545107D1 / 545107F8 | Fair[^1] | <sub> X-Axis can randomly flick to north when using the McManus sniper rifle. <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles.| 
+| Saints Row 1 | TU1 US/TU0 JP | 545107D1 / 545107F8 | Fair[^1] | <sub> weapon10 Reloads current weapon and in conjuction with sr_disable_shared_reload=true which decouples reloading from the internal (A) button which in-game is shared between reload and pickup/replace items. <br/>X-Axis can randomly flick to north when using the McManus sniper rifle. <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles.| 
 | Saints Row 2 | TU3 (8.0.3) | 545107FC | Good[^1] | <sub> ***Some*** diversions/activities might not work great with the mouse, use arrow keys binding for RS <br/>In-game frame limiter might cause mouse to stutter, use Unlock FPS patch and limit framerate externally if desired. <br/>X axis may stutter when moved while entering vehicles. <br/>X-Axis camera in vehicles might not work without `sr_better_drive_cam` set to true (already defaulted to true) | 
 | Dark Messiah of Might and Magic | Singleplayer & Multiplayer | 55530804 | Fair|
 | Just Cause | TU0 | 534307D5 | Poor | <sub> Only works on-foot
