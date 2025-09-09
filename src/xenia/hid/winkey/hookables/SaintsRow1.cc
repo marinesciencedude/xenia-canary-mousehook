@@ -813,7 +813,7 @@ void x_addition_hook(PPCContext* context, void* arg0, void* arg1) {
   }
 
   double degrees = rad_to_deg(context->f[27]);
-  degrees = degrees + (mouse_x_ld / divider);
+  degrees = degrees + ((mouse_x_ld / divider) * (float)cvars::sensitivity);
   context->f[27] = context->f[27] + deg_to_rad(degrees);
   mouse_x_ld = 0;
 }
