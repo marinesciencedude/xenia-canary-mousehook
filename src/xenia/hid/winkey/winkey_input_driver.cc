@@ -696,7 +696,7 @@ X_RESULT WinKeyInputDriver::GetState(uint32_t user_index,
 
   RawInputState state;
 
-  if (window()->HasFocus() && is_active()) {
+  if (window()->HasFocus()) {
     {
       while (!mouse_events_.empty()) {
         MouseEvent* mouse = &mouse_events_.front();
@@ -990,10 +990,6 @@ void WinKeyInputDriver::WinKeyWindowInputListener::OnRawKeyboard(
 }
 
 void WinKeyInputDriver::OnRawKeyboard(ui::KeyEvent& e) {
-  if (!is_active()) {
-    return;
-  }
-
   const auto key = static_cast<uint16_t>(e.virtual_key());
 
   key_states_[key] = e.prev_state();
@@ -1035,10 +1031,6 @@ void WinKeyInputDriver::WinKeyWindowInputListener::OnRawMouse(
 }
 
 void WinKeyInputDriver::OnRawMouse(ui::MouseEvent& evt) {
-  if (!is_active()) {
-    return;
-  }
-
   MouseEvent mouse;
   mouse.x_delta = evt.x();
   mouse.y_delta = evt.y();
