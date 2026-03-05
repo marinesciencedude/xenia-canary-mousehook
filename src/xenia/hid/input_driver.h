@@ -54,10 +54,6 @@ class InputDriver {
 
   virtual InputType GetInputType() const = 0;
 
-  void set_is_active_callback(std::function<bool()> is_active_callback) {
-    is_active_callback_ = is_active_callback;
-  }
-
   uint32_t title_id = 0;
   GameVersion title_version;
 
