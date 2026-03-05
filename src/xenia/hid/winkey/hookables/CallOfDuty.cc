@@ -27,7 +27,7 @@ DECLARE_double(sensitivity);
 DECLARE_double(fov_sensitivity);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
-DECLARE_bool(readback_resolve);
+DECLARE_string(readback_resolve);
 
 const uint32_t kTitleIdCODAW = 0x41560914;
 const uint32_t kTitleIdCODGhostsDEV = 0x4156088E;
@@ -321,7 +321,8 @@ bool CallOfDutyGame::ModifierKeyHandler(uint32_t user_index,
     auto now = std::chrono::steady_clock::now();
 
     if (now - last_toggle_time > toggle_delay) {
-      cvars::readback_resolve = !cvars::readback_resolve;
+      cvars::readback_resolve =  // going to override fast for now
+          cvars::readback_resolve == "none" ? "full" : "none";
 
       last_toggle_time = now;
     }
