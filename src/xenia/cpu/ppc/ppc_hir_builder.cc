@@ -173,12 +173,8 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
       ContextBarrier();
     }
 
-    if (g_AddressHooks.find(address) != g_AddressHooks.end()) {
-      // Store the current address in scratch before calling the hook
-      auto store_addr = LoadConstantUint32(address);
-      StoreContext(offsetof(PPCContext, scratch),
-                   ZeroExtend(store_addr, INT64_TYPE));
-      CallExtern(builtins()->my_hook);
+    if (g_AddressHooks.count(address)) {
+      CallExtern(frontend_->GetOrCreateMidHookBuiltin(address));
     }
     MaybeBreakOnInstruction(address);
 
