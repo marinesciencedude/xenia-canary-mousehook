@@ -65,6 +65,10 @@ class PPCFrontend {
 // Checks the state of the global lock and sets scratch to the current MSR
 // value.
 void CheckGlobalLock(PPCContext* ppc_context, void* arg0, void* arg1);
+
+using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
+void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function);
+bool HasMidHookAt(uint32_t address);
 }  // namespace ppc
 }  // namespace cpu
 }  // namespace xe

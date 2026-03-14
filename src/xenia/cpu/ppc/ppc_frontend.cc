@@ -54,24 +54,15 @@ PPCFrontend::~PPCFrontend() {
 
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
-using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
-std::unordered_map<uint32_t, std::vector<MouseHookMidHook>> g_AddressHooks;
+std::unordered_map<uint32_t, MouseHookMidHook> g_AddressHooks;
 
 void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
   XELOGW("RegisterMidHookASM: Hooking address {:08X}", address);
-  g_AddressHooks[address].push_back(hook_function);
+  g_AddressHooks[address] = hook_function;
 }
-// arg0 holds the guest address this builtin was created for, baked in at
-// DefineBuiltin time. No scratch access needed.
-void MidHookHandler(PPCContext* ppc_context, void* arg0, void* arg1) {
-  uint32_t hook_address =
-      static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg0));
 
-  if (auto it = g_AddressHooks.find(hook_address); it != g_AddressHooks.end()) {
-    for (const auto& hook_func : it->second) {
-      hook_func(ppc_context, arg0, arg1);
-    }
-  }
+bool HasMidHookAt(uint32_t address) {
+  return g_AddressHooks.count(address) > 0;
 }
 
 // Checks the state of the global lock and sets scratch to the current MSR
@@ -116,9 +107,9 @@ Function* PPCFrontend::GetOrCreateMidHookBuiltin(uint32_t address) {
   if (it != midhook_builtins_.end()) {
     return it->second;
   }
-  auto* fn = processor_->DefineBuiltin(
-      fmt::format("MidHook_{:08X}", address), MidHookHandler,
-      reinterpret_cast<void*>(static_cast<uintptr_t>(address)), nullptr);
+  auto* fn =
+      processor_->DefineBuiltin(fmt::format("MidHook_{:08X}", address),
+                                g_AddressHooks.at(address), nullptr, nullptr);
   midhook_builtins_[address] = fn;
   return fn;
 }

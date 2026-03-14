@@ -38,8 +38,7 @@ namespace xe {
 namespace cpu {
 namespace ppc {
 using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
-extern std::unordered_map<uint32_t, std::vector<MouseHookMidHook>>
-    g_AddressHooks;
+extern std::unordered_map<uint32_t, MouseHookMidHook> g_AddressHooks;
 
 // TODO(benvanik): remove when enums redefined.
 using namespace xe::cpu::hir;
