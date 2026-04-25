@@ -9,6 +9,7 @@
 
 #include "xenia/cpu/ppc/ppc_frontend.h"
 
+#include "third_party/fmt/include/fmt/format.h"
 #include "xenia/base/atomic.h"
 #include "xenia/base/logging.h"
 #include "xenia/base/mutex.h"
@@ -53,21 +54,15 @@ PPCFrontend::~PPCFrontend() {
 
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
-using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
-std::unordered_map<uint32_t, std::vector<MouseHookMidHook>> g_AddressHooks;
+std::unordered_map<uint32_t, MouseHookMidHook> g_AddressHooks;
 
 void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
   XELOGW("RegisterMidHookASM: Hooking address {:08X}", address);
-  g_AddressHooks[address].push_back(hook_function);
+  g_AddressHooks[address] = hook_function;
 }
-void MyHook(PPCContext* ppc_context, void* arg0, void* arg1) {
-  uint32_t hook_address = static_cast<uint32_t>(ppc_context->scratch);
 
-  if (auto it = g_AddressHooks.find(hook_address); it != g_AddressHooks.end()) {
-    for (const auto& hook_func : it->second) {
-      hook_func(ppc_context, arg0, arg1);
-    }
-  }
+bool HasMidHookAt(uint32_t address) {
+  return g_AddressHooks.count(address) > 0;
 }
 
 // Checks the state of the global lock and sets scratch to the current MSR
@@ -107,10 +102,21 @@ void SyscallHandler(PPCContext* ppc_context, void* arg0, void* arg1) {
   }
 }
 
+Function* PPCFrontend::GetOrCreateMidHookBuiltin(uint32_t address) {
+  auto it = midhook_builtins_.find(address);
+  if (it != midhook_builtins_.end()) {
+    return it->second;
+  }
+  auto* fn =
+      processor_->DefineBuiltin(fmt::format("MidHook_{:08X}", address),
+                                g_AddressHooks.at(address), nullptr, nullptr);
+  midhook_builtins_[address] = fn;
+  return fn;
+}
+
 bool PPCFrontend::Initialize() {
   void* arg0 = reinterpret_cast<void*>(&xe::global_critical_region::mutex());
   void* arg1 = reinterpret_cast<void*>(&builtins_.global_lock_count);
-  builtins_.my_hook = processor_->DefineBuiltin("MyHook", MyHook, arg0, arg1);
   builtins_.check_global_lock =
       processor_->DefineBuiltin("CheckGlobalLock", CheckGlobalLock, arg0, arg1);
   builtins_.enter_global_lock =

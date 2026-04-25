@@ -38,8 +38,7 @@ namespace xe {
 namespace cpu {
 namespace ppc {
 using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
-extern std::unordered_map<uint32_t, std::vector<MouseHookMidHook>>
-    g_AddressHooks;
+extern std::unordered_map<uint32_t, MouseHookMidHook> g_AddressHooks;
 
 // TODO(benvanik): remove when enums redefined.
 using namespace xe::cpu::hir;
@@ -173,12 +172,8 @@ bool PPCHIRBuilder::Emit(GuestFunction* function, uint32_t flags) {
       ContextBarrier();
     }
 
-    if (g_AddressHooks.find(address) != g_AddressHooks.end()) {
-      // Store the current address in scratch before calling the hook
-      auto store_addr = LoadConstantUint32(address);
-      StoreContext(offsetof(PPCContext, scratch),
-                   ZeroExtend(store_addr, INT64_TYPE));
-      CallExtern(builtins()->my_hook);
+    if (g_AddressHooks.count(address)) {
+      CallExtern(frontend_->GetOrCreateMidHookBuiltin(address));
     }
     MaybeBreakOnInstruction(address);
 
