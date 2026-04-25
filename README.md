@@ -42,10 +42,10 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Call Of Duty Ghosts Alpha | 2-iw6mp.exe / 1-iw6sp.exe / default.xex "May 08 2013 build" | 4156088E | Fair |
 | Call Of Duty Advanced Warfare | Singleplayer & Multiplayer TU17 | 41560914 | Fair | <sub> Modifier bound to readback_resolve <br/>Default: **Capslock** |
 | Wolfenstein | Singleplayer TU0 | 415607DE | Fair |
-| Gears Of Wars 1 | TU0/TU5 | 4D5307D5 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
-| Gears Of Wars 2 | TU0/TU6 | 4D53082D | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
-| Gears Of Wars 3 | TU0/TU6 | 4D5308AB | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook. 
-| Gears Of Wars Judgement | TU0/TU4| 4D530A26 | Fair[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Gears Of Wars 1 | TU0/TU5 | 4D5307D5 | Poor[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Gears Of Wars 2 | TU0/TU6 | 4D53082D | Poor[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
+| Gears Of Wars 3 | TU0/TU6 | 4D5308AB | Poor[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook. 
+| Gears Of Wars Judgement | TU0/TU4| 4D530A26 | Poor[^1] | <sub> Might not work in languages other than in English, also some patches could break mousehook.
 | Section 8 | TU0 | 475007D4 | Fair | <sub> Might not work in languages other than in English, also some patches could break mousehook. <br/>Gun models exhibit odd swaying. |
 | Minecraft | TU75 (1.0.80) | 584111F7 | Good | <sub> Camera exhibits stuttering when moving the player and camera at the same time. |
 
