@@ -9,13 +9,17 @@
 
 #define _USE_MATH_DEFINES
 
-#include "xenia/hid/winkey/hookables/PerfectDarkZero.h"
+#include <algorithm>
+#include <cmath>
 
 #include "xenia/base/platform_win.h"
+#include "xenia/cpu/ppc/ppc_frontend.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/emulator.h"
+#include "xenia/game_launch_hooks.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
+#include "xenia/hid/winkey/hookables/PerfectDarkZero.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xmodule.h"
 #include "xenia/kernel/xthread.h"
@@ -29,6 +33,7 @@ DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_bool(invert_y);
 DECLARE_bool(invert_x);
 DECLARE_bool(ge_gun_sway);
+DECLARE_bool(internal_hook);
 
 const uint32_t kTitleIdPerfectDarkZero = 0x4D5307D3;
 
@@ -83,13 +88,18 @@ std::map<PerfectDarkZeroGame::GameBuild, GameBuildAddrs> supported_builds{
       0xF9C,           0xFA0,      0x82D69048, NULL,       0x820EAF20,
       0x16A3}}};
 
-PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
+static PerfectDarkZeroGame::GameBuild pdz_game_build =
+    PerfectDarkZeroGame::GameBuild::Unknown;
 
+PerfectDarkZeroGame::~PerfectDarkZeroGame() = default;
+static bool pdz_hook_valid = false;
 bool PerfectDarkZeroGame::IsGameSupported(GameVersion title_version) {
   if (kernel_state()->title_id() != kTitleIdPerfectDarkZero) {
     return false;
   }
-
+  if (pdz_hook_valid) {
+    return true;
+  }
   const std::string current_version =
       kernel_state()->emulator()->title_version();
 
@@ -99,6 +109,7 @@ bool PerfectDarkZeroGame::IsGameSupported(GameVersion title_version) {
 
     if (strcmp(build_ptr, build.second.build_string) == 0) {
       game_build_ = build.first;
+      pdz_game_build = build.first;
       return true;
     }
   }
@@ -119,10 +130,43 @@ float PerfectDarkZeroGame::DegreetoRadians(float degree) {
 float PerfectDarkZeroGame::RadianstoDegree(float radians) {
   return (float)(radians * (180 / M_PI));
 }
+static float pdz_mouse_y = 0.f;
+static float pdz_mouse_x = 0.f;
+static bool pdz_gun_start_centering = false;
+
+bool PdzIsUniversalCam(uint8_t cam_type) {
+  if (pdz_game_build == PerfectDarkZeroGame::GameBuild::Unknown ||
+      supported_builds.count(pdz_game_build) == 0) {
+    return false;
+  }
+
+  auto& build = supported_builds[pdz_game_build];
+  xe::be<uint32_t>* base_address =
+      kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+          build.fovscale_address);
+  if (!base_address || *base_address == 0) {
+    return false;
+  }
+
+  xe::be<uint32_t>* ptr1 = kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+      *base_address + 0x53C);
+  if (!ptr1 || *ptr1 == 0) {
+    return false;
+  }
+
+  uint8_t* current_cam =
+      kernel_memory()->TranslateVirtual<uint8_t*>(*ptr1 + 0xB);
+  return current_cam && *current_cam == cam_type;
+}
 
 bool PerfectDarkZeroGame::DoHooks(uint32_t user_index,
                                   RawInputState& input_state,
                                   X_INPUT_STATE* out_state) {
+  if (pdz_hook_valid) {
+    pdz_mouse_x += (input_state.mouse.x_delta / 15.f);
+    pdz_mouse_y += (input_state.mouse.y_delta / 15.f);
+    return true;
+  }
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
@@ -420,6 +464,19 @@ bool PerfectDarkZeroGame::IsPaused(xe::be<uint32_t>* player) {
   }
 }
 
+bool isSpecialCam(uint32_t player, uint32_t special_cam_flag_offset) {
+  uint8_t* special_cam_flag = kernel_memory()->TranslateVirtual<uint8_t*>(
+      player + special_cam_flag_offset);
+
+  if (special_cam_flag && *special_cam_flag == 1) {
+    return true;
+  } else {
+    return false;
+  }
+
+  return false;
+}
+
 bool PerfectDarkZeroGame::isSpecialCam(xe::be<uint32_t>* player,
                                        uint32_t special_cam_flag_offset,
                                        bool universal_addr, uint8_t cam_type) {
@@ -539,10 +596,274 @@ void PerfectDarkZeroGame::WeaponSwitchHandler(uint32_t user_index,
                                               X_INPUT_STATE* out_state,
                                               int weapon, uint16_t buttons) {}
 void PerfectDarkZeroGame::MidHookInit() {
-  if (midhook_status == HOOKED) {
+  if (midhook_status == HOOKED || !cvars::internal_hook) {
     return;
   }
+
+  midhook_status = HOOKED;
 }
+
+static float pdz_game_fov = 0.f;
+
+void fov_store(PPCContext* context, void* arg0, void* arg1) {
+  pdz_game_fov = (float)context->f[0];
+}
+
+void ClampPdzCoverYaw(uint32_t player) {
+  constexpr uint8_t kCoverCam = 3;
+  if (!PdzIsUniversalCam(kCoverCam)) {
+    return;
+  }
+
+  if (!player) {
+    return;
+  }
+
+  auto& build = supported_builds[pdz_game_build];
+  auto* cover_yaw = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      player + build.cover_x_offset);
+  if (!cover_yaw) {
+    return;
+  }
+
+  *cover_yaw = std::clamp(static_cast<float>(*cover_yaw), -68.0f, 68.0f);
+}
+
+constexpr float kPitchMin = -85.0f;
+constexpr float kPitchMax = 85.0f;
+
+void ClampPdzPlayerPitch(uint32_t player) {
+  if (!player) {
+    return;
+  }
+
+  constexpr uint32_t kPlayerPitchOffset = 0x1674;
+  auto* pitch = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      player + kPlayerPitchOffset);
+  if (!pitch) {
+    return;
+  }
+
+  *pitch = std::clamp(static_cast<float>(*pitch), kPitchMin, kPitchMax);
+}
+
+float LimitPdzPitchImpulse(uint32_t player, float impulse, float dt) {
+  if (!player || dt <= 0.0f) {
+    return 0.0f;
+  }
+
+  constexpr uint32_t kPlayerPitchOffset = 0x1674;
+
+  auto* pitch = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+      player + kPlayerPitchOffset);
+  if (!pitch) {
+    return impulse;
+  }
+
+  const float current_pitch = static_cast<float>(*pitch);
+  if (!std::isfinite(current_pitch)) {
+    return 0.0f;
+  }
+
+  const float projected_delta = impulse * dt;
+  if (projected_delta > 0.0f) {
+    const float room = kPitchMax - current_pitch;
+    if (room <= 0.0f) {
+      return 0.0f;
+    }
+    if (projected_delta > room) {
+      return room / dt;
+    }
+  } else if (projected_delta < 0.0f) {
+    const float room = current_pitch - kPitchMin;
+    if (room <= 0.0f) {
+      return 0.0f;
+    }
+    if (-projected_delta > room) {
+      return -room / dt;
+    }
+  }
+
+  return impulse;
+}
+
+void ApplyPdzGunSway(uint32_t player, float mouse_x, float mouse_y,
+                     float fovscale, float dt) {
+  if (!cvars::ge_gun_sway || !player) {
+    return;
+  }
+
+  constexpr uint32_t kGunYOffset = 0xF9C;
+  constexpr uint32_t kGunXOffset = 0xFA0;
+  constexpr uint32_t kGunZoomOffset = 0x1910;
+
+  auto* gun_x =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(player + kGunXOffset);
+  auto* gun_y =
+      kernel_memory()->TranslateVirtual<xe::be<float>*>(player + kGunYOffset);
+  if (!gun_x || !gun_y) {
+    return;
+  }
+
+  const float safe_fovscale = std::max(fovscale, 0.001f);
+  const float raw_mouse_x = mouse_x * 15.0f;
+  const float raw_mouse_y = mouse_y * 15.0f;
+  float gun_x_val = static_cast<float>(*gun_x);
+  float gun_y_val = static_cast<float>(*gun_y);
+
+  if (!std::isfinite(gun_x_val)) {
+    gun_x_val = 0.0f;
+  }
+  if (!std::isfinite(gun_y_val)) {
+    gun_y_val = 0.0f;
+  }
+
+  if (raw_mouse_x != 0.0f || raw_mouse_y != 0.0f) {
+    const float sway_scale =
+        static_cast<float>(cvars::sensitivity) / (20.0f * safe_fovscale);
+
+    if (!cvars::invert_x) {
+      gun_x_val += raw_mouse_x * sway_scale;
+    } else {
+      gun_x_val -= raw_mouse_x * sway_scale;
+    }
+
+    if (!cvars::invert_y) {
+      gun_y_val += raw_mouse_y * sway_scale;
+    } else {
+      gun_y_val -= raw_mouse_y * sway_scale;
+    }
+
+    float x_limit = 6.6f;
+    float y_limit = 1.8f;
+    auto* gun_zoom = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+        player + kGunZoomOffset);
+    if (gun_zoom && safe_fovscale >= 1.05f &&
+        static_cast<float>(*gun_zoom) > 0.0f) {
+      x_limit /= (safe_fovscale * 2.5f);
+      y_limit /= (safe_fovscale * 2.5f);
+    }
+
+    gun_x_val = std::clamp(gun_x_val, -x_limit, x_limit);
+    gun_y_val = std::clamp(gun_y_val, -y_limit, y_limit);
+    pdz_gun_start_centering = true;
+  } else if (pdz_gun_start_centering) {
+    constexpr float kCenteringSpeedPerSecond = 10.0f;
+    const float center_dt =
+        std::clamp(std::isfinite(dt) ? dt : 0.0f, 1.0f / 120.0f, 1.0f / 20.0f);
+    const float center_step = kCenteringSpeedPerSecond * center_dt;
+
+    if (gun_x_val > 0.0f) {
+      gun_x_val -= std::min(center_step, gun_x_val);
+    } else if (gun_x_val < 0.0f) {
+      gun_x_val += std::min(center_step, -gun_x_val);
+    }
+
+    if (gun_y_val > 0.0f) {
+      gun_y_val -= std::min(center_step, gun_y_val);
+    } else if (gun_y_val < 0.0f) {
+      gun_y_val += std::min(center_step, -gun_y_val);
+    }
+
+    if (gun_x_val == 0.0f && gun_y_val == 0.0f) {
+      pdz_gun_start_centering = false;
+    }
+  }
+
+  *gun_x = gun_x_val;
+  *gun_y = gun_y_val;
+}
+
+namespace {
+struct PdzLaunchHook {
+  PdzLaunchHook() {
+    xe::GameLaunchHooks::OnPreLaunch().AddListener(
+        [](xe::kernel::UserModule* module) {
+          if (!cvars::internal_hook) {
+            return;
+          }
+
+          auto pattern = xe::hid::winkey::guest_pattern(
+              "7D 88 02 A6 ? ? ? ? 39 81 ? ? ? ? ? ? 94 21 ? ? 7C BF "
+              "2B 78 FF E0 08 90 7C 7D 1B 78");
+          if (pattern.empty()) {
+            return;
+          }
+          auto pattern2 = guest_pattern(
+              "39 6B ? ? 38 A0 00 00 38 80 ? ? 38 61 ? ? 3B 80 00 00");
+          if (pattern2.empty()) {
+            return;
+          }
+          pdz_hook_valid = true;
+          xe::cpu::ppc::RegisterFunctionHook<void, uint32_t, uint32_t, uint32_t,
+                                             double>(
+              pattern.get_first(), [](auto& ctx, uint32_t ptr1, uint32_t ptr2,
+                                      uint32_t ptr3, double a4) {
+                if (!ptr3) {
+                  ctx.CallOriginal(ptr1, ptr2, ptr3, a4);
+                  return;
+                }
+
+                auto aTurn = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                    ptr3 + 0x3C);
+                auto aLookUp =
+                    kernel_memory()->TranslateVirtual<xe::be<float>*>(ptr3 +
+                                                                      0x40);
+                if (!aTurn || !aLookUp) {
+                  ctx.CallOriginal(ptr1, ptr2, ptr3, a4);
+                  return;
+                }
+
+                float fovscale = 1.f;
+
+                if (pdz_game_fov != 0.f && pdz_game_fov != 58.f) {
+                  fovscale = (58.f / pdz_game_fov);
+
+                  if (fovscale >= 45.f) {
+                    fovscale /= 2.5;  // For snipers, otherwise it's too slow!
+                  }
+
+                  if (fovscale > 1.f) {
+                    fovscale = (cvars::fov_sensitivity * fovscale +
+                                (1 - cvars::fov_sensitivity) *
+                                    (fovscale * fovscale) * 1.1f);
+                  }
+                }
+                // XELOGI("fov {}", fovscale);
+                const float consumed_mouse_x = pdz_mouse_x;
+                const float consumed_mouse_y = pdz_mouse_y;
+                float turn_impulse = -((consumed_mouse_x / fovscale) * 100.f);
+                float look_impulse = (consumed_mouse_y / fovscale) * 100.f;
+                if (ptr1 == ptr2 && ptr3 == ptr1 + 0xF50) {
+                  look_impulse = LimitPdzPitchImpulse(ptr1, look_impulse,
+                                                      static_cast<float>(a4));
+                }
+
+                *aTurn = float(*aTurn) + turn_impulse;
+                *aLookUp = float(*aLookUp) + look_impulse;
+                pdz_mouse_x = 0.0f;
+                pdz_mouse_y = 0.0f;
+
+                ctx.CallOriginal(ptr1, ptr2, ptr3, a4);
+
+                *aTurn = 0.0f;
+                *aLookUp = 0.0f;
+                // bool minigame_thingy = isSpecialCam(ptr1, 0x1691);
+                if (ptr1 == ptr2 && ptr3 == ptr1 + 0xF50) {
+                  ClampPdzCoverYaw(ptr1);
+                  ClampPdzPlayerPitch(ptr1);
+                  ApplyPdzGunSway(ptr1, consumed_mouse_x, consumed_mouse_y,
+                                  fovscale, static_cast<float>(a4));
+                }
+              });
+          xe::cpu::ppc::RegisterMidHookASM(pattern2.get_first(), fov_store);
+        });
+  }
+};
+
+static PdzLaunchHook pdz_launch_hook;
+}  // namespace
+
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

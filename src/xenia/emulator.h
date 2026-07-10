@@ -302,6 +302,7 @@ class Emulator {
   void WaitUntilExit();
 
  public:
+  xe::Delegate<kernel::UserModule*> on_pre_launch;
   xe::Delegate<uint32_t, const std::string_view> on_launch;
   xe::Delegate<bool> on_shader_storage_initialization;
   xe::Delegate<> on_patch_apply;
