@@ -20,6 +20,7 @@
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/hid/winkey/hookables/PerfectDarkZero.h"
+#include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xmodule.h"
 #include "xenia/kernel/xthread.h"
@@ -779,7 +780,8 @@ struct PdzLaunchHook {
   PdzLaunchHook() {
     xe::GameLaunchHooks::OnPreLaunch().AddListener(
         [](xe::kernel::UserModule* module) {
-          if (!cvars::internal_hook) {
+          if (module->title_id() != kTitleIdPerfectDarkZero ||
+              !cvars::internal_hook) {
             return;
           }
 

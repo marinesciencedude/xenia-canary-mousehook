@@ -11,12 +11,14 @@
 
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 
+#include <xenia/game_launch_hooks.h>
 #include "xenia/base/chrono.h"
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/emulator.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
+#include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xmodule.h"
 #include "xenia/kernel/xthread.h"
@@ -102,29 +104,17 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 static bool bypass_conditions = false;
 
-static bool bool_scanned = false;
-static bool valid_game = true;
+static bool valid_game = false;
 bool GearsOfWarsGame::IsGameSupported(GameVersion title_version) {
+  if (valid_game) {
+    return true;
+  }
   if (kernel_state()->title_id() != kTitleIdGearsOfWars3 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars2 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars1 &&
       kernel_state()->title_id() != kTitleIdGearsOfWarsJudgment &&
       kernel_state()->title_id() != kTitleIdSection8) {
     return false;
-  }
-
-  if (cvars::internal_hook && !bool_scanned) {
-    auto pattern = guest_pattern(
-        "7D 88 02 A6 ? ? ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F 1B 78 7C 9E "
-        "23 78 FF E0 08 90 55 6A 02 94");
-    if (!pattern.empty()) {
-      valid_game = true;
-    }
-    bool_scanned = true;
-  }
-
-  if (valid_game) {
-    return true;
   }
 
   uint32_t title_id = kernel_state()->title_id();
@@ -476,44 +466,67 @@ void GearsOfWarsGame::MidHookInit() {
   if (midhook_status == HOOKED || !valid_game) {
     return;
   }
-
-  // xe::cpu::ppc::RegisterMidHookASM(0x82A28200, i_hate_this);
-
-  auto pattern = guest_pattern(
-      "7D 88 02 A6 ? ? ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F 1B 78 7C 9E "
-      "23 78 FF E0 08 90 55 6A 02 94");
-  if (!pattern.empty()) {
-    xe::cpu::ppc::RegisterFunctionHook<void, uint32_t, uint32_t, double>(
-        pattern.get_first(),
-        [](auto& ctx, uint32_t this_ptr, uint32_t axis_ptr, double delta) {
-          static bool doingit = true;
-
-          ctx.CallOriginal(this_ptr, axis_ptr, delta);
-
-          if (this_ptr && doingit) {
-            auto aTurn = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                this_ptr + 0x114);
-            auto aLookUp = kernel_memory()->TranslateVirtual<xe::be<float>*>(
-                this_ptr + 0x120);
-            float turn = *aTurn;
-            float lookup = *aLookUp;
-            turn += gears_mouse_x;
-            lookup += gears_mouse_y;
-
-            *aTurn = turn;
-            *aLookUp = lookup;
-            gears_mouse_x = 0;
-            gears_mouse_y = 0;
-
-            XELOGI("the stuff {} {} {}",
-                   fmt::ptr(reinterpret_cast<void*>(
-                       static_cast<uintptr_t>(this_ptr))),
-                   fmt::ptr(&doingit), fmt::ptr(aLookUp));
-          }
-        });
-    midhook_status = HOOKED;
-  }
 }
+
+namespace {
+struct GearsLaunchHook {
+  GearsLaunchHook() {
+    xe::GameLaunchHooks::OnPreLaunch().AddListener([](xe::kernel::UserModule*
+                                                          module) {
+      if (!cvars::internal_hook) {
+        return;
+      }
+
+      if (module->title_id() != kTitleIdGearsOfWars3 &&
+          module->title_id() != kTitleIdGearsOfWarsJudgment) {
+        return;
+      }
+
+      // GOW3
+      auto pattern = guest_pattern(
+          "7D 88 02 A6 ? ? ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F 1B 78 7C 9E "
+          "23 78 FF E0 08 90 55 6A 02 94");
+      if (pattern.size() != 1) {
+        // Judgment
+        pattern = guest_pattern(
+            "7D 88 02 A6 ? ? ? ? DB C1 ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F "
+            "1B "
+            "78 7C 9E 23 78 FF E0 08 90");
+      }
+
+      if (!pattern.empty()) {
+        valid_game = true;
+        xe::cpu::ppc::RegisterFunctionHook<void, uint32_t, uint32_t, double>(
+            pattern.get_first(),
+            [](auto& ctx, uint32_t this_ptr, uint32_t axis_ptr, double delta) {
+              static bool doingit = true;
+
+              ctx.CallOriginal(this_ptr, axis_ptr, delta);
+
+              if (this_ptr && doingit) {
+                auto aTurn = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                    this_ptr + 0x114);
+                auto aLookUp =
+                    kernel_memory()->TranslateVirtual<xe::be<float>*>(this_ptr +
+                                                                      0x120);
+                float turn = *aTurn;
+                float lookup = *aLookUp;
+                turn += gears_mouse_x;
+                lookup += gears_mouse_y;
+
+                *aTurn = turn;
+                *aLookUp = lookup;
+                gears_mouse_x = 0;
+                gears_mouse_y = 0;
+              }
+            });
+      }
+    });
+  }
+};
+
+static GearsLaunchHook pdz_launch_hook;
+}  // namespace
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe
