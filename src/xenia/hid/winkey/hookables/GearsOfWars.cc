@@ -11,12 +11,14 @@
 
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
 
+#include <xenia/game_launch_hooks.h>
 #include "xenia/base/chrono.h"
 #include "xenia/base/platform_win.h"
 #include "xenia/cpu/processor.h"
 #include "xenia/emulator.h"
 #include "xenia/hid/hid_flags.h"
 #include "xenia/hid/input_system.h"
+#include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
 #include "xenia/kernel/xmodule.h"
 #include "xenia/kernel/xthread.h"
@@ -31,6 +33,7 @@ DECLARE_double(right_stick_hold_time_workaround);
 DECLARE_int32(ue3_use_timer_to_hook_workaround);
 DECLARE_bool(use_right_stick_workaround);
 DECLARE_bool(use_right_stick_workaround_gears1and2);
+DECLARE_bool(internal_hook);
 
 const uint32_t kTitleIdGearsOfWars3 = 0x4D5308AB;
 const uint32_t kTitleIdGearsOfWars2 = 0x4D53082D;
@@ -100,7 +103,12 @@ std::map<GearsOfWarsGame::GameBuild, GameBuildAddrs> supported_builds{
 
 GearsOfWarsGame::~GearsOfWarsGame() = default;
 static bool bypass_conditions = false;
+
+static bool valid_game = false;
 bool GearsOfWarsGame::IsGameSupported(GameVersion title_version) {
+  if (valid_game) {
+    return true;
+  }
   if (kernel_state()->title_id() != kTitleIdGearsOfWars3 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars2 &&
       kernel_state()->title_id() != kTitleIdGearsOfWars1 &&
@@ -108,6 +116,7 @@ bool GearsOfWarsGame::IsGameSupported(GameVersion title_version) {
       kernel_state()->title_id() != kTitleIdSection8) {
     return false;
   }
+
   uint32_t title_id = kernel_state()->title_id();
   const std::string current_version =
       kernel_state()->emulator()->title_version();
@@ -201,9 +210,16 @@ bool GearsOfWarsGame::IsGameSupported(GameVersion title_version) {
 
   return false;
 }
-
+static float gears_mouse_x = 0.f;
+static float gears_mouse_y = 0.f;
 bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
                               X_INPUT_STATE* out_state) {
+  if (valid_game) {
+    gears_mouse_x += (input_state.mouse.x_delta / 15.f);
+    gears_mouse_y += (input_state.mouse.y_delta / 15.f);
+    return true;
+  }
+
   if (supported_builds.count(game_build_) == 0) {
     return false;
   }
@@ -270,52 +286,51 @@ bool GearsOfWarsGame::DoHooks(uint32_t user_index, RawInputState& input_state,
     }
   }
 
-  if (bypass_conditions) {
-    xe::be<uint16_t>* degree_x;
-    xe::be<uint16_t>* degree_y;
-    // printf("Current Build: %d\n", static_cast<int>(game_build_));
-    uint32_t base_address =
-        *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
-            supported_builds[game_build_].camera_base_address);
-    // printf("BASE ADDRESS: 0x%08X\n", base_address);
-    if (base_address && base_address >= 0x40000000 &&
-        base_address < 0x50000000) {
-      // most likely between 40000000 - 50000000,
-      // thanks Marine.
-      degree_x = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
-          base_address + supported_builds[game_build_].x_offset);
-      // printf("DEGREE_X ADDRESS: 0x%08X\n",
-      //     (base_address + supported_builds[game_build_].x_offset));
+  // if (bypass_conditions) {
+  //   xe::be<uint16_t>* degree_x;
+  //   xe::be<uint16_t>* degree_y;
+  //   // printf("Current Build: %d\n", static_cast<int>(game_build_));
+  //   uint32_t base_address =
+  //       *kernel_memory()->TranslateVirtual<xe::be<uint32_t>*>(
+  //           supported_builds[game_build_].camera_base_address);
+  //   // printf("BASE ADDRESS: 0x%08X\n", base_address);
+  //   if (base_address && base_address >= 0x40000000 &&
+  //       base_address < 0x50000000) {
+  //     // most likely between 40000000 - 50000000,
+  //     // thanks Marine.
+  //     degree_x = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
+  //         base_address + supported_builds[game_build_].x_offset);
+  //     // printf("DEGREE_X ADDRESS: 0x%08X\n",
+  //     //     (base_address + supported_builds[game_build_].x_offset));
 
-      degree_y = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
-          base_address + supported_builds[game_build_].y_offset);
-      // printf("DEGREE_Y ADDRESS: 0x%08X\n",
-      //        (base_address + supported_builds[game_build_].x_offset));
-      float divisor = 10.f * FOVScale();
-      uint16_t x_delta = static_cast<uint16_t>(
-          (input_state.mouse.x_delta * divisor) * cvars::sensitivity);
-      uint16_t y_delta = static_cast<uint16_t>(
-          (input_state.mouse.y_delta * divisor) * cvars::sensitivity);
-      if (!cvars::invert_x) {
-        *degree_x += x_delta;
-      } else {
-        *degree_x -= x_delta;
-      }
-      uint16_t degree_y_calc = *degree_y;
-      if (!cvars::invert_y) {
-        degree_y_calc -= y_delta;
-      } else {
-        degree_y_calc += y_delta;
-      }
-      if (supported_builds[game_build_].max_up) {
-        ClampYAxis(degree_y_calc, supported_builds[game_build_].max_down,
-                   supported_builds[game_build_].max_up);
-      }
-      *degree_y = degree_y_calc;
-    } else {
-      return false;
-    }
-  }
+  //    degree_y = kernel_memory()->TranslateVirtual<xe::be<uint16_t>*>(
+  //        base_address + supported_builds[game_build_].y_offset);
+  //    // printf("DEGREE_Y ADDRESS: 0x%08X\n",
+  //    //        (base_address + supported_builds[game_build_].x_offset));
+  //    float divisor = 10.f * FOVScale();
+  //    uint16_t x_delta = static_cast<uint16_t>(
+  //        (input_state.mouse.x_delta * divisor) * cvars::sensitivity);
+  //    uint16_t y_delta = static_cast<uint16_t>(
+  //        (input_state.mouse.y_delta * divisor) * cvars::sensitivity);
+  //    if (!cvars::invert_x) {
+  //      *degree_x += x_delta;
+  //    } else {
+  //      *degree_x -= x_delta;
+  //    }
+  //    uint16_t degree_y_calc = *degree_y;
+  //    if (!cvars::invert_y) {
+  //      degree_y_calc -= y_delta;
+  //    } else {
+  //      degree_y_calc += y_delta;
+  //    }
+  //    if (supported_builds[game_build_].max_up)
+  //      ClampYAxis(degree_y_calc, supported_builds[game_build_].max_down,
+  //                 supported_builds[game_build_].max_up);
+  //    *degree_y = degree_y_calc;
+  //  } else {
+  //    return false;
+  //  }
+  //}
   return true;
 }
 
@@ -441,11 +456,77 @@ void GearsOfWarsGame::WeaponSwitchHandler(uint32_t user_index,
                                           RawInputState& input_state,
                                           X_INPUT_STATE* out_state, int weapon,
                                           uint16_t buttons) {}
+
+void i_hate_this(PPCContext* context, void* arg0, void* arg1) {
+  auto thisa = context->r[3];
+  XELOGI("i hate this {}", fmt::ptr((void*)thisa));
+}
+
 void GearsOfWarsGame::MidHookInit() {
-  if (midhook_status == HOOKED) {
+  if (midhook_status == HOOKED || !valid_game) {
     return;
   }
 }
+
+namespace {
+struct GearsLaunchHook {
+  GearsLaunchHook() {
+    xe::GameLaunchHooks::OnPreLaunch().AddListener([](xe::kernel::UserModule*
+                                                          module) {
+      if (!cvars::internal_hook) {
+        return;
+      }
+
+      if (module->title_id() != kTitleIdGearsOfWars3 &&
+          module->title_id() != kTitleIdGearsOfWarsJudgment) {
+        return;
+      }
+
+      // GOW3
+      auto pattern = guest_pattern(
+          "7D 88 02 A6 ? ? ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F 1B 78 7C 9E "
+          "23 78 FF E0 08 90 55 6A 02 94");
+      if (pattern.size() != 1) {
+        // Judgment
+        pattern = guest_pattern(
+            "7D 88 02 A6 ? ? ? ? DB C1 ? ? DB E1 ? ? 94 21 ? ? 81 63 ? ? 7C 7F "
+            "1B "
+            "78 7C 9E 23 78 FF E0 08 90");
+      }
+
+      if (!pattern.empty()) {
+        valid_game = true;
+        xe::cpu::ppc::RegisterFunctionHook<void, uint32_t, uint32_t, double>(
+            pattern.get_first(),
+            [](auto& ctx, uint32_t this_ptr, uint32_t axis_ptr, double delta) {
+              static bool doingit = true;
+
+              ctx.CallOriginal(this_ptr, axis_ptr, delta);
+
+              if (this_ptr && doingit) {
+                auto aTurn = kernel_memory()->TranslateVirtual<xe::be<float>*>(
+                    this_ptr + 0x114);
+                auto aLookUp =
+                    kernel_memory()->TranslateVirtual<xe::be<float>*>(this_ptr +
+                                                                      0x120);
+                float turn = *aTurn;
+                float lookup = *aLookUp;
+                turn += gears_mouse_x;
+                lookup += gears_mouse_y;
+
+                *aTurn = turn;
+                *aLookUp = lookup;
+                gears_mouse_x = 0;
+                gears_mouse_y = 0;
+              }
+            });
+      }
+    });
+  }
+};
+
+static GearsLaunchHook pdz_launch_hook;
+}  // namespace
 }  // namespace winkey
 }  // namespace hid
 }  // namespace xe

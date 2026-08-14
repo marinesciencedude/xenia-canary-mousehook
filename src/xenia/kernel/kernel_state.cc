@@ -14,6 +14,7 @@
 #include "xenia/base/byte_stream.h"
 #include "xenia/base/logging.h"
 #include "xenia/emulator.h"
+#include "xenia/game_launch_hooks.h"
 #include "xenia/hid/input_system.h"
 #include "xenia/kernel/user_module.h"
 #include "xenia/kernel/util/shim_utils.h"
@@ -429,6 +430,9 @@ object_ref<XThread> KernelState::LaunchModule(object_ref<UserModule> module) {
 
   // Waits for a debugger client, if desired.
   emulator()->processor()->PreLaunch();
+
+  xe::GameLaunchHooks::OnPreLaunch()(module.get());
+  emulator()->on_pre_launch(module.get());
 
   return thread;
 }

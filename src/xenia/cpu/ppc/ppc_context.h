@@ -416,6 +416,10 @@ typedef struct alignas(64) PPCContext_s {
   // Used to shuttle data into externs. Contents volatile.
   uint64_t scratch;
 
+  // Used by host-side function hooks to tell generated code to skip the
+  // original guest function body after the hook handler has run.
+  uint64_t function_hook_handled;
+
   // Processor-specific data pointer. Used on callbacks to get access to the
   // current runtime and its data.
   Processor* processor;

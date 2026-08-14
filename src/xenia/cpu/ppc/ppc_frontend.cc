@@ -55,6 +55,9 @@ PPCFrontend::~PPCFrontend() {
 Memory* PPCFrontend::memory() const { return processor_->memory(); }
 
 std::unordered_map<uint32_t, MouseHookMidHook> g_AddressHooks;
+std::unordered_map<uint32_t, std::unique_ptr<function_hook::FunctionHookBase>>
+    g_FunctionHooks;
+thread_local std::unordered_map<uint32_t, uint32_t> g_FunctionHookBypassCounts;
 
 void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
   XELOGW("RegisterMidHookASM: Hooking address {:08X}", address);
@@ -63,6 +66,56 @@ void RegisterMidHookASM(uint32_t address, MouseHookMidHook hook_function) {
 
 bool HasMidHookAt(uint32_t address) {
   return g_AddressHooks.count(address) > 0;
+}
+
+void FunctionHookBuiltin(PPCContext* ppc_context, void* arg0, void* arg1) {
+  auto address = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(arg0));
+  auto it = g_FunctionHooks.find(address);
+  ppc_context->function_hook_handled = 0;
+  if (it == g_FunctionHooks.end()) {
+    return;
+  }
+  it->second->Invoke(ppc_context);
+}
+
+namespace function_hook {
+
+void RegisterFunctionHookImpl(uint32_t address,
+                              std::unique_ptr<FunctionHookBase> hook) {
+  XELOGW("RegisterFunctionHook: Hooking function {:08X}", address);
+  g_FunctionHooks[address] = std::move(hook);
+}
+
+bool HasFunctionHookAt(uint32_t address) {
+  return g_FunctionHooks.count(address) > 0;
+}
+
+bool IsFunctionHookBypassed(uint32_t address) {
+  auto it = g_FunctionHookBypassCounts.find(address);
+  return it != g_FunctionHookBypassCounts.end() && it->second != 0;
+}
+
+void BeginFunctionHookBypass(uint32_t address) {
+  ++g_FunctionHookBypassCounts[address];
+}
+
+void EndFunctionHookBypass(uint32_t address) {
+  auto it = g_FunctionHookBypassCounts.find(address);
+  assert_true(it != g_FunctionHookBypassCounts.end());
+  assert_true(it->second != 0);
+  if (--it->second == 0) {
+    g_FunctionHookBypassCounts.erase(it);
+  }
+}
+
+void ExecuteFunctionHookOriginal(PPCContext* context, uint32_t address) {
+  context->processor->Execute(context->thread_state, address);
+}
+
+}  // namespace function_hook
+
+bool HasFunctionHookAt(uint32_t address) {
+  return function_hook::HasFunctionHookAt(address);
 }
 
 // Checks the state of the global lock and sets scratch to the current MSR
@@ -111,6 +164,18 @@ Function* PPCFrontend::GetOrCreateMidHookBuiltin(uint32_t address) {
       processor_->DefineBuiltin(fmt::format("MidHook_{:08X}", address),
                                 g_AddressHooks.at(address), nullptr, nullptr);
   midhook_builtins_[address] = fn;
+  return fn;
+}
+
+Function* PPCFrontend::GetOrCreateFunctionHookBuiltin(uint32_t address) {
+  auto it = function_hook_builtins_.find(address);
+  if (it != function_hook_builtins_.end()) {
+    return it->second;
+  }
+  auto* fn = processor_->DefineBuiltin(
+      fmt::format("FunctionHook_{:08X}", address), FunctionHookBuiltin,
+      reinterpret_cast<void*>(uintptr_t(address)), nullptr);
+  function_hook_builtins_[address] = fn;
   return fn;
 }
 

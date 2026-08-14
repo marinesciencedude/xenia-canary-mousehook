@@ -11,23 +11,21 @@
 #ifndef XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 #define XENIA_HID_WINKEY_HOOKABLE_GAME_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
 #include <vector>
-#include "xenia/cpu/ppc/ppc_context.h"
+#include "xenia/cpu/ppc/ppc_frontend.h"
 #include "xenia/hid/input.h"
 #include "xenia/hid/input_driver.h"
+#include "xenia/kernel/util/shim_utils.h"
+#include "xenia/memory.h"
 #include "xenia/xbox.h"
 #ifdef XENIA_MOUSEHOOK_MESSAGE
 #include "xenia/ui/imgui_guest_notification.h"
 #include "xenia/ui/imgui_host_notification.h"
 #endif
 namespace xe {
-namespace cpu {
-namespace ppc {
-using MouseHookMidHook = void (*)(PPCContext* context, void* arg0, void* arg1);
-extern void RegisterMidHookASM(uint32_t address,
-                               MouseHookMidHook hook_function);
-};  // namespace ppc
-};  // namespace cpu
 namespace hid {
 namespace winkey {
 static bool mousehook_message_read;
@@ -67,6 +65,65 @@ class HookableGame {
 
 xe::be<uint32_t>* multi_pointer(uint32_t base_address,
                                 std::vector<uint32_t> offsets);
+
+class guest_pattern_match {
+ public:
+  explicit guest_pattern_match(uint32_t guest_address)
+      : guest_address_(guest_address) {}
+
+  uint32_t guest_address(std::ptrdiff_t offset = 0) const {
+    return static_cast<uint32_t>(static_cast<int64_t>(guest_address_) + offset);
+  }
+
+  template <typename T = void*>
+  T translated(std::ptrdiff_t offset = 0) const {
+    return xe::kernel::kernel_memory()->TranslateVirtual<T>(
+        guest_address(offset));
+  }
+
+ private:
+  uint32_t guest_address_;
+};
+
+class guest_pattern {
+ public:
+  explicit guest_pattern(std::string_view pattern);
+  guest_pattern(std::string_view module_name, std::string_view pattern);
+  guest_pattern(uint32_t guest_start, uint32_t guest_end,
+                std::string_view pattern);
+
+  guest_pattern&& count(uint32_t expected);
+  size_t size();
+  bool empty();
+
+  guest_pattern_match get(size_t index);
+  uint32_t get_first(std::ptrdiff_t offset = 0);
+
+  template <typename T = void*>
+  T get_first_translated(std::ptrdiff_t offset = 0) {
+    return get(0).translated<T>(offset);
+  }
+
+ private:
+  void Initialize(std::string_view pattern);
+  void EnsureMatches(uint32_t max_count);
+
+  uint32_t range_start_ = 0;
+  uint32_t range_end_ = 0;
+  std::vector<uint8_t> bytes_;
+  std::vector<uint8_t> mask_;
+  std::vector<guest_pattern_match> matches_;
+  bool matched_ = false;
+};
+
+uint32_t get_guest_pattern(std::string_view pattern, std::ptrdiff_t offset = 0);
+
+template <typename T = void*>
+T get_guest_pattern_translated(std::string_view pattern,
+                               std::ptrdiff_t offset = 0) {
+  return guest_pattern(pattern).get_first_translated<T>(offset);
+}
+
 #ifdef XENIA_MOUSEHOOK_MESSAGE
 enum notification_type : uint8_t {
   MESSAGE_TYPE_XNotify = 0,
