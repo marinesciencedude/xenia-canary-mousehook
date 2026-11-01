@@ -18,6 +18,7 @@ Mousehook implements mouse input into games by injecting into game memory, most 
 | Bloody Good Time |  | 584109B3 | Fair |
 | Postal III | | 4541080F | Fair |
 | GoldenEye XBLA | Nov 16th 2007, also renamed as 'Aug 25th 2007' | 584108A9 | Good | <sub> Camera X rotation might not work when using the tank in the Runway and Street level |
+| GoldenEye 007 Reloaded | Retail TU0 (Media ID 40583A82) | 415608AF | Good | <sub> On foot the mouse is injected straight into the camera from raw input (no stick dead zone/acceleration). <br/>In vehicles (e.g. the Dam truck) the mouse emulates the right stick, tune with `ge_reloaded_vehicle_sensitivity`. <br/>Controller aim assist (aim snap, lock-on, target tracking) is disabled while using the mouse, `ge_reloaded_aim_assist = true` brings it back. <br/>Sensitivity is only lowered while aiming through a zoomed scope, scaled by `fov_sensitivity` |
 | Perfect Dark Zero | TU0,TU3 & Platinum Hits base | 4D5307D3 | Poor | <sub> No mousehook for Spycam in <br/>Mousehook bindings break in menus and switches to using HID.Winkey bindings.|
 | Perfect Dark XBLA | b33, b52 (TU0), b102, b104, b107 | 584109C2 | Fair |<sub> Camera doesn't work with the camspy <br/>No mousehook for HoverBike |
 | Halo 3 | TU0/TU3 & 08172 'delta' | 4D5307E6 | Fair |

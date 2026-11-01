@@ -8,6 +8,9 @@
  */
 
 #include "xenia/hid/winkey/hookables/hookable_game.h"
+
+#include <atomic>
+
 #include "xenia/emulator.h"
 #include "xenia/kernel/util/shim_utils.h"
 
@@ -30,6 +33,19 @@ xe::be<uint32_t>* multi_pointer(uint32_t base_address,
     }
   }
   return current_pointer;
+}
+
+static std::atomic<int64_t> raw_mouse_x_{0};
+static std::atomic<int64_t> raw_mouse_y_{0};
+
+void AddRawMouseMotion(int32_t x_delta, int32_t y_delta) {
+  raw_mouse_x_.fetch_add(x_delta, std::memory_order_relaxed);
+  raw_mouse_y_.fetch_add(y_delta, std::memory_order_relaxed);
+}
+
+void TakeRawMouseMotion(int64_t& x_delta, int64_t& y_delta) {
+  x_delta = raw_mouse_x_.exchange(0, std::memory_order_relaxed);
+  y_delta = raw_mouse_y_.exchange(0, std::memory_order_relaxed);
 }
 #ifdef XENIA_MOUSEHOOK_MESSAGE
 bool mousehook_message_wrapper(std::string message, bool handleseen,

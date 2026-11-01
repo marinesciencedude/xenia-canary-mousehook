@@ -67,6 +67,12 @@ class HookableGame {
 
 xe::be<uint32_t>* multi_pointer(uint32_t base_address,
                                 std::vector<uint32_t> offsets);
+
+// Raw mouse motion, accumulated on the UI thread as it arrives. Lets hooks
+// that run inside a game's camera update take all motion up to that moment,
+// instead of whatever was delivered with the game's last XInputGetState poll.
+void AddRawMouseMotion(int32_t x_delta, int32_t y_delta);
+void TakeRawMouseMotion(int64_t& x_delta, int64_t& y_delta);
 #ifdef XENIA_MOUSEHOOK_MESSAGE
 enum notification_type : uint8_t {
   MESSAGE_TYPE_XNotify = 0,

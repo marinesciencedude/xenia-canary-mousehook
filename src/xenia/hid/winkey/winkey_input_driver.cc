@@ -23,6 +23,7 @@
 #include "xenia/hid/winkey/hookables/DeadRising.h"
 #include "xenia/hid/winkey/hookables/Farcry.h"
 #include "xenia/hid/winkey/hookables/GearsOfWars.h"
+#include "xenia/hid/winkey/hookables/GoldenEyeReloaded.h"
 #include "xenia/hid/winkey/hookables/JustCause.h"
 #include "xenia/hid/winkey/hookables/Minecraft.h"
 #include "xenia/hid/winkey/hookables/PerfectDarkZero.h"
@@ -636,6 +637,8 @@ WinKeyInputDriver::WinKeyInputDriver(xe::ui::Window* window,
   hookable_games_.push_back(std::move(std::make_unique<CallOfDutyGame>()));
   hookable_games_.push_back(std::move(std::make_unique<PerfectDarkZeroGame>()));
   hookable_games_.push_back(std::move(std::make_unique<MinecraftGame>()));
+  hookable_games_.push_back(
+      std::move(std::make_unique<GoldenEyeReloadedGame>()));
 
   auto path = std::filesystem::current_path() / "bindings.ini";
 
@@ -1039,6 +1042,10 @@ void WinKeyInputDriver::OnRawMouse(ui::MouseEvent& evt) {
   mouse.buttons = evt.scroll_x();
   mouse.wheel_delta = evt.scroll_y();
   mouse_events_.push(mouse);
+
+  if (window()->HasFocus()) {
+    AddRawMouseMotion(mouse.x_delta, mouse.y_delta);
+  }
 
   {
     if (mouse.buttons & RI_MOUSE_LEFT_BUTTON_DOWN) {
